@@ -28,103 +28,209 @@
 
     <!-- コントロールエリア -->
     <div class="space-y-6">
-      <!-- BPMコントロール -->
-      <div>
-        <label class="label">
-          <span class="label-text">BPM: {{ metronome.bpm }}</span>
-        </label>
-        <div class="flex items-center gap-2">
-          <button
-            class="btn btn-outline btn-sm rounded-full"
-            @click="decrementBpm"
-            :disabled="metronome.bpm <= 40"
-          >
-            -
-          </button>
-          <input
-            type="range"
-            min="40"
-            max="200"
-            :value="metronome.bpm"
-            @input="updateBpm"
-            class="range range-primary flex-1"
-          />
-          <button
-            class="btn btn-outline btn-sm rounded-full"
-            @click="incrementBpm"
-            :disabled="metronome.bpm >= 200"
-          >
-            +
-          </button>
-        </div>
-        <div class="flex justify-between text-xs text-base-content/50 mt-1">
-          <span>40</span>
-          <span>200</span>
-        </div>
-      </div>
-
       <!-- 加速機能 -->
       <div>
-        <label class="label">
-          <span class="label-text">加速機能</span>
-          <span v-if="metronome.isAccelerating" class="badge badge-warning">加速中</span>
-        </label>
-        <div class="space-y-3">
-          <!-- BPM範囲（開始→目標） -->
-          <div class="flex items-end gap-3">
-            <div class="flex-1">
-              <label class="label-text text-sm">開始BPM</label>
+        <div class="space-y-4">
+          <!-- 開始BPM設定 -->
+          <div>
+            <label class="label-text text-sm mb-2 block"
+              >開始BPM: {{ metronome.accelerationStartBpm }}</label
+            >
+            <div class="space-y-2">
+              <!-- スライダー -->
               <input
-                type="number"
+                type="range"
                 min="40"
-                max="200"
-                v-model="metronome.accelerationStartBpm"
-                class="input input-bordered input-sm w-full"
+                max="300"
+                :value="metronome.accelerationStartBpm"
+                @input="updateStartBpm"
+                class="range range-primary w-full"
                 :disabled="metronome.isPlaying"
-                @input="updateAccelerationSettings"
               />
-            </div>
-            <div class="flex items-center justify-center pb-1">
-              <svg
-                class="w-6 h-6 text-primary"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M13 7l5 5m0 0l-5 5m5-5H6"
-                />
-              </svg>
-            </div>
-            <div class="flex-1">
-              <label class="label-text text-sm">目標BPM</label>
-              <input
-                type="number"
-                min="40"
-                max="200"
-                v-model="metronome.accelerationTargetBpm"
-                class="input input-bordered input-sm w-full"
-                :disabled="metronome.isPlaying"
-                @input="updateAccelerationSettings"
-              />
+              <div class="flex justify-between text-xs text-base-content/50">
+                <span>40</span>
+                <span>300</span>
+              </div>
+              <!-- 増減ボタン -->
+              <div class="flex justify-center gap-1">
+                <button
+                  class="btn btn-outline btn-xs"
+                  @click="adjustStartBpm(-10)"
+                  :disabled="metronome.isPlaying || metronome.accelerationStartBpm <= 40"
+                >
+                  -10
+                </button>
+                <button
+                  class="btn btn-outline btn-xs"
+                  @click="adjustStartBpm(-5)"
+                  :disabled="metronome.isPlaying || metronome.accelerationStartBpm <= 40"
+                >
+                  -5
+                </button>
+                <button
+                  class="btn btn-outline btn-xs"
+                  @click="adjustStartBpm(-1)"
+                  :disabled="metronome.isPlaying || metronome.accelerationStartBpm <= 40"
+                >
+                  -1
+                </button>
+                <button
+                  class="btn btn-outline btn-xs"
+                  @click="adjustStartBpm(1)"
+                  :disabled="metronome.isPlaying || metronome.accelerationStartBpm >= 300"
+                >
+                  +1
+                </button>
+                <button
+                  class="btn btn-outline btn-xs"
+                  @click="adjustStartBpm(5)"
+                  :disabled="metronome.isPlaying || metronome.accelerationStartBpm >= 300"
+                >
+                  +5
+                </button>
+                <button
+                  class="btn btn-outline btn-xs"
+                  @click="adjustStartBpm(10)"
+                  :disabled="metronome.isPlaying || metronome.accelerationStartBpm >= 300"
+                >
+                  +10
+                </button>
+              </div>
             </div>
           </div>
 
-          <!-- 間隔設定 -->
+          <!-- 目標BPM設定 -->
           <div>
-            <label class="label-text text-sm">間隔 (小節)</label>
+            <label class="label-text text-sm mb-2 block"
+              >目標BPM: {{ metronome.accelerationTargetBpm }}</label
+            >
+            <div class="space-y-2">
+              <!-- スライダー -->
+              <input
+                type="range"
+                min="40"
+                max="300"
+                :value="metronome.accelerationTargetBpm"
+                @input="updateTargetBpm"
+                class="range range-primary w-full"
+                :disabled="metronome.isPlaying"
+              />
+              <div class="flex justify-between text-xs text-base-content/50">
+                <span>40</span>
+                <span>300</span>
+              </div>
+              <!-- 増減ボタン -->
+              <div class="flex justify-center gap-1">
+                <button
+                  class="btn btn-outline btn-xs"
+                  @click="adjustTargetBpm(-10)"
+                  :disabled="metronome.isPlaying || metronome.accelerationTargetBpm <= 40"
+                >
+                  -10
+                </button>
+                <button
+                  class="btn btn-outline btn-xs"
+                  @click="adjustTargetBpm(-5)"
+                  :disabled="metronome.isPlaying || metronome.accelerationTargetBpm <= 40"
+                >
+                  -5
+                </button>
+                <button
+                  class="btn btn-outline btn-xs"
+                  @click="adjustTargetBpm(-1)"
+                  :disabled="metronome.isPlaying || metronome.accelerationTargetBpm <= 40"
+                >
+                  -1
+                </button>
+                <button
+                  class="btn btn-outline btn-xs"
+                  @click="adjustTargetBpm(1)"
+                  :disabled="metronome.isPlaying || metronome.accelerationTargetBpm >= 300"
+                >
+                  +1
+                </button>
+                <button
+                  class="btn btn-outline btn-xs"
+                  @click="adjustTargetBpm(5)"
+                  :disabled="metronome.isPlaying || metronome.accelerationTargetBpm >= 300"
+                >
+                  +5
+                </button>
+                <button
+                  class="btn btn-outline btn-xs"
+                  @click="adjustTargetBpm(10)"
+                  :disabled="metronome.isPlaying || metronome.accelerationTargetBpm >= 300"
+                >
+                  +10
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- BPM変化量設定 -->
+          <div>
+            <label class="label-text text-sm">BPM変化量</label>
             <input
               type="number"
               min="1"
-              max="16"
+              max="100"
+              v-model="metronome.accelerationBpmChange"
+              class="input input-bordered input-sm w-full"
+              :disabled="metronome.isPlaying"
+              @input="updateAccelerationBpmChange"
+            />
+          </div>
+
+          <!-- 間隔設定（単位切り替えとセット） -->
+          <div class="space-y-2">
+            <label class="label-text text-sm">間隔</label>
+
+            <!-- 単位切り替えラジオボタン -->
+            <div class="flex gap-4">
+              <label class="label cursor-pointer">
+                <input
+                  type="radio"
+                  name="intervalType"
+                  value="measures"
+                  :checked="metronome.accelerationIntervalType === 'measures'"
+                  @change="setIntervalType('measures')"
+                  :disabled="metronome.isPlaying"
+                  class="radio radio-primary"
+                />
+                <span class="label-text ml-2">小節</span>
+              </label>
+              <label class="label cursor-pointer">
+                <input
+                  type="radio"
+                  name="intervalType"
+                  value="seconds"
+                  :checked="metronome.accelerationIntervalType === 'seconds'"
+                  @change="setIntervalType('seconds')"
+                  :disabled="metronome.isPlaying"
+                  class="radio radio-primary"
+                />
+                <span class="label-text ml-2">秒</span>
+              </label>
+            </div>
+
+            <!-- 間隔値入力 -->
+            <input
+              type="number"
+              :min="metronome.accelerationIntervalType === 'measures' ? 1 : 0.5"
+              :max="metronome.accelerationIntervalType === 'measures' ? 16 : 60"
+              :step="metronome.accelerationIntervalType === 'measures' ? 1 : 0.5"
               v-model="metronome.accelerationInterval"
               class="input input-bordered input-sm w-full"
               :disabled="metronome.isPlaying"
               @input="updateAccelerationSettings"
             />
+            <div class="text-xs text-base-content/60">
+              {{
+                metronome.accelerationIntervalType === 'measures'
+                  ? '小節ごとに加速'
+                  : '秒ごとに加速'
+              }}
+            </div>
           </div>
         </div>
       </div>
@@ -149,19 +255,38 @@
     </div>
 
     <!-- アクションエリア -->
-    <div class="flex justify-center pt-4">
+    <div class="flex justify-center gap-4 pt-4">
+      <!-- 再生ボタン -->
       <button
-        class="btn btn-lg rounded-2xl"
-        :class="metronome.isPlaying ? 'btn-error' : 'btn-primary'"
-        @click="metronome.toggle"
+        v-if="!metronome.isPlaying"
+        class="btn btn-lg rounded-2xl btn-primary"
+        @click="metronome.start"
       >
-        <svg v-if="!metronome.isPlaying" class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+        <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
           <path d="M8 5v14l11-7z" />
         </svg>
-        <svg v-else class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+      </button>
+
+      <!-- 一時停止ボタン -->
+      <button
+        v-if="metronome.isPlaying"
+        class="btn btn-lg rounded-2xl btn-warning"
+        @click="metronome.pause"
+      >
+        <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
           <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
         </svg>
-        {{ metronome.isPlaying ? '停止' : '開始' }}
+      </button>
+
+      <!-- 停止ボタン -->
+      <button
+        v-if="metronome.isPlaying || metronome.isPaused"
+        class="btn btn-lg rounded-2xl btn-error"
+        @click="metronome.stop"
+      >
+        <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M6 6h12v12H6z" />
+        </svg>
       </button>
     </div>
   </div>
@@ -190,18 +315,26 @@ const getBeatDotClass = (beat: number) => {
   }
 }
 
-// BPM調整
-const updateBpm = (event: Event) => {
+// 開始BPM調整関数
+const updateStartBpm = (event: Event) => {
   const target = event.target as HTMLInputElement
-  metronome.setBpm(parseInt(target.value))
+  metronome.setAccelerationStartBpm(parseInt(target.value))
 }
 
-const incrementBpm = () => {
-  metronome.setBpm(metronome.bpm + 1)
+const adjustStartBpm = (amount: number) => {
+  const newValue = metronome.accelerationStartBpm + amount
+  metronome.setAccelerationStartBpm(Math.max(40, Math.min(300, newValue)))
 }
 
-const decrementBpm = () => {
-  metronome.setBpm(metronome.bpm - 1)
+// 目標BPM調整関数
+const updateTargetBpm = (event: Event) => {
+  const target = event.target as HTMLInputElement
+  metronome.setAccelerationTargetBpm(parseInt(target.value))
+}
+
+const adjustTargetBpm = (amount: number) => {
+  const newValue = metronome.accelerationTargetBpm + amount
+  metronome.setAccelerationTargetBpm(Math.max(40, Math.min(300, newValue)))
 }
 
 // 加速設定の更新
@@ -211,6 +344,16 @@ const updateAccelerationSettings = () => {
     metronome.accelerationTargetBpm,
     metronome.accelerationInterval,
   )
+}
+
+// BPM変化量の更新
+const updateAccelerationBpmChange = () => {
+  metronome.setAccelerationBpmChange(metronome.accelerationBpmChange)
+}
+
+// 間隔単位の設定
+const setIntervalType = (type: 'measures' | 'seconds') => {
+  metronome.setAccelerationIntervalType(type)
 }
 </script>
 

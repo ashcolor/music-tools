@@ -78,12 +78,11 @@ export const useMetronomeStore = defineStore('metronome', () => {
       const isAccent = currentBeat.value === 1
       playClick(isAccent)
 
-      // 加速機能
-      if (isAccelerating.value) {
+      // 加速機能：1拍目がなった後に加速処理を実行
+      if (isAccelerating.value && isAccent) {
         accelerationBeatCount.value++
-        // 小節単位での計算：間隔 × 拍子数 = 必要な拍数
-        const beatsPerInterval = accelerationInterval.value * beatsPerMeasure.value
-        if (accelerationBeatCount.value >= beatsPerInterval) {
+        // 小節単位での計算：間隔 × 拍子数 = 必要な拍数 (実際は小節数のカウント)
+        if (accelerationBeatCount.value >= accelerationInterval.value) {
           accelerationBeatCount.value = 0
           if (bpm.value < accelerationTargetBpm.value) {
             const newBpm = Math.min(bpm.value + accelerationStep.value, accelerationTargetBpm.value)
@@ -126,11 +125,30 @@ export const useMetronomeStore = defineStore('metronome', () => {
     // 再生中の場合はインターバルを更新
     if (isPlaying.value && intervalId !== null) {
       clearInterval(intervalId)
-      intervalId = window.setInterval(() => {
+      
+      const tick = () => {
         currentBeat.value = (currentBeat.value % beatsPerMeasure.value) + 1
         const isAccent = currentBeat.value === 1
         playClick(isAccent)
-      }, intervalMs.value)
+
+        // 加速機能：1拍目がなった後に加速処理を実行
+        if (isAccelerating.value && isAccent) {
+          accelerationBeatCount.value++
+          // 小節単位での計算：間隔 × 拍子数 = 必要な拍数 (実際は小節数のカウント)
+          if (accelerationBeatCount.value >= accelerationInterval.value) {
+            accelerationBeatCount.value = 0
+            if (bpm.value < accelerationTargetBpm.value) {
+              const newBpm = Math.min(bpm.value + accelerationStep.value, accelerationTargetBpm.value)
+              setBpm(newBpm)
+            } else {
+              // 目標BPMに到達したら加速停止
+              isAccelerating.value = false
+            }
+          }
+        }
+      }
+      
+      intervalId = window.setInterval(tick, intervalMs.value)
     }
   }
 
