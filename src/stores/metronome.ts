@@ -125,7 +125,7 @@ export const useMetronomeStore = defineStore('metronome', () => {
     // 再生中の場合はインターバルを更新
     if (isPlaying.value && intervalId !== null) {
       clearInterval(intervalId)
-      
+
       const tick = () => {
         currentBeat.value = (currentBeat.value % beatsPerMeasure.value) + 1
         const isAccent = currentBeat.value === 1
@@ -138,7 +138,10 @@ export const useMetronomeStore = defineStore('metronome', () => {
           if (accelerationBeatCount.value >= accelerationInterval.value) {
             accelerationBeatCount.value = 0
             if (bpm.value < accelerationTargetBpm.value) {
-              const newBpm = Math.min(bpm.value + accelerationStep.value, accelerationTargetBpm.value)
+              const newBpm = Math.min(
+                bpm.value + accelerationStep.value,
+                accelerationTargetBpm.value,
+              )
               setBpm(newBpm)
             } else {
               // 目標BPMに到達したら加速停止
@@ -147,7 +150,7 @@ export const useMetronomeStore = defineStore('metronome', () => {
           }
         }
       }
-      
+
       intervalId = window.setInterval(tick, intervalMs.value)
     }
   }
