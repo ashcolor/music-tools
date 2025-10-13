@@ -1,10 +1,10 @@
 <script setup lang="ts">
 const model = defineModel<number>()
-const BEATS = [2, 3, 4, 5, 6, 7, 8]
+const BEATS = [2, 3, 4, 5, 6, 7, 8, 9, 10]
 </script>
 
 <template>
-  <div class="flex gap-2">
+  <div class="flex gap-2 justify-between">
     <button
       v-for="beats in BEATS"
       :key="beats"
