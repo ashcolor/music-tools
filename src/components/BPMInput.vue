@@ -8,7 +8,7 @@ const MAX_BPM = 300
 </script>
 
 <template>
-  <div class="space-y-3">
+  <div class="space-y-1">
     <input
       v-model="model"
       type="number"

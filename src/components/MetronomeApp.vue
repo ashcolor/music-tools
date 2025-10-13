@@ -3,10 +3,12 @@ import { useMetronomeStore } from '@/stores/metronome'
 import BPMInput from './BPMInput.vue'
 import BeatsInput from './BeatsInput.vue'
 import BeatsDots from './BeatsDots.vue'
-import DoubleArrow from './Icons/DoubleArrowIcon.vue'
+import DoubleArrowIcon from './Icons/DoubleArrowIcon.vue'
 import PlayIcon from './Icons/PlayIcon.vue'
 import StopIcon from './Icons/StopIcon.vue'
 import PauseIcon from './Icons/PauseIcon.vue'
+import AccelerationStepInput from './AccelerationStepInput.vue'
+import AccerationStepInput from './AccelerationIntervalInput.vue'
 
 const metronome = useMetronomeStore()
 
@@ -53,7 +55,6 @@ const updateAccelerationStep = () => {
               <div class="text-center font-bold text-sm">START</div>
               <BPMInput v-model="metronome.accelerationStartBpm" />
             </div>
-
             <div class="col-span-1 flex justify-center">
               <DoubleArrowIcon />
             </div>
@@ -63,53 +64,28 @@ const updateAccelerationStep = () => {
             </div>
           </div>
 
-          <!-- 変化量と間隔を横並び表示 -->
           <div class="grid grid-cols-2 gap-4">
-            <!-- BPM変化量 -->
             <div class="space-y-2">
               <label class="label-text text-sm">BPM変化量</label>
-              <input
-                type="number"
-                min="1"
-                max="10"
-                step="1"
-                v-model="metronome.accelerationStep"
-                class="input input-bordered input-sm w-full"
-                :disabled="metronome.isPlaying"
-                @input="updateAccelerationStep"
-              />
+              <AccelerationStepInput v-model="metronome.accelerationStep" />
               <div class="text-xs text-base-content/60">1回の加速で増加するBPM</div>
             </div>
-
-            <!-- 間隔 -->
             <div class="space-y-2">
               <label class="label-text text-sm">間隔（小節）</label>
-              <input
-                type="number"
-                min="1"
-                max="16"
-                step="1"
-                v-model="metronome.accelerationInterval"
-                class="input input-bordered input-sm w-full"
-                :disabled="metronome.isPlaying"
-                @input="updateAccelerationSettings"
-              />
+              <AccerationStepInput v-model="metronome.accelerationInterval"></AccerationStepInput>
               <div class="text-xs text-base-content/60">小節ごとに加速</div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 拍子設定 -->
       <div class="space-y-4">
         <label class="label-text text-sm">拍子</label>
         <BeatsInput v-model="metronome.beatsPerMeasure" />
       </div>
     </div>
 
-    <!-- アクションエリア -->
     <div class="flex justify-center gap-4 pt-4">
-      <!-- 再生ボタン -->
       <button
         v-if="!metronome.isPlaying || metronome.isPaused"
         class="btn btn-lg rounded-2xl btn-primary"
@@ -118,7 +94,6 @@ const updateAccelerationStep = () => {
         <PlayIcon />
       </button>
 
-      <!-- 一時停止ボタン -->
       <button
         v-if="metronome.isPlaying"
         class="btn btn-lg rounded-2xl btn-warning"
@@ -127,7 +102,6 @@ const updateAccelerationStep = () => {
         <PauseIcon />
       </button>
 
-      <!-- 停止ボタン -->
       <button
         v-if="metronome.isPlaying"
         class="btn btn-lg rounded-2xl btn-error"

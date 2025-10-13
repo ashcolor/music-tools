@@ -7,7 +7,3 @@ import MetronomeApp from './components/MetronomeApp.vue'
     <MetronomeApp />
   </div>
 </template>
-
-<style scoped>
-/* メトロノームアプリケーション用のシンプルなスタイル */
-</style>
