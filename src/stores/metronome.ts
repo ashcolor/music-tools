@@ -64,11 +64,8 @@ export const useMetronomeStore = defineStore('metronome', () => {
     currentBeat.value = 0
     accelerationBeatCount.value = 0
 
-    // 開始BPMが現在のBPMと異なる場合は開始BPMに設定し、加速を有効化
-    if (
-      accelerationStartBpm.value !== bpm.value &&
-      accelerationStartBpm.value < accelerationTargetBpm.value
-    ) {
+    // 加速機能を有効化する条件：開始BPMが目標BPMより小さい場合
+    if (accelerationStartBpm.value < accelerationTargetBpm.value) {
       setBpm(accelerationStartBpm.value)
       isAccelerating.value = true
     }
@@ -79,9 +76,8 @@ export const useMetronomeStore = defineStore('metronome', () => {
       playClick(isAccent)
 
       // 加速機能：1拍目がなった後に加速処理を実行
-      if (isAccelerating.value && isAccent) {
-        accelerationBeatCount.value++
-        // 小節単位での計算：間隔 × 拍子数 = 必要な拍数 (実際は小節数のカウント)
+      // ただし、開始直後の最初の1拍目はスキップ
+      if (isAccelerating.value && isAccent && accelerationBeatCount.value > 0) {
         if (accelerationBeatCount.value >= accelerationInterval.value) {
           accelerationBeatCount.value = 0
           if (bpm.value < accelerationTargetBpm.value) {
@@ -92,6 +88,11 @@ export const useMetronomeStore = defineStore('metronome', () => {
             isAccelerating.value = false
           }
         }
+      }
+
+      // 1拍目でカウントを増加（加速処理の後に行う）
+      if (isAccelerating.value && isAccent) {
+        accelerationBeatCount.value++
       }
     }
 
@@ -132,9 +133,8 @@ export const useMetronomeStore = defineStore('metronome', () => {
         playClick(isAccent)
 
         // 加速機能：1拍目がなった後に加速処理を実行
-        if (isAccelerating.value && isAccent) {
-          accelerationBeatCount.value++
-          // 小節単位での計算：間隔 × 拍子数 = 必要な拍数 (実際は小節数のカウント)
+        // ただし、開始直後の最初の1拍目はスキップ
+        if (isAccelerating.value && isAccent && accelerationBeatCount.value > 0) {
           if (accelerationBeatCount.value >= accelerationInterval.value) {
             accelerationBeatCount.value = 0
             if (bpm.value < accelerationTargetBpm.value) {
@@ -148,6 +148,11 @@ export const useMetronomeStore = defineStore('metronome', () => {
               isAccelerating.value = false
             }
           }
+        }
+
+        // 1拍目でカウントを増加（加速処理の後に行う）
+        if (isAccelerating.value && isAccent) {
+          accelerationBeatCount.value++
         }
       }
 
@@ -185,9 +190,19 @@ export const useMetronomeStore = defineStore('metronome', () => {
       accelerationTargetBpm.value = accelerationStartBpm.value + 10
     }
 
-    // ステップサイズを計算（総変化量を約20等分）
+    // ステップサイズを計算
     const totalChange = accelerationTargetBpm.value - accelerationStartBpm.value
-    accelerationStep.value = Math.max(1, Math.min(10, Math.ceil(totalChange / 20)))
+    if (totalChange <= 10) {
+      accelerationStep.value = 1
+    } else if (totalChange <= 30) {
+      accelerationStep.value = 2
+    } else if (totalChange <= 60) {
+      accelerationStep.value = Math.ceil(totalChange / 15)
+    } else {
+      accelerationStep.value = Math.ceil(totalChange / 20)
+    }
+    // 最終的に1-10の範囲に制限
+    accelerationStep.value = Math.max(1, Math.min(10, accelerationStep.value))
   }
 
   // 加速パラメータを個別に設定
@@ -209,7 +224,18 @@ export const useMetronomeStore = defineStore('metronome', () => {
   const updateAccelerationStep = () => {
     if (accelerationStartBpm.value < accelerationTargetBpm.value) {
       const totalChange = accelerationTargetBpm.value - accelerationStartBpm.value
-      accelerationStep.value = Math.max(1, Math.min(10, Math.ceil(totalChange / 20)))
+      // 変化量に応じて適切なステップサイズを設定
+      if (totalChange <= 10) {
+        accelerationStep.value = 1
+      } else if (totalChange <= 30) {
+        accelerationStep.value = 2
+      } else if (totalChange <= 60) {
+        accelerationStep.value = Math.ceil(totalChange / 15)
+      } else {
+        accelerationStep.value = Math.ceil(totalChange / 20)
+      }
+      // 最終的に1-10の範囲に制限
+      accelerationStep.value = Math.max(1, Math.min(10, accelerationStep.value))
     }
   }
 
@@ -229,6 +255,9 @@ export const useMetronomeStore = defineStore('metronome', () => {
     isAccelerating.value = false
     accelerationBeatCount.value = 0
   }
+
+  // 初期化：ステップサイズを計算
+  updateAccelerationStep()
 
   return {
     // 状態
