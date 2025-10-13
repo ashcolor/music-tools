@@ -5,6 +5,7 @@ export const useMetronomeStore = defineStore('metronome', () => {
   // 状態
   const bpm = ref(120)
   const isPlaying = ref(false)
+  const isPaused = ref(false)
   const currentBeat = ref(0)
   const beatsPerMeasure = ref(4)
 
@@ -60,14 +61,20 @@ export const useMetronomeStore = defineStore('metronome', () => {
     if (isPlaying.value) return
 
     await initAudioContext()
+    const wasePaused = isPaused.value
     isPlaying.value = true
-    currentBeat.value = 0
-    accelerationBeatCount.value = 0
+    isPaused.value = false
 
-    // 加速機能を有効化する条件：開始BPMが目標BPMより小さい場合
-    if (accelerationStartBpm.value < accelerationTargetBpm.value) {
-      setBpm(accelerationStartBpm.value)
-      isAccelerating.value = true
+    // 一時停止からの復帰でない場合のみ初期化
+    if (!wasePaused) {
+      currentBeat.value = 0
+      accelerationBeatCount.value = 0
+
+      // 加速機能を有効化する条件：開始BPMが目標BPMより小さい場合
+      if (accelerationStartBpm.value < accelerationTargetBpm.value) {
+        setBpm(accelerationStartBpm.value)
+        isAccelerating.value = true
+      }
     }
 
     const tick = () => {
@@ -108,9 +115,23 @@ export const useMetronomeStore = defineStore('metronome', () => {
     if (!isPlaying.value) return
 
     isPlaying.value = false
+    isPaused.value = false
     currentBeat.value = 0
     isAccelerating.value = false
     accelerationBeatCount.value = 0
+
+    if (intervalId !== null) {
+      clearInterval(intervalId)
+      intervalId = null
+    }
+  }
+
+  // メトロノームを一時停止
+  const pause = () => {
+    if (!isPlaying.value || isPaused.value) return
+
+    isPaused.value = true
+    isPlaying.value = false
 
     if (intervalId !== null) {
       clearInterval(intervalId)
@@ -220,6 +241,10 @@ export const useMetronomeStore = defineStore('metronome', () => {
     accelerationInterval.value = Math.max(1, Math.min(16, intervalMeasures))
   }
 
+  const setAccelerationStep = (step: number) => {
+    accelerationStep.value = Math.max(1, Math.min(10, step))
+  }
+
   // ステップサイズを更新
   const updateAccelerationStep = () => {
     if (accelerationStartBpm.value < accelerationTargetBpm.value) {
@@ -263,6 +288,7 @@ export const useMetronomeStore = defineStore('metronome', () => {
     // 状態
     bpm,
     isPlaying,
+    isPaused,
     currentBeat,
     beatsPerMeasure,
     intervalMs,
@@ -276,6 +302,7 @@ export const useMetronomeStore = defineStore('metronome', () => {
 
     // アクション
     start,
+    pause,
     stop,
     toggle,
     setBpm,
@@ -286,6 +313,7 @@ export const useMetronomeStore = defineStore('metronome', () => {
     setAccelerationStartBpm,
     setAccelerationTargetBpm,
     setAccelerationInterval,
+    setAccelerationStep,
     stopAcceleration,
   }
 })

@@ -16,13 +16,8 @@ const updateAccelerationSettings = () => {
 }
 
 // BPM変化量の更新
-const updateAccelerationBpmChange = () => {
-  metronome.setAccelerationBpmChange(metronome.accelerationBpmChange)
-}
-
-// 間隔単位の設定
-const setIntervalType = (type: 'measures' | 'seconds') => {
-  metronome.setAccelerationIntervalType(type)
+const updateAccelerationStep = () => {
+  metronome.setAccelerationStep(metronome.accelerationStep)
 }
 </script>
 
@@ -75,66 +70,35 @@ const setIntervalType = (type: 'measures' | 'seconds') => {
             </div>
           </div>
 
-          <div>
+          <div class="space-y-2">
             <label class="label-text text-sm">BPM変化量</label>
             <input
               type="number"
               min="1"
-              max="100"
-              v-model="metronome.accelerationBpmChange"
+              max="10"
+              step="1"
+              v-model="metronome.accelerationStep"
               class="input input-bordered input-sm w-full"
               :disabled="metronome.isPlaying"
-              @input="updateAccelerationBpmChange"
+              @input="updateAccelerationStep"
             />
+            <div class="text-xs text-base-content/60">1回の加速で増加するBPM</div>
           </div>
 
           <div class="space-y-2">
-            <label class="label-text text-sm">間隔</label>
-
-            <div class="flex gap-4">
-              <label class="label cursor-pointer">
-                <input
-                  type="radio"
-                  name="intervalType"
-                  value="measures"
-                  :checked="metronome.accelerationIntervalType === 'measures'"
-                  @change="setIntervalType('measures')"
-                  :disabled="metronome.isPlaying"
-                  class="radio radio-primary"
-                />
-                <span class="label-text ml-2">小節</span>
-              </label>
-              <label class="label cursor-pointer">
-                <input
-                  type="radio"
-                  name="intervalType"
-                  value="seconds"
-                  :checked="metronome.accelerationIntervalType === 'seconds'"
-                  @change="setIntervalType('seconds')"
-                  :disabled="metronome.isPlaying"
-                  class="radio radio-primary"
-                />
-                <span class="label-text ml-2">秒</span>
-              </label>
-            </div>
+            <label class="label-text text-sm">間隔（小節）</label>
 
             <input
               type="number"
-              :min="metronome.accelerationIntervalType === 'measures' ? 1 : 0.5"
-              :max="metronome.accelerationIntervalType === 'measures' ? 16 : 60"
-              :step="metronome.accelerationIntervalType === 'measures' ? 1 : 0.5"
+              min="1"
+              max="16"
+              step="1"
               v-model="metronome.accelerationInterval"
               class="input input-bordered input-sm w-full"
               :disabled="metronome.isPlaying"
               @input="updateAccelerationSettings"
             />
-            <div class="text-xs text-base-content/60">
-              {{
-                metronome.accelerationIntervalType === 'measures'
-                  ? '小節ごとに加速'
-                  : '秒ごとに加速'
-              }}
-            </div>
+            <div class="text-xs text-base-content/60">小節ごとに加速</div>
           </div>
         </div>
       </div>
@@ -147,7 +111,18 @@ const setIntervalType = (type: 'measures' | 'seconds') => {
     <div class="flex justify-center gap-4 pt-4">
       <!-- 再生ボタン -->
       <button
-        v-if="!metronome.isPlaying"
+        v-if="!metronome.isPlaying && !metronome.isPaused"
+        class="btn btn-lg rounded-2xl btn-primary"
+        @click="metronome.start"
+      >
+        <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M8 5v14l11-7z" />
+        </svg>
+      </button>
+
+      <!-- 復帰ボタン（一時停止中） -->
+      <button
+        v-if="metronome.isPaused"
         class="btn btn-lg rounded-2xl btn-primary"
         @click="metronome.start"
       >
