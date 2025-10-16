@@ -2,7 +2,7 @@
 const model = defineModel<number>()
 
 const MIN_STEP = 1
-const MAX_STEP = 10
+const MAX_STEP = 20
 const STEP = 1
 </script>
 
@@ -13,6 +13,6 @@ const STEP = 1
     :max="MAX_STEP"
     :step="STEP"
     v-model="model"
-    class="input input-bordered w-full"
+    class="input input-bordered max-w-16 text-center"
   />
 </template>

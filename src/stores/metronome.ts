@@ -13,9 +13,9 @@ export const useMetronomeStore = defineStore('metronome', () => {
   const isAccelerating = ref(false)
   const accelerationStartBpm = ref(120)
   const accelerationTargetBpm = ref(160)
-  const accelerationInterval = ref(4) // 何小節ごとに加速するか
-  const accelerationStep = ref(1) // 1回の加速でのBPM増加量
-  const accelerationBeatCount = ref(0) // 加速用の拍カウンター
+  const accelerationInterval = ref(1)
+  const accelerationStep = ref(1)
+  const accelerationBeatCount = ref(0)
 
   // Web Audio Context
   let audioContext: AudioContext | null = null
@@ -114,6 +114,7 @@ export const useMetronomeStore = defineStore('metronome', () => {
   const stop = () => {
     if (!isPlaying.value) return
 
+    bpm.value = accelerationStartBpm.value
     isPlaying.value = false
     isPaused.value = false
     currentBeat.value = 0
@@ -264,28 +265,14 @@ export const useMetronomeStore = defineStore('metronome', () => {
     }
   }
 
-  // 加速開始
-  const startAcceleration = (startBpm: number, targetBpm: number, intervalMeasures: number) => {
-    setAccelerationSettings(startBpm, targetBpm, intervalMeasures)
-
-    // 初期BPMに設定
-    setBpm(accelerationStartBpm.value)
-
-    isAccelerating.value = true
-    accelerationBeatCount.value = 0
-  }
-
-  // 加速停止
   const stopAcceleration = () => {
     isAccelerating.value = false
     accelerationBeatCount.value = 0
   }
 
-  // 初期化：ステップサイズを計算
   updateAccelerationStep()
 
   return {
-    // 状態
     bpm,
     isPlaying,
     isPaused,
@@ -293,14 +280,12 @@ export const useMetronomeStore = defineStore('metronome', () => {
     beatsPerMeasure,
     intervalMs,
 
-    // 加速機能の状態
     isAccelerating,
     accelerationStartBpm,
     accelerationTargetBpm,
     accelerationInterval,
     accelerationStep,
 
-    // アクション
     start,
     pause,
     stop,
@@ -308,7 +293,6 @@ export const useMetronomeStore = defineStore('metronome', () => {
     setBpm,
     setBeatsPerMeasure,
 
-    // 加速機能のアクション
     setAccelerationSettings,
     setAccelerationStartBpm,
     setAccelerationTargetBpm,

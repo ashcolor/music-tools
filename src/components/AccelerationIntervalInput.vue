@@ -13,6 +13,6 @@ const STEP = 1
     :max="MAX_INTERVAL"
     :step="STEP"
     v-model="model"
-    class="input input-bordered w-full"
+    class="input input-bordered max-w-12 text-center"
   />
 </template>

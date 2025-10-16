@@ -11,35 +11,24 @@ import AccelerationStepInput from './AccelerationStepInput.vue'
 import AccerationStepInput from './AccelerationIntervalInput.vue'
 
 const metronome = useMetronomeStore()
-
-// 加速設定の更新
-const updateAccelerationSettings = () => {
-  metronome.setAccelerationSettings(
-    metronome.accelerationStartBpm,
-    metronome.accelerationTargetBpm,
-    metronome.accelerationInterval,
-  )
-}
-
-// BPM変化量の更新
-const updateAccelerationStep = () => {
-  metronome.setAccelerationStep(metronome.accelerationStep)
-}
 </script>
 
 <template>
-  <div class="max-w-md mx-auto p-6 bg-base-100 rounded-lg shadow-xl space-y-8">
-    <p>だんだん早くなる、だんだん遅くなる機能付き</p>
-    <h1 class="text-3xl font-bold text-center text-primary">メトロノーム</h1>
+  <div
+    class="bg-base-100 max-w-xl mx-auto p-8 rounded-lg shadow-lg gap-8 flex flex-col items-center"
+  >
+    <div class="indicator">
+      <span class="indicator-item indicator-center badge badge-secondary">加速機能付き</span>
+      <h1 class="text-3xl font-bold mt-4">メトロノーム</h1>
+    </div>
 
-    <div class="space-y-4">
+    <div class="flex flex-col gap-6">
       <div class="text-center">
-        <div class="text-6xl font-mono font-bold text-primary mb-2">
+        <div class="text-6xl font-mono font-bold text-primary-content">
           {{ metronome.bpm }}
         </div>
-        <div class="text-lg text-base-content/70">BPM</div>
+        <div class="text-lg text-neutral">BPM</div>
       </div>
-
       <BeatsDots
         :isPlaying="metronome.isPlaying"
         :currentBeat="metronome.currentBeat"
@@ -47,35 +36,31 @@ const updateAccelerationStep = () => {
       />
     </div>
 
-    <div class="space-y-6">
-      <div>
-        <div class="space-y-4">
-          <div class="grid grid-cols-5 gap-4 items-center">
-            <div class="col-span-2">
-              <div class="text-center font-bold text-sm">START</div>
-              <BPMInput v-model="metronome.accelerationStartBpm" />
-            </div>
-            <div class="col-span-1 flex justify-center">
-              <DoubleArrowIcon />
-            </div>
-            <div class="col-span-2">
-              <div class="text-center font-bold text-sm">GOAL</div>
-              <BPMInput v-model="metronome.accelerationTargetBpm" />
-            </div>
+    <div class="flex flex-col gap-8">
+      <div class="flex flex-col gap-1">
+        <label class="label-text text-sm">テンポ</label>
+        <div class="flex flex-row gap-4 items-center">
+          <div class="col-span-2">
+            <div class="text-center font-bold text-sm">START</div>
+            <BPMInput v-model="metronome.accelerationStartBpm" />
           </div>
+          <div class="col-span-1 flex justify-center">
+            <DoubleArrowIcon />
+          </div>
+          <div class="col-span-2">
+            <div class="text-center font-bold text-sm">GOAL</div>
+            <BPMInput v-model="metronome.accelerationTargetBpm" />
+          </div>
+        </div>
+      </div>
 
-          <div class="grid grid-cols-2 gap-4">
-            <div class="space-y-2">
-              <label class="label-text text-sm">BPM変化量</label>
-              <AccelerationStepInput v-model="metronome.accelerationStep" />
-              <div class="text-xs text-base-content/60">1回の加速で増加するBPM</div>
-            </div>
-            <div class="space-y-2">
-              <label class="label-text text-sm">間隔（小節）</label>
-              <AccerationStepInput v-model="metronome.accelerationInterval"></AccerationStepInput>
-              <div class="text-xs text-base-content/60">小節ごとに加速</div>
-            </div>
-          </div>
+      <div class="flex flex-col gap-1">
+        <label class="label-text text-sm">加速</label>
+        <div class="flex flex-row gap-1 items-center justify-center">
+          <AccerationStepInput v-model="metronome.accelerationInterval" />
+          <span class="shrink-0">小節ごとに</span>
+          <AccelerationStepInput v-model="metronome.accelerationStep" />
+          <span class="shrink-0">BPM変化</span>
         </div>
       </div>
 
@@ -96,7 +81,7 @@ const updateAccelerationStep = () => {
 
       <button
         v-if="metronome.isPlaying"
-        class="btn btn-lg rounded-2xl btn-warning"
+        class="btn btn-lg rounded-2xl btn-primary"
         @click="metronome.pause"
       >
         <PauseIcon />
@@ -104,7 +89,7 @@ const updateAccelerationStep = () => {
 
       <button
         v-if="metronome.isPlaying"
-        class="btn btn-lg rounded-2xl btn-error"
+        class="btn btn-lg rounded-2xl btn-accent"
         @click="metronome.stop"
       >
         <StopIcon />

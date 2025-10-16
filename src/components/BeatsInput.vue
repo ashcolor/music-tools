@@ -8,8 +8,8 @@ const BEATS = [2, 3, 4, 5, 6, 7, 8, 9, 10]
     <button
       v-for="beats in BEATS"
       :key="beats"
-      class="btn btn-sm rounded-full"
-      :class="model === beats ? 'btn-primary' : 'btn-outline'"
+      class="btn btn-sm rounded-full btn-neutral"
+      :class="model !== beats ? 'btn-soft' : ''"
       @click="model = beats"
     >
       {{ beats }}

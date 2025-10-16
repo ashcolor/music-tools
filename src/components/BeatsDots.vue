@@ -1,34 +1,24 @@
 <script setup lang="ts">
-const {
-  isPlaying = false,
-  beatsPerMeasure = 1,
-  currentBeat = 1,
-} = defineProps<{
-  isPlaying?: boolean
+const { beatsPerMeasure = 1, currentBeat = 1 } = defineProps<{
   beatsPerMeasure?: number
   currentBeat?: number
 }>()
 const getBeatDotClass = (beat: number) => {
-  if (!isPlaying) {
-    return 'bg-base-300'
-  }
-
   if (currentBeat === beat) {
     if (beat === 1) {
-      return 'bg-error animate-pulse scale-150'
+      return 'bg-accent animate-pulse scale-150'
     } else {
       return 'bg-success animate-pulse scale-150'
     }
   } else {
-    return 'bg-base-300'
+    return 'bg-neutral-content'
   }
 }
 </script>
 
 <template>
-  <!-- 視覚的フィードバック - 拍子ドット表示 -->
   <div class="flex justify-center">
-    <div class="flex items-center gap-3">
+    <div class="flex items-center gap-4">
       <div
         v-for="beat in beatsPerMeasure"
         :key="beat"
