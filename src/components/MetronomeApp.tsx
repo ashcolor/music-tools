@@ -14,10 +14,7 @@ export default function MetronomeApp() {
 
   return (
     <div className="bg-base-100 max-w-xl mx-auto p-8 rounded-lg shadow-lg gap-8 flex flex-col items-center">
-      <div className="indicator">
-        <span className="indicator-item indicator-center badge badge-secondary">加速機能付き</span>
-        <h1 className="text-3xl font-bold mt-4">メトロノーム</h1>
-      </div>
+      <h1 className="text-3xl font-bold">メトロノーム</h1>
 
       <div className="flex flex-col gap-6">
         <div className="text-center">
@@ -32,44 +29,65 @@ export default function MetronomeApp() {
       </div>
 
       <div className="flex flex-col gap-8">
-        <div className="flex flex-col gap-1">
-          <label className="label-text text-sm">テンポ</label>
-          <div className="flex flex-row gap-4 items-center">
-            <div className="col-span-2">
-              <div className="text-center font-bold text-sm">START</div>
-              <BPMInput
-                value={state.accelerationStartBpm}
-                onChange={actions.setAccelerationStartBpm}
-              />
-            </div>
-            <div className="col-span-1 flex justify-center">
-              <DoubleArrowIcon />
-            </div>
-            <div className="col-span-2">
-              <div className="text-center font-bold text-sm">GOAL</div>
-              <BPMInput
-                value={state.accelerationTargetBpm}
-                onChange={actions.setAccelerationTargetBpm}
-              />
-            </div>
-          </div>
+        <div className="flex flex-row items-center gap-2">
+          <label className="label-text text-sm">加速機能</label>
+          <input
+            type="checkbox"
+            className="toggle border-base-300 bg-base-300 checked:border-accent checked:bg-accent"
+            checked={state.accelerationEnabled}
+            onChange={(e) => actions.setAccelerationEnabled(e.target.checked)}
+          />
         </div>
 
-        <div className="flex flex-col gap-1">
-          <label className="label-text text-sm">加速</label>
-          <div className="flex flex-row gap-1 items-center justify-center">
-            <AccelerationIntervalInput
-              value={state.accelerationInterval}
-              onChange={actions.setAccelerationInterval}
-            />
-            <span className="shrink-0">小節ごとに</span>
-            <AccelerationStepInput
-              value={state.accelerationStep}
-              onChange={actions.setAccelerationStep}
-            />
-            <span className="shrink-0">BPM変化</span>
+        {state.accelerationEnabled && (
+          <>
+            <div className="flex flex-col gap-1">
+              <label className="label-text text-sm">テンポ</label>
+              <div className="flex flex-row gap-4 items-center">
+                <div className="col-span-2">
+                  <div className="text-center font-bold text-sm">START</div>
+                  <BPMInput
+                    value={state.accelerationStartBpm}
+                    onChange={actions.setAccelerationStartBpm}
+                  />
+                </div>
+                <div className="col-span-1 flex justify-center">
+                  <DoubleArrowIcon />
+                </div>
+                <div className="col-span-2">
+                  <div className="text-center font-bold text-sm">GOAL</div>
+                  <BPMInput
+                    value={state.accelerationTargetBpm}
+                    onChange={actions.setAccelerationTargetBpm}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="label-text text-sm">加速</label>
+              <div className="flex flex-row gap-1 items-center justify-center">
+                <AccelerationIntervalInput
+                  value={state.accelerationInterval}
+                  onChange={actions.setAccelerationInterval}
+                />
+                <span className="shrink-0">小節ごとに</span>
+                <AccelerationStepInput
+                  value={state.accelerationStep}
+                  onChange={actions.setAccelerationStep}
+                />
+                <span className="shrink-0">BPM変化</span>
+              </div>
+            </div>
+          </>
+        )}
+
+        {!state.accelerationEnabled && (
+          <div className="flex flex-col gap-1">
+            <label className="label-text text-sm">テンポ</label>
+            <BPMInput value={state.bpm} onChange={actions.setBpm} />
           </div>
-        </div>
+        )}
 
         <div className="space-y-4">
           <label className="label-text text-sm">拍子</label>

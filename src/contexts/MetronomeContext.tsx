@@ -16,6 +16,7 @@ type State = {
   currentBeat: number
   beatsPerMeasure: number
   isAccelerating: boolean
+  accelerationEnabled: boolean
   accelerationStartBpm: number
   accelerationTargetBpm: number
   accelerationInterval: number
@@ -29,6 +30,7 @@ type Action =
   | { type: 'SET_ACCELERATION_TARGET_BPM'; bpm: number }
   | { type: 'SET_ACCELERATION_INTERVAL'; value: number }
   | { type: 'SET_ACCELERATION_STEP'; value: number }
+  | { type: 'SET_ACCELERATION_ENABLED'; value: boolean }
   | { type: 'SET_CURRENT_BEAT'; value: number }
   | { type: 'START_FRESH' }
   | { type: 'RESUME' }
@@ -61,6 +63,7 @@ const initialState: State = {
   currentBeat: 0,
   beatsPerMeasure: 4,
   isAccelerating: false,
+  accelerationEnabled: true,
   accelerationStartBpm: 120,
   accelerationTargetBpm: 160,
   accelerationInterval: 1,
@@ -81,10 +84,13 @@ function reducer(state: State, action: Action): State {
       return { ...state, accelerationInterval: action.value }
     case 'SET_ACCELERATION_STEP':
       return { ...state, accelerationStep: action.value }
+    case 'SET_ACCELERATION_ENABLED':
+      return { ...state, accelerationEnabled: action.value }
     case 'SET_CURRENT_BEAT':
       return { ...state, currentBeat: action.value }
     case 'START_FRESH': {
-      const shouldAccelerate = state.accelerationStartBpm < state.accelerationTargetBpm
+      const shouldAccelerate =
+        state.accelerationEnabled && state.accelerationStartBpm < state.accelerationTargetBpm
       return {
         ...state,
         isPlaying: true,
@@ -123,6 +129,7 @@ type Actions = {
   setAccelerationTargetBpm: (n: number) => void
   setAccelerationInterval: (n: number) => void
   setAccelerationStep: (n: number) => void
+  setAccelerationEnabled: (v: boolean) => void
 }
 
 type ContextValue = {
@@ -293,6 +300,11 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
     [syncDispatch],
   )
 
+  const setAccelerationEnabled = useCallback(
+    (v: boolean) => syncDispatch({ type: 'SET_ACCELERATION_ENABLED', value: v }),
+    [syncDispatch],
+  )
+
   useEffect(() => {
     return () => {
       if (intervalIdRef.current !== null) {
@@ -316,6 +328,7 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
         setAccelerationTargetBpm,
         setAccelerationInterval,
         setAccelerationStep,
+        setAccelerationEnabled,
       },
     }),
     [
@@ -330,6 +343,7 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
       setAccelerationTargetBpm,
       setAccelerationInterval,
       setAccelerationStep,
+      setAccelerationEnabled,
     ],
   )
 
