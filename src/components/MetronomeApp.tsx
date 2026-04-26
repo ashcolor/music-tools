@@ -1,11 +1,8 @@
+import { Icon } from "@iconify/react";
 import { useMetronome } from "@/contexts/MetronomeContext";
 import BPMInput from "./BPMInput";
 import BeatsInput from "./BeatsInput";
 import BeatsDots from "./BeatsDots";
-import DoubleArrowIcon from "./Icons/DoubleArrowIcon";
-import PlayIcon from "./Icons/PlayIcon";
-import StopIcon from "./Icons/StopIcon";
-import PauseIcon from "./Icons/PauseIcon";
 import AccelerationStepInput from "./AccelerationStepInput";
 import AccelerationIntervalInput from "./AccelerationIntervalInput";
 
@@ -52,7 +49,7 @@ export default function MetronomeApp() {
                   />
                 </div>
                 <div className="col-span-1 flex justify-center">
-                  <DoubleArrowIcon />
+                  <Icon icon="material-symbols:double-arrow-rounded" width="24" height="24" />
                 </div>
                 <div className="col-span-2">
                   <div className="text-center font-bold text-sm">GOAL</div>
@@ -98,19 +95,19 @@ export default function MetronomeApp() {
       <div className="flex justify-center gap-4 pt-4">
         {(!state.isPlaying || state.isPaused) && (
           <button className="btn btn-lg rounded-2xl btn-primary" onClick={actions.start}>
-            <PlayIcon />
+            <Icon icon="material-symbols:play-arrow-rounded" width="24" height="24" />
           </button>
         )}
 
         {state.isPlaying && (
           <button className="btn btn-lg rounded-2xl btn-primary" onClick={actions.pause}>
-            <PauseIcon />
+            <Icon icon="material-symbols:pause-rounded" width="24" height="24" />
           </button>
         )}
 
         {state.isPlaying && (
           <button className="btn btn-lg rounded-2xl btn-accent" onClick={actions.stop}>
-            <StopIcon />
+            <Icon icon="material-symbols:stop-rounded" width="24" height="24" />
           </button>
         )}
       </div>
