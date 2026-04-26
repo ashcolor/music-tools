@@ -1,11 +1,11 @@
 type Props = {
-  value: number
-  onChange: (value: number) => void
-}
+  value: number;
+  onChange: (value: number) => void;
+};
 
-const MIN_INTERVAL = 1
-const MAX_INTERVAL = 16
-const STEP = 1
+const MIN_INTERVAL = 1;
+const MAX_INTERVAL = 16;
+const STEP = 1;
 
 export default function AccelerationIntervalInput({ value, onChange }: Props) {
   return (
@@ -18,5 +18,5 @@ export default function AccelerationIntervalInput({ value, onChange }: Props) {
       onChange={(e) => onChange(Number(e.target.value))}
       className="input input-bordered max-w-12 text-center"
     />
-  )
+  );
 }

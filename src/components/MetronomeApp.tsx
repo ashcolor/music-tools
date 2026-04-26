@@ -1,16 +1,16 @@
-import { useMetronome } from '@/contexts/MetronomeContext'
-import BPMInput from './BPMInput'
-import BeatsInput from './BeatsInput'
-import BeatsDots from './BeatsDots'
-import DoubleArrowIcon from './Icons/DoubleArrowIcon'
-import PlayIcon from './Icons/PlayIcon'
-import StopIcon from './Icons/StopIcon'
-import PauseIcon from './Icons/PauseIcon'
-import AccelerationStepInput from './AccelerationStepInput'
-import AccelerationIntervalInput from './AccelerationIntervalInput'
+import { useMetronome } from "@/contexts/MetronomeContext";
+import BPMInput from "./BPMInput";
+import BeatsInput from "./BeatsInput";
+import BeatsDots from "./BeatsDots";
+import DoubleArrowIcon from "./Icons/DoubleArrowIcon";
+import PlayIcon from "./Icons/PlayIcon";
+import StopIcon from "./Icons/StopIcon";
+import PauseIcon from "./Icons/PauseIcon";
+import AccelerationStepInput from "./AccelerationStepInput";
+import AccelerationIntervalInput from "./AccelerationIntervalInput";
 
 export default function MetronomeApp() {
-  const { state, actions } = useMetronome()
+  const { state, actions } = useMetronome();
 
   return (
     <div className="bg-base-100 max-w-xl mx-auto p-8 rounded-lg shadow-lg gap-8 flex flex-col items-center">
@@ -115,5 +115,5 @@ export default function MetronomeApp() {
         )}
       </div>
     </div>
-  )
+  );
 }

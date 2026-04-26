@@ -1,5 +1,5 @@
-import MetronomeApp from './components/MetronomeApp'
-import { MetronomeProvider } from './contexts/MetronomeContext'
+import MetronomeApp from "./components/MetronomeApp";
+import { MetronomeProvider } from "./contexts/MetronomeContext";
 
 export default function App() {
   return (
@@ -8,5 +8,5 @@ export default function App() {
         <MetronomeApp />
       </div>
     </MetronomeProvider>
-  )
+  );
 }
