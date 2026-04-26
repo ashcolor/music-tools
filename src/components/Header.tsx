@@ -19,6 +19,12 @@ export default function Header() {
             <Icon icon="fa6-solid:bars" className="size-4" />
           </button>
         </div>
+        <div className="flex-1">
+          <span className="inline-flex items-center gap-2 text-lg font-bold">
+            <Icon icon="material-symbols:music-note-rounded" className="size-6" aria-hidden />
+            <span>{BRAND_TEXT}</span>
+          </span>
+        </div>
       </header>
 
       {open && <div className="fixed inset-0 z-40 bg-black/30" onClick={() => setOpen(false)} />}

@@ -11,8 +11,6 @@ export default function MetronomeApp() {
 
   return (
     <div className="max-w-xl mx-auto p-8 gap-8 flex flex-col items-center">
-      <h1 className="text-3xl font-bold">メトロノーム</h1>
-
       <div className="flex flex-col gap-6">
         <div className="text-center">
           <div className="text-6xl font-mono font-bold text-primary-content">{state.bpm}</div>
