@@ -95,7 +95,7 @@ export default function MetronomeApp() {
       <div className="flex justify-center gap-4 pt-4">
         {(!state.isPlaying || state.isPaused) && (
           <button
-            className="btn btn-circle btn-primary w-24 h-24"
+            className="btn btn-circle btn-primary w-16 h-16"
             onClick={actions.start}
           >
             <Icon icon="material-symbols:play-arrow-rounded" width="48" height="48" />
@@ -104,7 +104,7 @@ export default function MetronomeApp() {
 
         {state.isPlaying && (
           <button
-            className="btn btn-circle btn-primary w-24 h-24"
+            className="btn btn-circle btn-primary w-16 h-16"
             onClick={actions.pause}
           >
             <Icon icon="material-symbols:pause-rounded" width="48" height="48" />
@@ -112,7 +112,7 @@ export default function MetronomeApp() {
         )}
 
         {state.isPlaying && (
-          <button className="btn btn-lg btn-circle btn-accent" onClick={actions.stop}>
+          <button className="btn btn-circle btn-accent w-16 h-16" onClick={actions.stop}>
             <Icon icon="material-symbols:stop-rounded" width="24" height="24" />
           </button>
         )}
