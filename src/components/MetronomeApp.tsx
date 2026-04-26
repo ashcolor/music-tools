@@ -10,7 +10,7 @@ export default function MetronomeApp() {
   const { state, actions } = useMetronome();
 
   return (
-    <div className="bg-base-100 max-w-xl mx-auto p-8 rounded-lg shadow-lg gap-8 flex flex-col items-center">
+    <div className="max-w-xl mx-auto p-8 gap-8 flex flex-col items-center">
       <h1 className="text-3xl font-bold">メトロノーム</h1>
 
       <div className="flex flex-col gap-6">
@@ -94,19 +94,25 @@ export default function MetronomeApp() {
 
       <div className="flex justify-center gap-4 pt-4">
         {(!state.isPlaying || state.isPaused) && (
-          <button className="btn btn-lg rounded-2xl btn-primary" onClick={actions.start}>
-            <Icon icon="material-symbols:play-arrow-rounded" width="24" height="24" />
+          <button
+            className="btn btn-circle btn-primary w-24 h-24"
+            onClick={actions.start}
+          >
+            <Icon icon="material-symbols:play-arrow-rounded" width="48" height="48" />
           </button>
         )}
 
         {state.isPlaying && (
-          <button className="btn btn-lg rounded-2xl btn-primary" onClick={actions.pause}>
-            <Icon icon="material-symbols:pause-rounded" width="24" height="24" />
+          <button
+            className="btn btn-circle btn-primary w-24 h-24"
+            onClick={actions.pause}
+          >
+            <Icon icon="material-symbols:pause-rounded" width="48" height="48" />
           </button>
         )}
 
         {state.isPlaying && (
-          <button className="btn btn-lg rounded-2xl btn-accent" onClick={actions.stop}>
+          <button className="btn btn-lg btn-circle btn-accent" onClick={actions.stop}>
             <Icon icon="material-symbols:stop-rounded" width="24" height="24" />
           </button>
         )}
