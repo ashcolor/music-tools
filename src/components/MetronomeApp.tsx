@@ -1,120 +1,104 @@
+import { useRef } from "react";
 import { Icon } from "@iconify/react";
 import { useMetronome } from "@/contexts/MetronomeContext";
 import BPMInput from "./BPMInput";
 import BeatsInput from "./BeatsInput";
 import BeatsDots from "./BeatsDots";
-import AccelerationStepInput from "./AccelerationStepInput";
-import AccelerationIntervalInput from "./AccelerationIntervalInput";
 
 export default function MetronomeApp() {
   const { state, actions } = useMetronome();
+  const beatsModalRef = useRef<HTMLDialogElement>(null);
+
+  const playbackButtons = (
+    <>
+      {(!state.isPlaying || state.isPaused) && (
+        <button
+          className="btn btn-circle btn-primary w-16 h-16"
+          onClick={actions.start}
+        >
+          <Icon icon="material-symbols:play-arrow-rounded" width="48" height="48" />
+        </button>
+      )}
+
+      {state.isPlaying && (
+        <button
+          className="btn btn-circle btn-primary w-16 h-16"
+          onClick={actions.pause}
+        >
+          <Icon icon="material-symbols:pause-rounded" width="48" height="48" />
+        </button>
+      )}
+
+      {state.isPlaying && (
+        <button className="btn btn-circle btn-accent w-16 h-16" onClick={actions.stop}>
+          <Icon icon="material-symbols:stop-rounded" width="24" height="24" />
+        </button>
+      )}
+    </>
+  );
 
   return (
-    <div className="max-w-xl mx-auto p-8 gap-8 flex flex-col items-center">
+    <div className="max-w-xl mx-auto p-4 md:p-8 gap-8 flex flex-col items-center">
       <div className="flex flex-col gap-6">
-        <div className="text-center">
-          <div className="text-6xl font-mono font-bold text-primary-content">{state.bpm}</div>
-          <div className="text-lg text-neutral">BPM</div>
+        <div className="flex flex-row items-center justify-center gap-2 md:gap-4">
+          {state.accelerationEnabled && (
+            <>
+              <BPMInput
+                value={state.accelerationStartBpm}
+                onChange={actions.setAccelerationStartBpm}
+              />
+              <Icon icon="material-symbols:double-arrow-rounded" width="24" height="24" />
+            </>
+          )}
+          <div className="text-center">
+            <input
+              type="number"
+              min={0}
+              max={600}
+              className="input input-ghost text-5xl md:text-6xl font-mono font-bold text-primary-content focus:text-primary-content text-center w-32 md:w-40 h-auto p-0 focus:outline-none focus:bg-transparent"
+              value={state.bpm}
+              onChange={(e) => actions.setBpm(Number(e.target.value))}
+            />
+            <div className="text-lg text-neutral">BPM</div>
+          </div>
+          {state.accelerationEnabled && (
+            <>
+              <Icon icon="material-symbols:double-arrow-rounded" width="24" height="24" />
+              <BPMInput
+                value={state.accelerationTargetBpm}
+                onChange={actions.setAccelerationTargetBpm}
+              />
+            </>
+          )}
         </div>
         <BeatsDots
           isPlaying={state.isPlaying}
           currentBeat={state.currentBeat}
           beatsPerMeasure={state.beatsPerMeasure}
+          onClick={() => beatsModalRef.current?.showModal()}
         />
       </div>
 
-      <div className="flex flex-col gap-8">
-        <div className="flex flex-row items-center gap-2">
-          <label className="label-text text-sm">加速機能</label>
-          <input
-            type="checkbox"
-            className="toggle border-base-300 bg-base-300 checked:border-accent checked:bg-accent"
-            checked={state.accelerationEnabled}
-            onChange={(e) => actions.setAccelerationEnabled(e.target.checked)}
-          />
-        </div>
+      <div className="hidden md:flex justify-center gap-4 pt-4">{playbackButtons}</div>
 
-        {state.accelerationEnabled && (
-          <>
-            <div className="flex flex-col gap-1">
-              <label className="label-text text-sm">テンポ</label>
-              <div className="flex flex-row gap-4 items-center">
-                <div className="col-span-2">
-                  <div className="text-center font-bold text-sm">START</div>
-                  <BPMInput
-                    value={state.accelerationStartBpm}
-                    onChange={actions.setAccelerationStartBpm}
-                  />
-                </div>
-                <div className="col-span-1 flex justify-center">
-                  <Icon icon="material-symbols:double-arrow-rounded" width="24" height="24" />
-                </div>
-                <div className="col-span-2">
-                  <div className="text-center font-bold text-sm">GOAL</div>
-                  <BPMInput
-                    value={state.accelerationTargetBpm}
-                    onChange={actions.setAccelerationTargetBpm}
-                  />
-                </div>
-              </div>
-            </div>
+      <div className="md:hidden fixed bottom-0 inset-x-0 bg-base-100 border-t border-base-300 flex justify-center gap-4 py-3 z-20">
+        {playbackButtons}
+      </div>
 
-            <div className="flex flex-col gap-1">
-              <label className="label-text text-sm">加速</label>
-              <div className="flex flex-row gap-1 items-center justify-center">
-                <AccelerationIntervalInput
-                  value={state.accelerationInterval}
-                  onChange={actions.setAccelerationInterval}
-                />
-                <span className="shrink-0">小節ごとに</span>
-                <AccelerationStepInput
-                  value={state.accelerationStep}
-                  onChange={actions.setAccelerationStep}
-                />
-                <span className="shrink-0">BPM変化</span>
-              </div>
-            </div>
-          </>
-        )}
-
-        {!state.accelerationEnabled && (
-          <div className="flex flex-col gap-1">
-            <label className="label-text text-sm">テンポ</label>
-            <BPMInput value={state.bpm} onChange={actions.setBpm} />
-          </div>
-        )}
-
-        <div className="space-y-4">
-          <label className="label-text text-sm">拍子</label>
+      <dialog ref={beatsModalRef} className="modal">
+        <div className="modal-box">
+          <h3 className="font-bold text-lg mb-4">拍子</h3>
           <BeatsInput value={state.beatsPerMeasure} onChange={actions.setBeatsPerMeasure} />
+          <div className="modal-action">
+            <form method="dialog">
+              <button className="btn">閉じる</button>
+            </form>
+          </div>
         </div>
-      </div>
-
-      <div className="flex justify-center gap-4 pt-4">
-        {(!state.isPlaying || state.isPaused) && (
-          <button
-            className="btn btn-circle btn-primary w-16 h-16"
-            onClick={actions.start}
-          >
-            <Icon icon="material-symbols:play-arrow-rounded" width="48" height="48" />
-          </button>
-        )}
-
-        {state.isPlaying && (
-          <button
-            className="btn btn-circle btn-primary w-16 h-16"
-            onClick={actions.pause}
-          >
-            <Icon icon="material-symbols:pause-rounded" width="48" height="48" />
-          </button>
-        )}
-
-        {state.isPlaying && (
-          <button className="btn btn-circle btn-accent w-16 h-16" onClick={actions.stop}>
-            <Icon icon="material-symbols:stop-rounded" width="24" height="24" />
-          </button>
-        )}
-      </div>
+        <form method="dialog" className="modal-backdrop">
+          <button>close</button>
+        </form>
+      </dialog>
     </div>
   );
 }

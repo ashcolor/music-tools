@@ -32,7 +32,7 @@ export default function Header() {
       <div
         className={`bg-base-100 fixed top-0 left-0 z-50 flex h-full w-64 flex-col shadow-xl transition-transform duration-200 ${open ? "translate-x-0" : "-translate-x-full"}`}
       >
-        <div className="border-base-300 flex items-center gap-2 border-b px-4 py-3">
+        <div className="flex items-center gap-2 px-4 py-3">
           <Icon icon="material-symbols:music-note-rounded" className="size-6" aria-hidden />
           <span className="text-lg font-bold">{BRAND_TEXT}</span>
         </div>

@@ -2,6 +2,7 @@ type Props = {
   isPlaying?: boolean;
   beatsPerMeasure?: number;
   currentBeat?: number;
+  onClick?: () => void;
 };
 
 const getBeatDotClass = (beat: number, currentBeat: number) => {
@@ -16,19 +17,23 @@ const getBeatDotClass = (beat: number, currentBeat: number) => {
   }
 };
 
-export default function BeatsDots({ beatsPerMeasure = 1, currentBeat = 1 }: Props) {
+export default function BeatsDots({ beatsPerMeasure = 1, currentBeat = 1, onClick }: Props) {
   const beats = Array.from({ length: beatsPerMeasure }, (_, i) => i + 1);
 
   return (
     <div className="flex justify-center">
-      <div className="flex items-center gap-4">
+      <button
+        type="button"
+        className="flex items-center gap-4 cursor-pointer px-6 py-4"
+        onClick={onClick}
+      >
         {beats.map((beat) => (
           <div
             key={beat}
             className={`w-4 h-4 rounded-full transition-all duration-100 ${getBeatDotClass(beat, currentBeat)}`}
           />
         ))}
-      </div>
+      </button>
     </div>
   );
 }

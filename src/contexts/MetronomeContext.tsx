@@ -73,7 +73,7 @@ const initialState: State = {
 function reducer(state: State, action: Action): State {
   switch (action.type) {
     case "SET_BPM":
-      return { ...state, bpm: Math.max(40, Math.min(200, action.bpm)) };
+      return { ...state, bpm: Math.max(0, Math.min(600, action.bpm)) };
     case "SET_BEATS_PER_MEASURE":
       return { ...state, beatsPerMeasure: action.beats };
     case "SET_ACCELERATION_START_BPM":
@@ -205,7 +205,7 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
 
   const setBpm = useCallback(
     (newBpm: number) => {
-      const clamped = Math.max(40, Math.min(200, newBpm));
+      const clamped = Math.max(0, Math.min(600, newBpm));
       syncDispatch({ type: "SET_BPM", bpm: clamped });
 
       if (stateRef.current.isPlaying && intervalIdRef.current !== null) {

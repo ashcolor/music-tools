@@ -3,11 +3,11 @@ type Props = {
   onChange: (value: number) => void;
 };
 
-const BEATS = [2, 3, 4, 5, 6, 7, 8, 9, 10];
+const BEATS = Array.from({ length: 11 }, (_, i) => i + 2);
 
 export default function BeatsInput({ value, onChange }: Props) {
   return (
-    <div className="flex gap-2 justify-between">
+    <div className="flex gap-2 flex-wrap justify-center">
       {BEATS.map((beats) => (
         <button
           key={beats}
