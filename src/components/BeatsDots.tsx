@@ -8,12 +8,12 @@ type Props = {
 const getBeatDotClass = (beat: number, currentBeat: number) => {
   if (currentBeat === beat) {
     if (beat === 1) {
-      return "bg-accent beat-pulse scale-150";
+      return "bg-accent ring-2 ring-accent/25 beat-pulse scale-150";
     } else {
-      return "bg-success beat-pulse scale-150";
+      return "bg-success ring-2 ring-success/25 beat-pulse scale-150";
     }
   } else {
-    return "bg-neutral-content";
+    return "bg-base-content/30 ring-1 ring-base-content/15";
   }
 };
 

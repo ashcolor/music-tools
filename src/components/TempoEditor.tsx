@@ -4,8 +4,8 @@ import { useMetronome, type AccelerationMode } from "@/contexts/MetronomeContext
 import AccelerationIntervalInput from "./AccelerationIntervalInput";
 import AccelerationStepInput from "./AccelerationStepInput";
 
-const MIN_BPM = 0;
-const MAX_BPM = 600;
+const MIN_BPM = 10;
+const MAX_BPM = 999;
 
 const TAP_RESET_MS = 2000;
 const TAP_MAX_SAMPLES = 8;
@@ -71,7 +71,7 @@ function BpmStepperColumn({
   placeholder?: string;
 }) {
   const tapsRef = useRef<number[]>([]);
-  const numericValue = value ?? 0;
+  const numericValue = value ?? MIN_BPM;
 
   const handleTap = () => {
     const now = performance.now();
@@ -189,7 +189,7 @@ export default function TempoEditor() {
             <BpmStepperColumn
               label="スタート"
               value={state.accelerationStartBpm}
-              onChange={(n) => actions.setAccelerationStartBpm(n ?? 0)}
+              onChange={(n) => actions.setAccelerationStartBpm(n ?? MIN_BPM)}
             />
             <Icon
               icon="material-symbols:double-arrow-rounded"

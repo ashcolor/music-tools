@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
 import { useMetronome, effectiveTargetBpm } from "@/contexts/MetronomeContext";
 import BeatsInput from "./BeatsInput";
@@ -18,16 +18,21 @@ export default function MetronomeApp() {
   const beatsModalRef = useRef<HTMLDialogElement>(null);
   const bpmModalRef = useRef<HTMLDialogElement>(null);
   const lastNonZeroVolumeRef = useRef(state.volume > 0 ? state.volume : 0.3);
-
-  const handleBpmChange = (value: string) => {
-    actions.setBpm(value === "" ? 0 : Number(value));
-  };
+  const previousBpmRef = useRef(state.bpm);
+  const [bpmFlashTick, setBpmFlashTick] = useState(0);
 
   useEffect(() => {
     if (state.volume > 0) {
       lastNonZeroVolumeRef.current = state.volume;
     }
   }, [state.volume]);
+
+  useEffect(() => {
+    if (state.bpm > previousBpmRef.current) {
+      setBpmFlashTick((tick) => tick + 1);
+    }
+    previousBpmRef.current = state.bpm;
+  }, [state.bpm]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -86,7 +91,7 @@ export default function MetronomeApp() {
 
   const playPauseButton =
     state.isPlaying && !state.isPaused ? (
-      <button className="btn btn-circle btn-primary w-16 h-16" onClick={actions.pause}>
+      <button className="btn btn-circle btn-secondary w-16 h-16" onClick={actions.pause}>
         <Icon icon="material-symbols:pause-rounded" width="48" height="48" />
       </button>
     ) : (
@@ -148,20 +153,23 @@ export default function MetronomeApp() {
               </>
             )}
           </div>
-          <div className="relative rounded-full border border-primary/30 w-48 h-48 md:w-56 md:h-56 flex items-center justify-center shrink-0">
+          <div
+            className="relative rounded-full border border-primary/30 w-48 h-48 md:w-56 md:h-56 flex items-center justify-center shrink-0 cursor-pointer hover:bg-base-200 transition-colors"
+            onClick={() => bpmModalRef.current?.showModal()}
+          >
             <input
+              key={`bpm-${bpmFlashTick}`}
               type="number"
-              min={0}
-              max={600}
+              min={10}
+              max={999}
               value={state.bpm}
-              onChange={(e) => handleBpmChange(e.target.value)}
-              className="w-32 md:w-36 bg-transparent text-center text-5xl md:text-6xl font-mono font-bold text-primary focus:text-primary focus:outline-none"
+              readOnly
+              className={`pointer-events-none w-32 md:w-36 bg-transparent text-center text-5xl md:text-6xl font-mono font-bold text-primary focus:text-primary focus:outline-none ${bpmFlashTick > 0 ? "bpm-scale-flash" : ""}`}
               aria-label="テンポ"
             />
             <button
               type="button"
-              className="absolute bottom-6 md:bottom-8 text-lg text-base-content/50 hover:text-primary transition-colors"
-              onClick={() => bpmModalRef.current?.showModal()}
+              className="pointer-events-none absolute bottom-6 md:bottom-8 text-lg text-base-content/50"
             >
               BPM
             </button>
