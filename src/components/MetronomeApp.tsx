@@ -36,10 +36,15 @@ export default function MetronomeApp() {
       <div className="flex justify-start">
         <VolumeControl />
       </div>
-      <div className="flex items-center justify-center gap-2">
-        {!isIdle ? resetButton : <div className="w-12 h-12" aria-hidden />}
-        {playPauseButton}
-        <div className="w-12 h-12" aria-hidden />
+      <div className="flex justify-center">
+        <div className="relative">
+          {!isIdle && (
+            <div className="absolute right-full top-1/2 -translate-y-1/2 mr-2">
+              {resetButton}
+            </div>
+          )}
+          {playPauseButton}
+        </div>
       </div>
       <div className="flex justify-end">
         <FullscreenButton />
