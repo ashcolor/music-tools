@@ -1,17 +1,57 @@
 import { useRef } from "react";
+import { Icon } from "@iconify/react";
 import { useMetronome } from "@/contexts/MetronomeContext";
-import BPMInput from "./BPMInput";
 import AccelerationIntervalInput from "./AccelerationIntervalInput";
 import AccelerationStepInput from "./AccelerationStepInput";
 
 const MIN_BPM = 0;
 const MAX_BPM = 600;
 
-const STEP_BUTTONS = [-10, -1, +1, +10];
 const TAP_RESET_MS = 2000;
 const TAP_MAX_SAMPLES = 8;
 
-function BpmStepperRow({
+function StepGrid({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (n: number) => void;
+}) {
+  return (
+    <div className="grid grid-cols-2 gap-1">
+      <button
+        type="button"
+        className="btn btn-sm btn-soft btn-primary text-xl"
+        onClick={() => onChange(value + 10)}
+      >
+        +10
+      </button>
+      <button
+        type="button"
+        className="btn btn-sm btn-soft btn-primary text-xl"
+        onClick={() => onChange(value + 1)}
+      >
+        +1
+      </button>
+      <button
+        type="button"
+        className="btn btn-sm btn-soft btn-error text-xl"
+        onClick={() => onChange(value - 10)}
+      >
+        -10
+      </button>
+      <button
+        type="button"
+        className="btn btn-sm btn-soft btn-error text-xl"
+        onClick={() => onChange(value - 1)}
+      >
+        -1
+      </button>
+    </div>
+  );
+}
+
+function BpmStepperColumn({
   label,
   value,
   onChange,
@@ -23,19 +63,15 @@ function BpmStepperRow({
   return (
     <div className="flex flex-col items-center gap-2">
       <span className="text-sm font-bold">{label}</span>
-      <BPMInput value={value} onChange={onChange} />
-      <div className="flex flex-row gap-1">
-        {STEP_BUTTONS.map((delta) => (
-          <button
-            key={delta}
-            type="button"
-            className={`btn btn-sm btn-soft ${delta > 0 ? "btn-primary" : "btn-error"}`}
-            onClick={() => onChange(value + delta)}
-          >
-            {delta > 0 ? `+${delta}` : delta}
-          </button>
-        ))}
-      </div>
+      <input
+        type="number"
+        min={MIN_BPM}
+        max={MAX_BPM}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="input input-ghost w-28 px-1 text-center text-4xl md:text-5xl font-mono font-bold text-primary focus:text-primary focus:outline-none h-auto py-2"
+      />
+      <StepGrid value={value} onChange={onChange} />
     </div>
   );
 }
@@ -71,6 +107,32 @@ export default function TempoEditor() {
 
   return (
     <div className="flex flex-col gap-6">
+      <section className="flex flex-row items-center gap-4">
+        <label className="label-text text-sm whitespace-nowrap">モード</label>
+        <div className="flex flex-row gap-3">
+          <label className="flex items-center gap-1 cursor-pointer">
+            <input
+              type="radio"
+              name="acceleration-mode"
+              className="radio radio-sm radio-primary"
+              checked={!state.accelerationEnabled}
+              onChange={() => actions.setAccelerationEnabled(false)}
+            />
+            <span className="text-sm">通常</span>
+          </label>
+          <label className="flex items-center gap-1 cursor-pointer">
+            <input
+              type="radio"
+              name="acceleration-mode"
+              className="radio radio-sm radio-primary"
+              checked={state.accelerationEnabled}
+              onChange={() => actions.setAccelerationEnabled(true)}
+            />
+            <span className="text-sm">加速</span>
+          </label>
+        </div>
+      </section>
+
       {!state.accelerationEnabled && (
         <section className="flex flex-col gap-3 items-center">
           <input
@@ -81,81 +143,46 @@ export default function TempoEditor() {
             onChange={(e) => actions.setBpm(Number(e.target.value))}
             className="input input-ghost w-40 text-center text-5xl font-mono font-bold text-primary focus:text-primary focus:outline-none h-auto py-2"
           />
-          <div className="flex flex-row gap-2 justify-center">
-            {STEP_BUTTONS.map((delta) => (
-              <button
-                key={delta}
-                type="button"
-                className={`btn btn-lg text-xl btn-soft ${delta > 0 ? "btn-primary" : "btn-error"}`}
-                onClick={() => handleStep(delta)}
-              >
-                {delta > 0 ? `+${delta}` : delta}
-              </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            className="btn btn-primary w-32"
-            onClick={handleTap}
-          >
+          <StepGrid value={state.bpm} onChange={(n) => handleStep(n - state.bpm)} />
+          <button type="button" className="btn btn-primary w-32" onClick={handleTap}>
             タップ
           </button>
         </section>
       )}
 
-      <section className="flex flex-col gap-3">
-        <div className="flex flex-row items-center gap-4">
-          <label className="label-text text-sm whitespace-nowrap">モード</label>
-          <div className="flex flex-row gap-3">
-            <label className="flex items-center gap-1 cursor-pointer">
-              <input
-                type="radio"
-                name="acceleration-mode"
-                className="radio radio-sm radio-primary"
-                checked={!state.accelerationEnabled}
-                onChange={() => actions.setAccelerationEnabled(false)}
-              />
-              <span className="text-sm">通常</span>
-            </label>
-            <label className="flex items-center gap-1 cursor-pointer">
-              <input
-                type="radio"
-                name="acceleration-mode"
-                className="radio radio-sm radio-primary"
-                checked={state.accelerationEnabled}
-                onChange={() => actions.setAccelerationEnabled(true)}
-              />
-              <span className="text-sm">加速</span>
-            </label>
-          </div>
-        </div>
-        {state.accelerationEnabled && (
-          <>
-            <BpmStepperRow
+      {state.accelerationEnabled && (
+        <section className="flex flex-col gap-4">
+          <div className="flex flex-row items-center justify-center gap-3">
+            <BpmStepperColumn
               label="START"
               value={state.accelerationStartBpm}
               onChange={actions.setAccelerationStartBpm}
             />
-            <BpmStepperRow
+            <Icon
+              icon="material-symbols:double-arrow-rounded"
+              className="size-6 text-base-content/50 shrink-0"
+              aria-hidden
+            />
+            <BpmStepperColumn
               label="GOAL"
               value={state.accelerationTargetBpm}
               onChange={actions.setAccelerationTargetBpm}
             />
-            <div className="flex flex-row flex-wrap gap-1 items-center justify-center">
-              <AccelerationIntervalInput
-                value={state.accelerationInterval}
-                onChange={actions.setAccelerationInterval}
-              />
-              <span className="shrink-0">小節ごとに</span>
-              <AccelerationStepInput
-                value={state.accelerationStep}
-                onChange={actions.setAccelerationStep}
-              />
-              <span className="shrink-0">BPM変化</span>
-            </div>
-          </>
-        )}
-      </section>
+          </div>
+          <div className="flex flex-row flex-wrap gap-2 items-center justify-center">
+            <AccelerationIntervalInput
+              value={state.accelerationInterval}
+              onChange={actions.setAccelerationInterval}
+            />
+            <span className="shrink-0">小節ごとに</span>
+            <AccelerationStepInput
+              value={state.accelerationStep}
+              onChange={actions.setAccelerationStep}
+            />
+            <span className="shrink-0">BPM変化</span>
+          </div>
+        </section>
+      )}
     </div>
   );
 }
