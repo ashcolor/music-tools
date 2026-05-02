@@ -4,6 +4,7 @@ import { useMetronome, effectiveTargetBpm } from "@/contexts/MetronomeContext";
 import BeatsInput from "./BeatsInput";
 import BeatsDots from "./BeatsDots";
 import TempoEditor from "./TempoEditor";
+import VolumeControl from "./VolumeControl";
 
 export default function MetronomeApp() {
   const { state, actions } = useMetronome();
@@ -33,7 +34,9 @@ export default function MetronomeApp() {
     <div className="grid grid-cols-3 items-center w-full max-w-xl px-4">
       <div className="flex justify-start">{!isIdle && resetButton}</div>
       <div className="flex justify-center">{playPauseButton}</div>
-      <div />
+      <div className="flex justify-end">
+        <VolumeControl />
+      </div>
     </div>
   );
 

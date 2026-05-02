@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
-import { useMetronome } from "@/contexts/MetronomeContext";
+import { useMetronome, type SoundType } from "@/contexts/MetronomeContext";
+
+const SOUND_TYPES: { value: SoundType; label: string }[] = [
+  { value: "electronic", label: "電子音" },
+  { value: "analog", label: "アナログ" },
+  { value: "woodfish", label: "木魚" },
+];
 
 export default function VolumeControl() {
   const { state, actions } = useMetronome();
@@ -26,20 +32,35 @@ export default function VolumeControl() {
         : "material-symbols:volume-up-rounded";
 
   return (
-    <div ref={containerRef} className="fixed bottom-20 right-4 md:bottom-4 z-30">
+    <div ref={containerRef} className="relative">
       {open && (
-        <div className="absolute bottom-full right-0 mb-2 bg-base-100 border border-base-300 rounded-box shadow-lg p-3 flex flex-col items-center gap-2">
-          <span className="text-xs w-8 text-center">{Math.round(state.volume * 100)}</span>
-          <input
-            type="range"
-            min={0}
-            max={1}
-            step={0.01}
-            value={state.volume}
-            onChange={(e) => actions.setVolume(Number(e.target.value))}
-            className="range range-sm range-primary"
-            style={{ writingMode: "vertical-lr", direction: "rtl", height: "8rem" }}
-          />
+        <div className="absolute bottom-full right-0 mb-2 bg-base-100 border border-base-300 rounded-box shadow-lg p-3 flex flex-col gap-3 z-40 w-56">
+          <div className="flex flex-row gap-1 flex-wrap">
+            {SOUND_TYPES.map(({ value, label }) => (
+              <button
+                key={value}
+                type="button"
+                className={`btn btn-sm rounded-full btn-neutral ${state.soundType !== value ? "btn-soft" : ""}`}
+                onClick={() => actions.setSoundType(value)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-row items-center gap-3">
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.01}
+              value={state.volume}
+              onChange={(e) => actions.setVolume(Number(e.target.value))}
+              className="range range-sm range-primary flex-1"
+            />
+            <span className="text-xs w-8 text-right tabular-nums">
+              {Math.round(state.volume * 100)}
+            </span>
+          </div>
         </div>
       )}
       <button
