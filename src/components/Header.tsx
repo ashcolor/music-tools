@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router";
 import { Icon } from "@iconify/react";
 import { useMetronome } from "@/contexts/MetronomeContext";
-import { SITE_NAME, tools } from "../constants";
+import { SITE_NAME, infoPages, tools } from "../constants";
 
 const BRAND_TEXT = "音楽ツール";
 
@@ -103,6 +103,18 @@ export default function Header() {
               <p className="mt-1 opacity-60">音楽の練習や演奏に使えるWebツール集</p>
             </>
           )}
+          <div className="mt-4 flex flex-col gap-1">
+            {infoPages.map((page) => (
+              <Link
+                key={page.path}
+                to={page.path}
+                onClick={() => setOpen(false)}
+                className="link link-hover"
+              >
+                {page.title}
+              </Link>
+            ))}
+          </div>
           <div className="mt-3 opacity-60">© {new Date().getFullYear()} {SITE_NAME}</div>
         </div>
       </div>

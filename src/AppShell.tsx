@@ -3,7 +3,10 @@ import Header from "./components/Header";
 import MetronomeApp from "./components/MetronomeApp";
 import Toolbar from "./components/Toolbar";
 import { MetronomeProvider } from "./contexts/MetronomeContext";
+import { Contact } from "./features/contact/route";
 import { Home } from "./features/home/route";
+import { OperatorInfo } from "./features/operator-info/route";
+import { PrivacyPolicy } from "./features/privacy-policy/route";
 
 function MetronomeRoute() {
   return (
@@ -23,6 +26,9 @@ export function AppShell() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/metronome" element={<MetronomeRoute />} />
+            <Route path="/operator" element={<OperatorInfo />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
