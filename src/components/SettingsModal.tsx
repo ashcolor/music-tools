@@ -20,19 +20,6 @@ const SettingsModal = forwardRef<HTMLDialogElement>((_, ref) => {
           <section className="flex flex-col gap-3">
             <h4 className="font-bold text-sm">音設定</h4>
             <div className="flex flex-row items-center gap-3">
-              <label className="label-text text-sm whitespace-nowrap w-20">音量</label>
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.01}
-                value={state.volume}
-                onChange={(e) => actions.setVolume(Number(e.target.value))}
-                className="range range-sm flex-1"
-              />
-              <span className="text-sm w-10 text-right">{Math.round(state.volume * 100)}</span>
-            </div>
-            <div className="flex flex-row items-center gap-3">
               <label className="label-text text-sm whitespace-nowrap w-20">音の種類</label>
               <div className="flex flex-row gap-1 flex-wrap">
                 {SOUND_TYPES.map(({ value, label }) => (

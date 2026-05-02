@@ -1,6 +1,7 @@
 import Header from "./components/Header";
 import MetronomeApp from "./components/MetronomeApp";
 import SettingsButton from "./components/SettingsButton";
+import VolumeControl from "./components/VolumeControl";
 import { MetronomeProvider } from "./contexts/MetronomeContext";
 
 export default function App() {
@@ -12,6 +13,7 @@ export default function App() {
         <div className="flex-1 flex items-center justify-center">
           <MetronomeApp />
         </div>
+        <VolumeControl />
       </div>
     </MetronomeProvider>
   );

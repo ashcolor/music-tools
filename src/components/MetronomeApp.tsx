@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { Icon } from "@iconify/react";
-import { useMetronome } from "@/contexts/MetronomeContext";
+import { useMetronome, effectiveTargetBpm } from "@/contexts/MetronomeContext";
 import BeatsInput from "./BeatsInput";
 import BeatsDots from "./BeatsDots";
 import TempoEditor from "./TempoEditor";
@@ -41,7 +41,7 @@ export default function MetronomeApp() {
     <div className="max-w-xl mx-auto p-4 md:p-8 gap-8 flex flex-col items-center">
       <div className="flex flex-col gap-6">
         <div className="flex flex-row items-center justify-center gap-2 md:gap-4">
-          {state.accelerationEnabled && (
+          {state.accelerationMode !== "off" && (
             <>
               <button
                 type="button"
@@ -70,7 +70,7 @@ export default function MetronomeApp() {
               BPM
             </span>
           </button>
-          {state.accelerationEnabled && (
+          {state.accelerationMode !== "off" && (
             <>
               <Icon
                 icon="material-symbols:double-arrow-rounded"
@@ -83,7 +83,7 @@ export default function MetronomeApp() {
                 className="text-2xl md:text-3xl font-mono text-primary px-2 py-1 rounded hover:bg-base-200 transition-colors"
                 onClick={() => bpmModalRef.current?.showModal()}
               >
-                {state.accelerationTargetBpm}
+                {effectiveTargetBpm(state)}
               </button>
             </>
           )}

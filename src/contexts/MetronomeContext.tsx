@@ -11,6 +11,10 @@ import {
 
 export type SoundType = "electronic" | "analog" | "woodfish";
 export type ThemeMode = "light" | "dark";
+export type AccelerationMode = "off" | "accel" | "decel";
+
+const DEFAULT_ACCEL_TARGET = 300;
+const DEFAULT_DECEL_TARGET = 30;
 
 type State = {
   bpm: number;
@@ -19,9 +23,9 @@ type State = {
   currentBeat: number;
   beatsPerMeasure: number;
   isAccelerating: boolean;
-  accelerationEnabled: boolean;
+  accelerationMode: AccelerationMode;
   accelerationStartBpm: number;
-  accelerationTargetBpm: number;
+  accelerationTargetBpm: number | null;
   accelerationInterval: number;
   accelerationStep: number;
   volume: number;
@@ -33,10 +37,10 @@ type Action =
   | { type: "SET_BPM"; bpm: number }
   | { type: "SET_BEATS_PER_MEASURE"; beats: number }
   | { type: "SET_ACCELERATION_START_BPM"; bpm: number }
-  | { type: "SET_ACCELERATION_TARGET_BPM"; bpm: number }
+  | { type: "SET_ACCELERATION_TARGET_BPM"; bpm: number | null }
   | { type: "SET_ACCELERATION_INTERVAL"; value: number }
   | { type: "SET_ACCELERATION_STEP"; value: number }
-  | { type: "SET_ACCELERATION_ENABLED"; value: boolean }
+  | { type: "SET_ACCELERATION_MODE"; value: AccelerationMode }
   | { type: "SET_CURRENT_BEAT"; value: number }
   | { type: "SET_VOLUME"; value: number }
   | { type: "SET_SOUND_TYPE"; value: SoundType }
@@ -47,23 +51,10 @@ type Action =
   | { type: "STOP" }
   | { type: "STOP_ACCELERATION" };
 
-const computeStep = (startBpm: number, targetBpm: number): number | null => {
-  if (startBpm >= targetBpm) return null;
-  const totalChange = targetBpm - startBpm;
-  let step: number;
-  if (totalChange <= 10) {
-    step = 1;
-  } else if (totalChange <= 30) {
-    step = 2;
-  } else if (totalChange <= 60) {
-    step = Math.ceil(totalChange / 15);
-  } else {
-    step = Math.ceil(totalChange / 20);
-  }
-  return Math.max(1, Math.min(10, step));
-};
-
-const initialAccelerationStep = computeStep(120, 160) ?? 1;
+export function effectiveTargetBpm(state: State): number {
+  if (state.accelerationTargetBpm !== null) return state.accelerationTargetBpm;
+  return state.accelerationMode === "decel" ? DEFAULT_DECEL_TARGET : DEFAULT_ACCEL_TARGET;
+}
 
 const initialState: State = {
   bpm: 120,
@@ -72,11 +63,11 @@ const initialState: State = {
   currentBeat: 0,
   beatsPerMeasure: 4,
   isAccelerating: false,
-  accelerationEnabled: true,
+  accelerationMode: "off",
   accelerationStartBpm: 120,
-  accelerationTargetBpm: 160,
+  accelerationTargetBpm: null,
   accelerationInterval: 1,
-  accelerationStep: initialAccelerationStep,
+  accelerationStep: 1,
   volume: 0.3,
   soundType: "electronic",
   theme: "light",
@@ -96,8 +87,8 @@ function reducer(state: State, action: Action): State {
       return { ...state, accelerationInterval: action.value };
     case "SET_ACCELERATION_STEP":
       return { ...state, accelerationStep: action.value };
-    case "SET_ACCELERATION_ENABLED":
-      return { ...state, accelerationEnabled: action.value };
+    case "SET_ACCELERATION_MODE":
+      return { ...state, accelerationMode: action.value };
     case "SET_CURRENT_BEAT":
       return { ...state, currentBeat: action.value };
     case "SET_VOLUME":
@@ -107,8 +98,9 @@ function reducer(state: State, action: Action): State {
     case "SET_THEME":
       return { ...state, theme: action.value };
     case "START_FRESH": {
+      const target = effectiveTargetBpm(state);
       const shouldAccelerate =
-        state.accelerationEnabled && state.accelerationStartBpm < state.accelerationTargetBpm;
+        state.accelerationMode !== "off" && state.accelerationStartBpm !== target;
       return {
         ...state,
         isPlaying: true,
@@ -129,7 +121,7 @@ function reducer(state: State, action: Action): State {
         isPaused: false,
         currentBeat: 0,
         isAccelerating: false,
-        bpm: state.accelerationStartBpm,
+        bpm: state.accelerationMode !== "off" ? state.accelerationStartBpm : state.bpm,
       };
     case "STOP_ACCELERATION":
       return { ...state, isAccelerating: false };
@@ -144,10 +136,10 @@ type Actions = {
   setBpm: (n: number) => void;
   setBeatsPerMeasure: (n: number) => void;
   setAccelerationStartBpm: (n: number) => void;
-  setAccelerationTargetBpm: (n: number) => void;
+  setAccelerationTargetBpm: (n: number | null) => void;
   setAccelerationInterval: (n: number) => void;
   setAccelerationStep: (n: number) => void;
-  setAccelerationEnabled: (v: boolean) => void;
+  setAccelerationMode: (v: AccelerationMode) => void;
   setVolume: (n: number) => void;
   setSoundType: (v: SoundType) => void;
   setTheme: (v: ThemeMode) => void;
@@ -169,7 +161,6 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
   const intervalIdRef = useRef<number | null>(null);
   const accelerationBeatCountRef = useRef(0);
 
-  // stateRef を reducer 経由で常に同期する
   const syncDispatch = useCallback((action: Action) => {
     stateRef.current = reducer(stateRef.current, action);
     dispatch(action);
@@ -242,13 +233,15 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
     syncDispatch({ type: "SET_CURRENT_BEAT", value: nextBeat });
     playClick(isAccent);
 
-    // 加速機能：1拍目がなった後に加速処理を実行
-    // ただし、開始直後の最初の1拍目はスキップ
     if (s.isAccelerating && isAccent && accelerationBeatCountRef.current > 0) {
       if (accelerationBeatCountRef.current >= s.accelerationInterval) {
         accelerationBeatCountRef.current = 0;
-        if (s.bpm < s.accelerationTargetBpm) {
-          const newBpm = Math.min(s.bpm + s.accelerationStep, s.accelerationTargetBpm);
+        const target = effectiveTargetBpm(s);
+        if (s.accelerationMode === "accel" && s.bpm < target) {
+          const newBpm = Math.min(s.bpm + s.accelerationStep, target);
+          setBpmRef.current(newBpm);
+        } else if (s.accelerationMode === "decel" && s.bpm > target) {
+          const newBpm = Math.max(s.bpm - s.accelerationStep, target);
           setBpmRef.current(newBpm);
         } else {
           syncDispatch({ type: "STOP_ACCELERATION" });
@@ -256,7 +249,6 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // 1拍目でカウントを増加（加速処理の後に行う）
     if (stateRef.current.isAccelerating && isAccent) {
       accelerationBeatCountRef.current++;
     }
@@ -345,7 +337,7 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
   );
 
   const setAccelerationTargetBpm = useCallback(
-    (n: number) => syncDispatch({ type: "SET_ACCELERATION_TARGET_BPM", bpm: n }),
+    (n: number | null) => syncDispatch({ type: "SET_ACCELERATION_TARGET_BPM", bpm: n }),
     [syncDispatch],
   );
 
@@ -359,8 +351,8 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
     [syncDispatch],
   );
 
-  const setAccelerationEnabled = useCallback(
-    (v: boolean) => syncDispatch({ type: "SET_ACCELERATION_ENABLED", value: v }),
+  const setAccelerationMode = useCallback(
+    (v: AccelerationMode) => syncDispatch({ type: "SET_ACCELERATION_MODE", value: v }),
     [syncDispatch],
   );
 
@@ -407,7 +399,7 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
         setAccelerationTargetBpm,
         setAccelerationInterval,
         setAccelerationStep,
-        setAccelerationEnabled,
+        setAccelerationMode,
         setVolume,
         setSoundType,
         setTheme,
@@ -425,7 +417,7 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
       setAccelerationTargetBpm,
       setAccelerationInterval,
       setAccelerationStep,
-      setAccelerationEnabled,
+      setAccelerationMode,
       setVolume,
       setSoundType,
       setTheme,
