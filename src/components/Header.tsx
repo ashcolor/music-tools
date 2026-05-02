@@ -1,14 +1,18 @@
 import { useState } from "react";
+import { Link, useLocation } from "react-router";
 import { Icon } from "@iconify/react";
 import { useMetronome } from "@/contexts/MetronomeContext";
+import { SITE_NAME, tools } from "../constants";
 
 const BRAND_TEXT = "音楽ツール";
-const CURRENT_TOOL_TITLE = "メトロノーム";
 
 export default function Header() {
   const [open, setOpen] = useState(false);
   const { state, actions } = useMetronome();
   const isDark = state.theme === "dark";
+  const location = useLocation();
+  const isHome = location.pathname === "/";
+  const currentTool = tools.find((tool) => tool.path === location.pathname);
 
   return (
     <>
@@ -22,16 +26,16 @@ export default function Header() {
           >
             <Icon icon="fa6-solid:bars" className="size-4" />
           </button>
-          <a
-            href="/"
+          <Link
+            to="/"
             className="inline-flex items-center gap-2 text-lg font-bold whitespace-nowrap text-base-content no-underline"
           >
-            <span className="inline-flex items-center opacity-50">
+            <span className={`inline-flex items-center ${isHome ? "" : "opacity-50"}`}>
               <span>{BRAND_TEXT}</span>
               <Icon icon="fa-solid:plus" className="size-4" aria-hidden />
             </span>
-            <span>{CURRENT_TOOL_TITLE}</span>
-          </a>
+            {currentTool ? <span>{currentTool.title}</span> : null}
+          </Link>
         </div>
       </header>
 
@@ -58,6 +62,48 @@ export default function Header() {
               <Icon icon="bi:sun" className="size-5" />
             )}
           </button>
+        </div>
+
+        <div>
+          <ul className="menu bg-base-100 w-full">
+            <li>
+              <Link
+                to="/"
+                onClick={() => setOpen(false)}
+                className={location.pathname === "/" ? "bg-base-200" : undefined}
+              >
+                HOME
+              </Link>
+            </li>
+            <li className="menu-title text-xs opacity-60">ツール</li>
+            {tools.map((tool) => (
+              <li key={tool.path}>
+                <Link
+                  to={tool.path}
+                  onClick={() => setOpen(false)}
+                  className={`flex items-center gap-4 py-4 ${location.pathname === tool.path ? "bg-base-200" : ""}`}
+                >
+                  <Icon icon={tool.sidebarIcon} className="size-5 shrink-0" />
+                  <span>{tool.title}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="mt-auto border-base-300 border-t p-4 text-xs">
+          {currentTool ? (
+            <>
+              <div className="font-bold">{currentTool.title}</div>
+              <p className="mt-1 opacity-60">{currentTool.description}</p>
+            </>
+          ) : (
+            <>
+              <div className="font-bold">{SITE_NAME}</div>
+              <p className="mt-1 opacity-60">音楽の練習や演奏に使えるWebツール集</p>
+            </>
+          )}
+          <div className="mt-3 opacity-60">© {new Date().getFullYear()} {SITE_NAME}</div>
         </div>
       </div>
     </>
