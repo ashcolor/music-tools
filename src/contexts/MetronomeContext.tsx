@@ -9,6 +9,9 @@ import {
   type ReactNode,
 } from "react";
 
+export type SoundType = "electronic" | "analog" | "woodfish";
+export type ThemeMode = "light" | "dark";
+
 type State = {
   bpm: number;
   isPlaying: boolean;
@@ -21,6 +24,9 @@ type State = {
   accelerationTargetBpm: number;
   accelerationInterval: number;
   accelerationStep: number;
+  volume: number;
+  soundType: SoundType;
+  theme: ThemeMode;
 };
 
 type Action =
@@ -32,6 +38,9 @@ type Action =
   | { type: "SET_ACCELERATION_STEP"; value: number }
   | { type: "SET_ACCELERATION_ENABLED"; value: boolean }
   | { type: "SET_CURRENT_BEAT"; value: number }
+  | { type: "SET_VOLUME"; value: number }
+  | { type: "SET_SOUND_TYPE"; value: SoundType }
+  | { type: "SET_THEME"; value: ThemeMode }
   | { type: "START_FRESH" }
   | { type: "RESUME" }
   | { type: "PAUSE" }
@@ -68,6 +77,9 @@ const initialState: State = {
   accelerationTargetBpm: 160,
   accelerationInterval: 1,
   accelerationStep: initialAccelerationStep,
+  volume: 0.3,
+  soundType: "electronic",
+  theme: "light",
 };
 
 function reducer(state: State, action: Action): State {
@@ -88,6 +100,12 @@ function reducer(state: State, action: Action): State {
       return { ...state, accelerationEnabled: action.value };
     case "SET_CURRENT_BEAT":
       return { ...state, currentBeat: action.value };
+    case "SET_VOLUME":
+      return { ...state, volume: Math.max(0, Math.min(1, action.value)) };
+    case "SET_SOUND_TYPE":
+      return { ...state, soundType: action.value };
+    case "SET_THEME":
+      return { ...state, theme: action.value };
     case "START_FRESH": {
       const shouldAccelerate =
         state.accelerationEnabled && state.accelerationStartBpm < state.accelerationTargetBpm;
@@ -130,6 +148,9 @@ type Actions = {
   setAccelerationInterval: (n: number) => void;
   setAccelerationStep: (n: number) => void;
   setAccelerationEnabled: (v: boolean) => void;
+  setVolume: (n: number) => void;
+  setSoundType: (v: SoundType) => void;
+  setTheme: (v: ThemeMode) => void;
 };
 
 type ContextValue = {
@@ -157,21 +178,59 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
   const playClick = useCallback((isAccent = false) => {
     const ctx = audioContextRef.current;
     if (!ctx) return;
+    const { volume, soundType } = stateRef.current;
+    if (volume <= 0) return;
+    const t = ctx.currentTime;
 
-    const oscillator = ctx.createOscillator();
-    const gainNode = ctx.createGain();
+    if (soundType === "analog") {
+      const bufferSize = Math.floor(ctx.sampleRate * 0.05);
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+      const noise = ctx.createBufferSource();
+      noise.buffer = buffer;
+      const filter = ctx.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.frequency.value = isAccent ? 4000 : 2500;
+      filter.Q.value = 5;
+      const gain = ctx.createGain();
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+      gain.gain.setValueAtTime(volume, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+      noise.start(t);
+      noise.stop(t + 0.05);
+      return;
+    }
 
-    oscillator.connect(gainNode);
-    gainNode.connect(ctx.destination);
+    if (soundType === "woodfish") {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = "sine";
+      const startFreq = isAccent ? 500 : 300;
+      const endFreq = isAccent ? 100 : 60;
+      osc.frequency.setValueAtTime(startFreq, t);
+      osc.frequency.exponentialRampToValueAtTime(endFreq, t + 0.15);
+      gain.gain.setValueAtTime(volume, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+      osc.start(t);
+      osc.stop(t + 0.2);
+      return;
+    }
 
-    oscillator.frequency.setValueAtTime(isAccent ? 800 : 400, ctx.currentTime);
-    oscillator.type = "square";
-
-    gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
-
-    oscillator.start(ctx.currentTime);
-    oscillator.stop(ctx.currentTime + 0.1);
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.setValueAtTime(isAccent ? 800 : 400, t);
+    osc.type = "square";
+    gain.gain.setValueAtTime(volume, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+    osc.start(t);
+    osc.stop(t + 0.1);
   }, []);
 
   const setBpmRef = useRef<(n: number) => void>(() => {});
@@ -305,6 +364,26 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
     [syncDispatch],
   );
 
+  const setVolume = useCallback(
+    (n: number) => syncDispatch({ type: "SET_VOLUME", value: n }),
+    [syncDispatch],
+  );
+
+  const setSoundType = useCallback(
+    (v: SoundType) => syncDispatch({ type: "SET_SOUND_TYPE", value: v }),
+    [syncDispatch],
+  );
+
+  const setTheme = useCallback(
+    (v: ThemeMode) => syncDispatch({ type: "SET_THEME", value: v }),
+    [syncDispatch],
+  );
+
+  useEffect(() => {
+    const themeName = state.theme === "dark" ? "dark" : "light";
+    document.documentElement.setAttribute("data-theme", themeName);
+  }, [state.theme]);
+
   useEffect(() => {
     return () => {
       if (intervalIdRef.current !== null) {
@@ -329,6 +408,9 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
         setAccelerationInterval,
         setAccelerationStep,
         setAccelerationEnabled,
+        setVolume,
+        setSoundType,
+        setTheme,
       },
     }),
     [
@@ -344,6 +426,9 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
       setAccelerationInterval,
       setAccelerationStep,
       setAccelerationEnabled,
+      setVolume,
+      setSoundType,
+      setTheme,
     ],
   );
 

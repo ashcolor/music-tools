@@ -24,7 +24,7 @@ export default function BeatsDots({ beatsPerMeasure = 1, currentBeat = 1, onClic
     <div className="flex justify-center">
       <button
         type="button"
-        className="flex items-center gap-4 cursor-pointer px-6 py-4"
+        className="flex items-center gap-4 cursor-pointer px-6 py-4 rounded-lg hover:bg-base-200 transition-colors"
         onClick={onClick}
       >
         {beats.map((beat) => (

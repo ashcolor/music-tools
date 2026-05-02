@@ -14,7 +14,7 @@ export default function BPMInput({ value, onChange }: Props) {
       max={MAX_BPM}
       value={value}
       onChange={(e) => onChange(Number(e.target.value))}
-      className="input input-ghost input-lg w-16 md:w-24 px-1 text-center text-lg md:text-xl font-mono text-primary-content focus:text-primary-content focus:outline-none"
+      className="input input-ghost input-lg w-16 md:w-24 px-1 text-center text-lg md:text-xl font-mono text-primary focus:text-primary focus:outline-none"
     />
   );
 }

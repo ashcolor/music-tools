@@ -1,8 +1,13 @@
 import { useRef } from "react";
 import { Icon } from "@iconify/react";
 import { useMetronome } from "@/contexts/MetronomeContext";
-import AccelerationIntervalInput from "./AccelerationIntervalInput";
-import AccelerationStepInput from "./AccelerationStepInput";
+import type { SoundType } from "@/contexts/MetronomeContext";
+
+const SOUND_TYPES: { value: SoundType; label: string }[] = [
+  { value: "electronic", label: "電子音" },
+  { value: "analog", label: "アナログ" },
+  { value: "woodfish", label: "木魚" },
+];
 
 export default function AccelerationToggle() {
   const { state, actions } = useMetronome();
@@ -14,40 +19,50 @@ export default function AccelerationToggle() {
         type="button"
         className="btn btn-ghost btn-square"
         onClick={() => modalRef.current?.showModal()}
-        aria-label="加速設定"
+        aria-label="設定"
       >
         <Icon icon="material-symbols:settings-rounded" width="32" height="32" />
       </button>
 
       <dialog ref={modalRef} className="modal">
         <div className="modal-box">
-          <h3 className="font-bold text-lg mb-4">加速設定</h3>
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-row items-center gap-2">
-              <label className="label-text text-sm whitespace-nowrap">加速機能</label>
-              <input
-                type="checkbox"
-                className="toggle border-base-300 bg-base-300 checked:border-accent checked:bg-accent"
-                checked={state.accelerationEnabled}
-                onChange={(e) => actions.setAccelerationEnabled(e.target.checked)}
-              />
-            </div>
+          <h3 className="font-bold text-lg mb-4">設定</h3>
 
-            {state.accelerationEnabled && (
-              <div className="flex flex-row flex-wrap gap-1 items-center">
-                <AccelerationIntervalInput
-                  value={state.accelerationInterval}
-                  onChange={actions.setAccelerationInterval}
+          <div className="flex flex-col gap-6">
+            <section className="flex flex-col gap-3">
+              <h4 className="font-bold text-sm">音設定</h4>
+              <div className="flex flex-row items-center gap-3">
+                <label className="label-text text-sm whitespace-nowrap w-20">音量</label>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={state.volume}
+                  onChange={(e) => actions.setVolume(Number(e.target.value))}
+                  className="range range-sm flex-1"
                 />
-                <span className="shrink-0">小節ごとに</span>
-                <AccelerationStepInput
-                  value={state.accelerationStep}
-                  onChange={actions.setAccelerationStep}
-                />
-                <span className="shrink-0">BPM変化</span>
+                <span className="text-sm w-10 text-right">{Math.round(state.volume * 100)}</span>
               </div>
-            )}
+              <div className="flex flex-row items-center gap-3">
+                <label className="label-text text-sm whitespace-nowrap w-20">音の種類</label>
+                <div className="flex flex-row gap-1 flex-wrap">
+                  {SOUND_TYPES.map(({ value, label }) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className={`btn btn-sm rounded-full btn-neutral ${state.soundType !== value ? "btn-soft" : ""}`}
+                      onClick={() => actions.setSoundType(value)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </section>
+
           </div>
+
           <div className="modal-action">
             <form method="dialog">
               <button className="btn">閉じる</button>

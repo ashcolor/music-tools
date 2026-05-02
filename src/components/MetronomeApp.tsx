@@ -1,13 +1,14 @@
 import { useRef } from "react";
 import { Icon } from "@iconify/react";
 import { useMetronome } from "@/contexts/MetronomeContext";
-import BPMInput from "./BPMInput";
 import BeatsInput from "./BeatsInput";
 import BeatsDots from "./BeatsDots";
+import TempoEditor from "./TempoEditor";
 
 export default function MetronomeApp() {
   const { state, actions } = useMetronome();
   const beatsModalRef = useRef<HTMLDialogElement>(null);
+  const bpmModalRef = useRef<HTMLDialogElement>(null);
 
   const playbackButtons = (
     <>
@@ -43,31 +44,46 @@ export default function MetronomeApp() {
         <div className="flex flex-row items-center justify-center gap-2 md:gap-4">
           {state.accelerationEnabled && (
             <>
-              <BPMInput
-                value={state.accelerationStartBpm}
-                onChange={actions.setAccelerationStartBpm}
+              <button
+                type="button"
+                className="text-lg md:text-xl font-mono text-primary px-2 py-1 rounded hover:bg-base-200 transition-colors"
+                onClick={() => bpmModalRef.current?.showModal()}
+              >
+                {state.accelerationStartBpm}
+              </button>
+              <Icon
+                icon="material-symbols:double-arrow-rounded"
+                width="24"
+                height="24"
+                className="text-base-content/50"
               />
-              <Icon icon="material-symbols:double-arrow-rounded" width="24" height="24" />
             </>
           )}
-          <div className="text-center">
-            <input
-              type="number"
-              min={0}
-              max={600}
-              className="input input-ghost text-5xl md:text-6xl font-mono font-bold text-primary-content focus:text-primary-content text-center w-32 md:w-40 h-auto p-0 focus:outline-none focus:bg-transparent"
-              value={state.bpm}
-              onChange={(e) => actions.setBpm(Number(e.target.value))}
-            />
-            <div className="text-lg text-neutral">BPM</div>
-          </div>
+          <button
+            type="button"
+            className="rounded-full border border-primary/30 w-48 h-48 md:w-56 md:h-56 flex flex-col items-center justify-center shrink-0 hover:bg-base-200 transition-colors cursor-pointer"
+            onClick={() => bpmModalRef.current?.showModal()}
+          >
+            <span className="text-5xl md:text-6xl font-mono font-bold text-primary">
+              {state.bpm}
+            </span>
+            <span className="text-lg text-base-content/50">BPM</span>
+          </button>
           {state.accelerationEnabled && (
             <>
-              <Icon icon="material-symbols:double-arrow-rounded" width="24" height="24" />
-              <BPMInput
-                value={state.accelerationTargetBpm}
-                onChange={actions.setAccelerationTargetBpm}
+              <Icon
+                icon="material-symbols:double-arrow-rounded"
+                width="24"
+                height="24"
+                className="text-base-content/50"
               />
+              <button
+                type="button"
+                className="text-lg md:text-xl font-mono text-primary px-2 py-1 rounded hover:bg-base-200 transition-colors"
+                onClick={() => bpmModalRef.current?.showModal()}
+              >
+                {state.accelerationTargetBpm}
+              </button>
             </>
           )}
         </div>
@@ -84,6 +100,21 @@ export default function MetronomeApp() {
       <div className="md:hidden fixed bottom-0 inset-x-0 bg-base-100 border-t border-base-300 flex justify-center gap-4 py-3 z-20">
         {playbackButtons}
       </div>
+
+      <dialog ref={bpmModalRef} className="modal">
+        <div className="modal-box">
+          <h3 className="font-bold text-lg mb-4">テンポ</h3>
+          <TempoEditor />
+          <div className="modal-action">
+            <form method="dialog">
+              <button className="btn">閉じる</button>
+            </form>
+          </div>
+        </div>
+        <form method="dialog" className="modal-backdrop">
+          <button>close</button>
+        </form>
+      </dialog>
 
       <dialog ref={beatsModalRef} className="modal">
         <div className="modal-box">
