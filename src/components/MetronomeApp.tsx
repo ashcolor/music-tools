@@ -5,6 +5,7 @@ import BeatsInput from "./BeatsInput";
 import BeatsDots from "./BeatsDots";
 import TempoEditor from "./TempoEditor";
 import VolumeControl from "./VolumeControl";
+import FullscreenButton from "./FullscreenButton";
 
 export default function MetronomeApp() {
   const { state, actions } = useMetronome();
@@ -23,26 +24,33 @@ export default function MetronomeApp() {
     );
 
   const resetButton = (
-    <button className="btn btn-circle btn-ghost" onClick={actions.stop} aria-label="リセット">
-      <Icon icon="material-symbols:replay-rounded" width="24" height="24" />
+    <button className="btn btn-circle btn-outline" onClick={actions.stop} aria-label="停止">
+      <Icon icon="material-symbols:stop-rounded" width="24" height="24" />
     </button>
   );
 
   const isIdle = !state.isPlaying && !state.isPaused;
 
   const playbackBar = (
-    <div className="grid grid-cols-3 items-center w-full max-w-xl px-4">
-      <div className="flex justify-start">{!isIdle && resetButton}</div>
-      <div className="flex justify-center">{playPauseButton}</div>
-      <div className="flex justify-end">
+    <div className="grid grid-cols-3 items-center w-full max-w-xl px-4 py-2">
+      <div className="flex justify-start">
         <VolumeControl />
+      </div>
+      <div className="flex items-center justify-center gap-2">
+        {!isIdle ? resetButton : <div className="w-12 h-12" aria-hidden />}
+        {playPauseButton}
+        <div className="w-12 h-12" aria-hidden />
+      </div>
+      <div className="flex justify-end">
+        <FullscreenButton />
       </div>
     </div>
   );
 
   return (
-    <div className="max-w-xl mx-auto p-4 md:p-8 gap-8 flex flex-col items-center">
-      <div className="flex flex-col gap-6">
+    <div className="flex-1 flex flex-col w-full max-w-xl mx-auto">
+      <div className="flex-1 flex flex-col items-center justify-center gap-8 p-4 md:p-8">
+        <div className="flex flex-col gap-6">
         <div className="flex flex-row items-center justify-center gap-2 md:gap-4">
           {state.accelerationMode !== "off" && (
             <>
@@ -97,13 +105,10 @@ export default function MetronomeApp() {
           beatsPerMeasure={state.beatsPerMeasure}
           onClick={() => beatsModalRef.current?.showModal()}
         />
+        </div>
       </div>
 
-      <div className="hidden md:flex justify-center pt-4 w-full">{playbackBar}</div>
-
-      <div className="md:hidden fixed bottom-0 inset-x-0 bg-base-100 border-t border-base-300 flex justify-center py-3 z-20">
-        {playbackBar}
-      </div>
+      <div className="border-t border-base-300 flex justify-center">{playbackBar}</div>
 
       <dialog ref={bpmModalRef} className="modal">
         <div className="modal-box">

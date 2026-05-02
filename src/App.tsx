@@ -1,5 +1,6 @@
 import Header from "./components/Header";
 import MetronomeApp from "./components/MetronomeApp";
+import Toolbar from "./components/Toolbar";
 import { MetronomeProvider } from "./contexts/MetronomeContext";
 
 export default function App() {
@@ -7,9 +8,8 @@ export default function App() {
     <MetronomeProvider>
       <div className="min-h-screen bg-base-100 flex flex-col">
         <Header />
-        <div className="flex-1 flex items-center justify-center">
-          <MetronomeApp />
-        </div>
+        <Toolbar />
+        <MetronomeApp />
       </div>
     </MetronomeProvider>
   );

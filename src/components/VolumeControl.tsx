@@ -34,7 +34,7 @@ export default function VolumeControl() {
   return (
     <div ref={containerRef} className="relative">
       {open && (
-        <div className="absolute bottom-full right-0 mb-2 bg-base-100 border border-base-300 rounded-box shadow-lg p-3 flex flex-col gap-3 z-40 w-56">
+        <div className="absolute bottom-full left-0 mb-2 bg-base-100 border border-base-300 rounded-box shadow-lg p-3 flex flex-col gap-3 z-40 w-56">
           <div className="flex flex-row gap-1 flex-wrap">
             {SOUND_TYPES.map(({ value, label }) => (
               <button

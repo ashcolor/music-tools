@@ -49,7 +49,8 @@ type Action =
   | { type: "RESUME" }
   | { type: "PAUSE" }
   | { type: "STOP" }
-  | { type: "STOP_ACCELERATION" };
+  | { type: "STOP_ACCELERATION" }
+  | { type: "RESET" };
 
 export function effectiveTargetBpm(state: State): number {
   if (state.accelerationTargetBpm !== null) return state.accelerationTargetBpm;
@@ -125,6 +126,15 @@ function reducer(state: State, action: Action): State {
       };
     case "STOP_ACCELERATION":
       return { ...state, isAccelerating: false };
+    case "RESET":
+      return {
+        ...initialState,
+        isPlaying: state.isPlaying,
+        isPaused: state.isPaused,
+        currentBeat: state.currentBeat,
+        isAccelerating: false,
+        theme: state.theme,
+      };
   }
 }
 
@@ -143,6 +153,7 @@ type Actions = {
   setVolume: (n: number) => void;
   setSoundType: (v: SoundType) => void;
   setTheme: (v: ThemeMode) => void;
+  reset: () => void;
 };
 
 type ContextValue = {
@@ -371,6 +382,15 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
     [syncDispatch],
   );
 
+  const reset = useCallback(() => {
+    accelerationBeatCountRef.current = 0;
+    syncDispatch({ type: "RESET" });
+    if (intervalIdRef.current !== null && stateRef.current.isPlaying) {
+      window.clearInterval(intervalIdRef.current);
+      intervalIdRef.current = window.setInterval(tick, 60000 / stateRef.current.bpm);
+    }
+  }, [syncDispatch, tick]);
+
   useEffect(() => {
     const themeName = state.theme === "dark" ? "dark" : "light";
     document.documentElement.setAttribute("data-theme", themeName);
@@ -403,6 +423,7 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
         setVolume,
         setSoundType,
         setTheme,
+        reset,
       },
     }),
     [
@@ -421,6 +442,7 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
       setVolume,
       setSoundType,
       setTheme,
+      reset,
     ],
   );
 
