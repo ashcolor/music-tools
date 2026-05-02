@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { Icon } from "@iconify/react";
 import { useMetronome, effectiveTargetBpm } from "@/contexts/MetronomeContext";
 import BeatsInput from "./BeatsInput";
@@ -7,10 +7,82 @@ import TempoEditor from "./TempoEditor";
 import VolumeControl from "./VolumeControl";
 import FullscreenButton from "./FullscreenButton";
 
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  const tag = target.tagName;
+  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable;
+}
+
 export default function MetronomeApp() {
   const { state, actions } = useMetronome();
   const beatsModalRef = useRef<HTMLDialogElement>(null);
   const bpmModalRef = useRef<HTMLDialogElement>(null);
+  const lastNonZeroVolumeRef = useRef(state.volume > 0 ? state.volume : 0.3);
+
+  const handleBpmChange = (value: string) => {
+    actions.setBpm(value === "" ? 0 : Number(value));
+  };
+
+  useEffect(() => {
+    if (state.volume > 0) {
+      lastNonZeroVolumeRef.current = state.volume;
+    }
+  }, [state.volume]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.repeat || event.altKey || event.ctrlKey || event.metaKey) return;
+      if (isEditableTarget(event.target)) return;
+
+      if (event.code === "Space") {
+        event.preventDefault();
+        if (state.isPlaying) {
+          actions.pause();
+        } else {
+          void actions.start();
+        }
+        return;
+      }
+
+      const key = event.key.toLowerCase();
+
+      if (key === "r") {
+        event.preventDefault();
+        actions.stop();
+        return;
+      }
+
+      if (key === "m") {
+        event.preventDefault();
+        if (state.volume > 0) {
+          actions.setVolume(0);
+        } else {
+          actions.setVolume(lastNonZeroVolumeRef.current);
+        }
+        return;
+      }
+
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        actions.setBpm(state.bpm + 1);
+        return;
+      }
+
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        actions.setBpm(state.bpm - 1);
+        return;
+      }
+
+      if (/^[1-9]$/.test(event.key)) {
+        event.preventDefault();
+        actions.setBeatsPerMeasure(Number(event.key));
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [actions, state.bpm, state.isPlaying, state.volume]);
 
   const playPauseButton =
     state.isPlaying && !state.isPaused ? (
@@ -56,53 +128,63 @@ export default function MetronomeApp() {
     <div className="flex-1 flex flex-col w-full max-w-xl mx-auto">
       <div className="flex-1 flex flex-col items-center justify-center gap-8 p-4 md:p-8">
         <div className="flex flex-col gap-6">
-        <div className="flex flex-row items-center justify-center gap-2 md:gap-4">
-          {state.accelerationMode !== "off" && (
-            <>
-              <button
-                type="button"
-                className="text-2xl md:text-3xl font-mono text-primary px-2 py-1 rounded hover:bg-base-200 transition-colors"
-                onClick={() => bpmModalRef.current?.showModal()}
-              >
-                {state.accelerationStartBpm}
-              </button>
-              <Icon
-                icon="material-symbols:double-arrow-rounded"
-                width="24"
-                height="24"
-                className="text-base-content/50"
-              />
-            </>
-          )}
-          <button
-            type="button"
-            className="relative rounded-full border border-primary/30 w-48 h-48 md:w-56 md:h-56 flex items-center justify-center shrink-0 hover:bg-base-200 transition-colors cursor-pointer"
-            onClick={() => bpmModalRef.current?.showModal()}
-          >
-            <span className="text-5xl md:text-6xl font-mono font-bold text-primary">
-              {state.bpm}
-            </span>
-            <span className="absolute bottom-8 md:bottom-10 text-lg text-base-content/50">
+        <div className="grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 md:gap-4">
+          <div className="flex justify-self-end items-center gap-2 md:gap-4">
+            {state.accelerationMode !== "off" && (
+              <>
+                <button
+                  type="button"
+                  className="text-2xl md:text-3xl font-mono text-primary px-2 py-1 rounded hover:bg-base-200 transition-colors"
+                  onClick={() => bpmModalRef.current?.showModal()}
+                >
+                  {state.accelerationStartBpm}
+                </button>
+                <Icon
+                  icon="material-symbols:double-arrow-rounded"
+                  width="24"
+                  height="24"
+                  className="text-base-content/50"
+                />
+              </>
+            )}
+          </div>
+          <div className="relative rounded-full border border-primary/30 w-48 h-48 md:w-56 md:h-56 flex items-center justify-center shrink-0">
+            <input
+              type="number"
+              min={0}
+              max={600}
+              value={state.bpm}
+              onChange={(e) => handleBpmChange(e.target.value)}
+              className="w-32 md:w-36 bg-transparent text-center text-5xl md:text-6xl font-mono font-bold text-primary focus:text-primary focus:outline-none"
+              aria-label="テンポ"
+            />
+            <button
+              type="button"
+              className="absolute bottom-6 md:bottom-8 text-lg text-base-content/50 hover:text-primary transition-colors"
+              onClick={() => bpmModalRef.current?.showModal()}
+            >
               BPM
-            </span>
-          </button>
-          {state.accelerationMode !== "off" && (
-            <>
-              <Icon
-                icon="material-symbols:double-arrow-rounded"
-                width="24"
-                height="24"
-                className="text-base-content/50"
-              />
-              <button
-                type="button"
-                className="text-2xl md:text-3xl font-mono text-primary px-2 py-1 rounded hover:bg-base-200 transition-colors"
-                onClick={() => bpmModalRef.current?.showModal()}
-              >
-                {effectiveTargetBpm(state)}
-              </button>
-            </>
-          )}
+            </button>
+          </div>
+          <div className="flex justify-self-start items-center gap-2 md:gap-4">
+            {state.accelerationMode !== "off" && (
+              <>
+                <Icon
+                  icon="material-symbols:double-arrow-rounded"
+                  width="24"
+                  height="24"
+                  className="text-base-content/50"
+                />
+                <button
+                  type="button"
+                  className="text-2xl md:text-3xl font-mono text-primary px-2 py-1 rounded hover:bg-base-200 transition-colors"
+                  onClick={() => bpmModalRef.current?.showModal()}
+                >
+                  {effectiveTargetBpm(state)}
+                </button>
+              </>
+            )}
+          </div>
         </div>
         <BeatsDots
           isPlaying={state.isPlaying}
