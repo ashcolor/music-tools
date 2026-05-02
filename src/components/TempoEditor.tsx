@@ -104,14 +104,30 @@ export default function TempoEditor() {
       )}
 
       <section className="flex flex-col gap-3">
-        <div className="flex flex-row items-center gap-2">
-          <label className="label-text text-sm whitespace-nowrap">加速機能</label>
-          <input
-            type="checkbox"
-            className="toggle border-base-300 bg-base-300 checked:border-accent checked:bg-accent"
-            checked={state.accelerationEnabled}
-            onChange={(e) => actions.setAccelerationEnabled(e.target.checked)}
-          />
+        <div className="flex flex-row items-center gap-4">
+          <label className="label-text text-sm whitespace-nowrap">モード</label>
+          <div className="flex flex-row gap-3">
+            <label className="flex items-center gap-1 cursor-pointer">
+              <input
+                type="radio"
+                name="acceleration-mode"
+                className="radio radio-sm radio-primary"
+                checked={!state.accelerationEnabled}
+                onChange={() => actions.setAccelerationEnabled(false)}
+              />
+              <span className="text-sm">通常</span>
+            </label>
+            <label className="flex items-center gap-1 cursor-pointer">
+              <input
+                type="radio"
+                name="acceleration-mode"
+                className="radio radio-sm radio-primary"
+                checked={state.accelerationEnabled}
+                onChange={() => actions.setAccelerationEnabled(true)}
+              />
+              <span className="text-sm">加速</span>
+            </label>
+          </div>
         </div>
         {state.accelerationEnabled && (
           <>

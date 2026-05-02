@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Icon } from "@iconify/react";
 import { useMetronome } from "@/contexts/MetronomeContext";
 
-const BRAND_TEXT = "メトロノーム";
+const BRAND_TEXT = "音楽ツール";
+const CURRENT_TOOL_TITLE = "メトロノーム";
 
 export default function Header() {
   const [open, setOpen] = useState(false);
@@ -12,7 +13,7 @@ export default function Header() {
   return (
     <>
       <header className="navbar bg-base-100 sticky top-0 z-30">
-        <div className="flex-none">
+        <div className="navbar-start">
           <button
             type="button"
             className="btn btn-square btn-ghost"
@@ -21,12 +22,16 @@ export default function Header() {
           >
             <Icon icon="fa6-solid:bars" className="size-4" />
           </button>
-        </div>
-        <div className="flex-1">
-          <span className="inline-flex items-center gap-2 text-lg font-bold">
-            <Icon icon="material-symbols:music-note-rounded" className="size-4" aria-hidden />
-            <span>{BRAND_TEXT}</span>
-          </span>
+          <a
+            href="/"
+            className="inline-flex items-center gap-2 text-lg font-bold whitespace-nowrap text-base-content no-underline"
+          >
+            <span className="inline-flex items-center opacity-50">
+              <span>{BRAND_TEXT}</span>
+              <Icon icon="fa-solid:plus" className="size-4" aria-hidden />
+            </span>
+            <span>{CURRENT_TOOL_TITLE}</span>
+          </a>
         </div>
       </header>
 
@@ -36,8 +41,11 @@ export default function Header() {
         className={`bg-base-100 fixed top-0 left-0 z-50 flex h-full w-64 flex-col shadow-xl transition-transform duration-200 ${open ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className="border-base-300 flex items-center gap-2 border-b px-4 py-3">
-          <Icon icon="material-symbols:music-note-rounded" className="size-6" aria-hidden />
-          <span className="text-lg font-bold">{BRAND_TEXT}</span>
+          <img src="/icon-192.png" alt="ロゴ" className="size-10" />
+          <span className="inline-flex items-center text-lg font-bold">
+            <span>{BRAND_TEXT}</span>
+            <Icon icon="fa-solid:plus" className="size-4" aria-hidden />
+          </span>
           <button
             type="button"
             className="btn btn-square btn-ghost btn-sm ml-auto"

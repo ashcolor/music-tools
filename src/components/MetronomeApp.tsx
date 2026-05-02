@@ -10,32 +10,31 @@ export default function MetronomeApp() {
   const beatsModalRef = useRef<HTMLDialogElement>(null);
   const bpmModalRef = useRef<HTMLDialogElement>(null);
 
-  const playbackButtons = (
-    <>
-      {(!state.isPlaying || state.isPaused) && (
-        <button
-          className="btn btn-circle btn-primary w-16 h-16"
-          onClick={actions.start}
-        >
-          <Icon icon="material-symbols:play-arrow-rounded" width="48" height="48" />
-        </button>
-      )}
+  const playPauseButton =
+    state.isPlaying && !state.isPaused ? (
+      <button className="btn btn-circle btn-primary w-16 h-16" onClick={actions.pause}>
+        <Icon icon="material-symbols:pause-rounded" width="48" height="48" />
+      </button>
+    ) : (
+      <button className="btn btn-circle btn-primary w-16 h-16" onClick={actions.start}>
+        <Icon icon="material-symbols:play-arrow-rounded" width="48" height="48" />
+      </button>
+    );
 
-      {state.isPlaying && (
-        <button
-          className="btn btn-circle btn-primary w-16 h-16"
-          onClick={actions.pause}
-        >
-          <Icon icon="material-symbols:pause-rounded" width="48" height="48" />
-        </button>
-      )}
+  const resetButton = (
+    <button className="btn btn-circle btn-ghost" onClick={actions.stop} aria-label="リセット">
+      <Icon icon="material-symbols:replay-rounded" width="24" height="24" />
+    </button>
+  );
 
-      {state.isPlaying && (
-        <button className="btn btn-circle btn-accent w-16 h-16" onClick={actions.stop}>
-          <Icon icon="material-symbols:stop-rounded" width="24" height="24" />
-        </button>
-      )}
-    </>
+  const isIdle = !state.isPlaying && !state.isPaused;
+
+  const playbackBar = (
+    <div className="grid grid-cols-3 items-center w-full max-w-xl px-4">
+      <div className="flex justify-start">{!isIdle && resetButton}</div>
+      <div className="flex justify-center">{playPauseButton}</div>
+      <div />
+    </div>
   );
 
   return (
@@ -46,7 +45,7 @@ export default function MetronomeApp() {
             <>
               <button
                 type="button"
-                className="text-lg md:text-xl font-mono text-primary px-2 py-1 rounded hover:bg-base-200 transition-colors"
+                className="text-2xl md:text-3xl font-mono text-primary px-2 py-1 rounded hover:bg-base-200 transition-colors"
                 onClick={() => bpmModalRef.current?.showModal()}
               >
                 {state.accelerationStartBpm}
@@ -61,13 +60,15 @@ export default function MetronomeApp() {
           )}
           <button
             type="button"
-            className="rounded-full border border-primary/30 w-48 h-48 md:w-56 md:h-56 flex flex-col items-center justify-center shrink-0 hover:bg-base-200 transition-colors cursor-pointer"
+            className="relative rounded-full border border-primary/30 w-48 h-48 md:w-56 md:h-56 flex items-center justify-center shrink-0 hover:bg-base-200 transition-colors cursor-pointer"
             onClick={() => bpmModalRef.current?.showModal()}
           >
             <span className="text-5xl md:text-6xl font-mono font-bold text-primary">
               {state.bpm}
             </span>
-            <span className="text-lg text-base-content/50">BPM</span>
+            <span className="absolute bottom-8 md:bottom-10 text-lg text-base-content/50">
+              BPM
+            </span>
           </button>
           {state.accelerationEnabled && (
             <>
@@ -79,7 +80,7 @@ export default function MetronomeApp() {
               />
               <button
                 type="button"
-                className="text-lg md:text-xl font-mono text-primary px-2 py-1 rounded hover:bg-base-200 transition-colors"
+                className="text-2xl md:text-3xl font-mono text-primary px-2 py-1 rounded hover:bg-base-200 transition-colors"
                 onClick={() => bpmModalRef.current?.showModal()}
               >
                 {state.accelerationTargetBpm}
@@ -95,10 +96,10 @@ export default function MetronomeApp() {
         />
       </div>
 
-      <div className="hidden md:flex justify-center gap-4 pt-4">{playbackButtons}</div>
+      <div className="hidden md:flex justify-center pt-4 w-full">{playbackBar}</div>
 
-      <div className="md:hidden fixed bottom-0 inset-x-0 bg-base-100 border-t border-base-300 flex justify-center gap-4 py-3 z-20">
-        {playbackButtons}
+      <div className="md:hidden fixed bottom-0 inset-x-0 bg-base-100 border-t border-base-300 flex justify-center py-3 z-20">
+        {playbackBar}
       </div>
 
       <dialog ref={bpmModalRef} className="modal">

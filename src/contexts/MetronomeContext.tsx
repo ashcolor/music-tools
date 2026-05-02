@@ -304,7 +304,7 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
   }, [syncDispatch, tick]);
 
   const stop = useCallback(() => {
-    if (!stateRef.current.isPlaying) return;
+    if (!stateRef.current.isPlaying && !stateRef.current.isPaused) return;
 
     syncDispatch({ type: "STOP" });
     accelerationBeatCountRef.current = 0;
