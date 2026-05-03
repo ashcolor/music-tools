@@ -20,7 +20,7 @@ function MetronomeRoute() {
 export function AppShell() {
   return (
     <MetronomeProvider>
-      <div className="min-h-screen bg-base-100 flex flex-col">
+      <div className="min-h-dvh bg-base-100 flex flex-col">
         <Header />
         <main className="flex flex-1 flex-col">
           <Routes>

@@ -319,20 +319,27 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
 
   const stateRef = useRef(state);
   const audioContextRef = useRef<AudioContext | null>(null);
-  const intervalIdRef = useRef<number | null>(null);
+  const schedulerIdRef = useRef<number | null>(null);
+  const rafIdRef = useRef<number | null>(null);
+  const nextNoteTimeRef = useRef(0);
+  const nextBeatNumberRef = useRef(0);
+  const scheduledQueueRef = useRef<{ beat: number; time: number }[]>([]);
   const accelerationBeatCountRef = useRef(0);
+
+  const SCHEDULER_INTERVAL_MS = 25;
+  const SCHEDULE_AHEAD_TIME = 0.1;
 
   const syncDispatch = useCallback((action: Action) => {
     stateRef.current = reducer(stateRef.current, action);
     dispatch(action);
   }, []);
 
-  const playClick = useCallback((isAccent = false) => {
+  const playClick = useCallback((time: number, isAccent = false) => {
     const ctx = audioContextRef.current;
     if (!ctx) return;
     const { volume, soundType } = stateRef.current;
     if (volume <= 0) return;
-    const t = ctx.currentTime;
+    const t = time;
 
     if (soundType === "analog") {
       const bufferSize = Math.floor(ctx.sampleRate * 0.05);
@@ -385,61 +392,86 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
     osc.stop(t + 0.1);
   }, []);
 
-  const setBpmRef = useRef<(n: number) => void>(() => {});
+  const stopAudioClock = useCallback(() => {
+    if (schedulerIdRef.current !== null) {
+      window.clearInterval(schedulerIdRef.current);
+      schedulerIdRef.current = null;
+    }
+    if (rafIdRef.current !== null) {
+      window.cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
+    scheduledQueueRef.current = [];
+  }, []);
 
-  const tick = useCallback(() => {
-    const s = stateRef.current;
-    const nextBeat = (s.currentBeat % s.beatsPerMeasure) + 1;
-    const isAccent = nextBeat === 1;
-    syncDispatch({ type: "SET_CURRENT_BEAT", value: nextBeat });
-    playClick(isAccent);
+  const advanceScheduler = useCallback(() => {
+    const ctx = audioContextRef.current;
+    if (!ctx) return;
 
-    if (s.isAccelerating && isAccent && accelerationBeatCountRef.current > 0) {
-      if (accelerationBeatCountRef.current >= s.accelerationInterval) {
-        accelerationBeatCountRef.current = 0;
-        const target = effectiveTargetBpm(s);
-        if (s.accelerationMode === "accel" && s.bpm < target) {
-          const newBpm = Math.min(s.bpm + s.accelerationStep, target);
-          setBpmRef.current(newBpm);
-        } else if (s.accelerationMode === "decel" && s.bpm > target) {
-          const newBpm = Math.max(s.bpm - s.accelerationStep, target);
-          setBpmRef.current(newBpm);
-        } else {
-          syncDispatch({ type: "STOP_ACCELERATION" });
+    while (nextNoteTimeRef.current < ctx.currentTime + SCHEDULE_AHEAD_TIME) {
+      const s = stateRef.current;
+      const beatNumber = nextBeatNumberRef.current;
+      const isAccent = beatNumber === 1;
+      const time = nextNoteTimeRef.current;
+
+      playClick(time, isAccent);
+      scheduledQueueRef.current.push({ beat: beatNumber, time });
+
+      if (s.isAccelerating && isAccent && accelerationBeatCountRef.current > 0) {
+        if (accelerationBeatCountRef.current >= s.accelerationInterval) {
+          accelerationBeatCountRef.current = 0;
+          const target = effectiveTargetBpm(s);
+          if (s.accelerationMode === "accel" && s.bpm < target) {
+            const newBpm = Math.min(s.bpm + s.accelerationStep, target);
+            syncDispatch({ type: "SET_BPM", bpm: newBpm });
+          } else if (s.accelerationMode === "decel" && s.bpm > target) {
+            const newBpm = Math.max(s.bpm - s.accelerationStep, target);
+            syncDispatch({ type: "SET_BPM", bpm: newBpm });
+          } else {
+            syncDispatch({ type: "STOP_ACCELERATION" });
+          }
         }
       }
-    }
+      if (stateRef.current.isAccelerating && isAccent) {
+        accelerationBeatCountRef.current++;
+      }
 
-    if (stateRef.current.isAccelerating && isAccent) {
-      accelerationBeatCountRef.current++;
+      const secondsPerBeat = 60.0 / stateRef.current.bpm;
+      nextNoteTimeRef.current += secondsPerBeat;
+      nextBeatNumberRef.current =
+        (nextBeatNumberRef.current % stateRef.current.beatsPerMeasure) + 1;
     }
   }, [playClick, syncDispatch]);
 
+  const uiTick = useCallback(() => {
+    const ctx = audioContextRef.current;
+    if (ctx) {
+      const queue = scheduledQueueRef.current;
+      while (queue.length > 0 && queue[0].time <= ctx.currentTime) {
+        const note = queue.shift()!;
+        if (stateRef.current.currentBeat !== note.beat) {
+          syncDispatch({ type: "SET_CURRENT_BEAT", value: note.beat });
+        }
+      }
+    }
+    rafIdRef.current = window.requestAnimationFrame(uiTick);
+  }, [syncDispatch]);
+
   const setBpm = useCallback(
     (newBpm: number) => {
-      const clamped = clampBpm(newBpm);
-      syncDispatch({ type: "SET_BPM", bpm: clamped });
-
-      if (stateRef.current.isPlaying && intervalIdRef.current !== null) {
-        window.clearInterval(intervalIdRef.current);
-        intervalIdRef.current = window.setInterval(tick, 60000 / clamped);
-      }
+      syncDispatch({ type: "SET_BPM", bpm: clampBpm(newBpm) });
     },
-    [syncDispatch, tick],
+    [syncDispatch],
   );
-
-  useEffect(() => {
-    setBpmRef.current = setBpm;
-  }, [setBpm]);
 
   const start = useCallback(async () => {
     if (stateRef.current.isPlaying) return;
 
     if (!audioContextRef.current) {
       audioContextRef.current = new AudioContext();
-      if (audioContextRef.current.state === "suspended") {
-        await audioContextRef.current.resume();
-      }
+    }
+    if (audioContextRef.current.state === "suspended") {
+      await audioContextRef.current.resume();
     }
 
     const wasPaused = stateRef.current.isPaused;
@@ -451,33 +483,30 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
       accelerationBeatCountRef.current = 0;
     }
 
-    tick();
+    const s = stateRef.current;
+    nextBeatNumberRef.current = (s.currentBeat % s.beatsPerMeasure) + 1;
+    nextNoteTimeRef.current = audioContextRef.current.currentTime;
+    scheduledQueueRef.current = [];
 
-    intervalIdRef.current = window.setInterval(tick, 60000 / stateRef.current.bpm);
-  }, [syncDispatch, tick]);
+    advanceScheduler();
+    schedulerIdRef.current = window.setInterval(advanceScheduler, SCHEDULER_INTERVAL_MS);
+    rafIdRef.current = window.requestAnimationFrame(uiTick);
+  }, [syncDispatch, advanceScheduler, uiTick]);
 
   const stop = useCallback(() => {
     if (!stateRef.current.isPlaying && !stateRef.current.isPaused) return;
 
     syncDispatch({ type: "STOP" });
     accelerationBeatCountRef.current = 0;
-
-    if (intervalIdRef.current !== null) {
-      window.clearInterval(intervalIdRef.current);
-      intervalIdRef.current = null;
-    }
-  }, [syncDispatch]);
+    stopAudioClock();
+  }, [syncDispatch, stopAudioClock]);
 
   const pause = useCallback(() => {
     if (!stateRef.current.isPlaying || stateRef.current.isPaused) return;
 
     syncDispatch({ type: "PAUSE" });
-
-    if (intervalIdRef.current !== null) {
-      window.clearInterval(intervalIdRef.current);
-      intervalIdRef.current = null;
-    }
-  }, [syncDispatch]);
+    stopAudioClock();
+  }, [syncDispatch, stopAudioClock]);
 
   const toggle = useCallback(() => {
     if (stateRef.current.isPlaying) {
@@ -513,8 +542,15 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
   );
 
   const setAccelerationMode = useCallback(
-    (v: AccelerationMode) => syncDispatch({ type: "SET_ACCELERATION_MODE", value: v }),
-    [syncDispatch],
+    (v: AccelerationMode) => {
+      if (stateRef.current.isPlaying || stateRef.current.isPaused) {
+        syncDispatch({ type: "STOP" });
+        accelerationBeatCountRef.current = 0;
+        stopAudioClock();
+      }
+      syncDispatch({ type: "SET_ACCELERATION_MODE", value: v });
+    },
+    [syncDispatch, stopAudioClock],
   );
 
   const setVolume = useCallback(
@@ -535,11 +571,7 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
   const reset = useCallback(() => {
     accelerationBeatCountRef.current = 0;
     syncDispatch({ type: "RESET" });
-    if (intervalIdRef.current !== null && stateRef.current.isPlaying) {
-      window.clearInterval(intervalIdRef.current);
-      intervalIdRef.current = window.setInterval(tick, 60000 / stateRef.current.bpm);
-    }
-  }, [syncDispatch, tick]);
+  }, [syncDispatch]);
 
   const persistedSettings = useMemo(() => toPersistedSettings(state), [
     state.bpm,
@@ -569,11 +601,9 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     return () => {
-      if (intervalIdRef.current !== null) {
-        window.clearInterval(intervalIdRef.current);
-      }
+      stopAudioClock();
     };
-  }, []);
+  }, [stopAudioClock]);
 
   const value = useMemo<ContextValue>(
     () => ({
