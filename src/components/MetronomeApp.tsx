@@ -169,7 +169,7 @@ export default function MetronomeApp() {
             />
             <button
               type="button"
-              className="pointer-events-none absolute bottom-6 md:bottom-8 text-lg text-base-content/50"
+              className="pointer-events-none absolute bottom-10 md:bottom-12 text-lg text-base-content/50"
             >
               BPM
             </button>

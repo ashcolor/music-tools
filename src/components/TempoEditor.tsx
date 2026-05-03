@@ -13,47 +13,40 @@ const TAP_RESET_MS = 2000;
 const TAP_MAX_SAMPLES = 8;
 
 const MODES: { value: AccelerationMode; label: string; icon: string }[] = [
+  { value: "decel", label: "減速", icon: "material-symbols:trending-down-rounded" },
   { value: "off", label: "一定", icon: "material-symbols:trending-flat-rounded" },
   { value: "accel", label: "加速", icon: "material-symbols:trending-up-rounded" },
-  { value: "decel", label: "減速", icon: "material-symbols:trending-down-rounded" },
 ];
 
-function StepGrid({
+function NumericPad({
   value,
   onChange,
+  side,
 }: {
   value: number;
   onChange: (n: number) => void;
+  side: "minus" | "plus";
 }) {
+  const colorClass = side === "minus" ? "btn-error" : "btn-primary";
+  const tenDelta = side === "minus" ? -10 : 10;
+  const oneDelta = side === "minus" ? -1 : 1;
+  const tenLabel = side === "minus" ? "-10" : "+10";
+  const oneLabel = side === "minus" ? "-1" : "+1";
   return (
-    <div className="grid grid-cols-2 gap-1">
+    <div className="flex flex-col gap-1">
       <button
         type="button"
-        className="btn btn-sm btn-soft btn-primary text-xl"
-        onClick={() => onChange(value + 10)}
+        className={`btn btn-circle btn-soft ${colorClass}`}
+        onClick={() => onChange(value + tenDelta)}
       >
-        +10
+        {tenLabel}
       </button>
       <button
         type="button"
-        className="btn btn-sm btn-soft btn-primary text-xl"
-        onClick={() => onChange(value + 1)}
+        className={`btn btn-circle btn-soft ${colorClass}`}
+        onClick={() => onChange(value + oneDelta)}
       >
-        +1
-      </button>
-      <button
-        type="button"
-        className="btn btn-sm btn-soft btn-error text-xl"
-        onClick={() => onChange(value - 10)}
-      >
-        -10
-      </button>
-      <button
-        type="button"
-        className="btn btn-sm btn-soft btn-error text-xl"
-        onClick={() => onChange(value - 1)}
-      >
-        -1
+        {oneLabel}
       </button>
     </div>
   );
@@ -106,15 +99,23 @@ function BpmStepperColumn({
   return (
     <div className="flex flex-col items-center gap-2">
       <span className="text-sm font-bold">{label}</span>
-      <input
-        type="number"
-        min={MIN_BPM}
-        max={MAX_BPM}
-        placeholder={placeholder !== undefined ? String(placeholder) : ""}
-        {...inputProps}
-        className="input input-ghost w-28 px-1 text-center text-4xl md:text-5xl font-mono font-bold text-primary focus:text-primary focus:outline-none h-auto py-2"
-      />
-      <StepGrid value={numericValue} onChange={(n) => onChange(n)} />
+      <div className="flex flex-row items-center">
+        <NumericPad value={numericValue} onChange={(n) => onChange(n)} side="minus" />
+        <div className="relative">
+          <input
+            type="number"
+            min={MIN_BPM}
+            max={MAX_BPM}
+            placeholder={placeholder !== undefined ? String(placeholder) : ""}
+            {...inputProps}
+            className="input input-ghost w-28 px-1 text-center text-4xl md:text-5xl font-mono font-bold text-primary focus:text-primary focus:outline-none h-auto pt-2 pb-7"
+          />
+          <span className="pointer-events-none absolute inset-x-0 bottom-1 text-center text-lg text-base-content/50">
+            BPM
+          </span>
+        </div>
+        <NumericPad value={numericValue} onChange={(n) => onChange(n)} side="plus" />
+      </div>
       <button type="button" className="btn btn-sm btn-soft btn-secondary" onClick={handleTap}>
         タップで指定
       </button>
@@ -177,15 +178,31 @@ export default function TempoEditor() {
 
       {isOff && (
         <section className="flex flex-col gap-3 items-center">
-          <input
-            type="number"
-            min={MIN_BPM}
-            max={MAX_BPM}
-            placeholder={String(DEFAULT_BPM)}
-            {...bpmField}
-            className="input input-ghost w-40 text-center text-5xl font-mono font-bold text-primary focus:text-primary focus:outline-none h-auto py-2"
-          />
-          <StepGrid value={state.bpm} onChange={(n) => handleStep(n - state.bpm)} />
+          <div className="flex flex-row items-center">
+            <NumericPad
+              value={state.bpm}
+              onChange={(n) => handleStep(n - state.bpm)}
+              side="minus"
+            />
+            <div className="relative">
+              <input
+                type="number"
+                min={MIN_BPM}
+                max={MAX_BPM}
+                placeholder={String(DEFAULT_BPM)}
+                {...bpmField}
+                className="input input-ghost w-32 text-center text-5xl md:text-6xl font-mono font-bold text-primary focus:text-primary focus:outline-none h-auto pt-2 pb-7"
+              />
+              <span className="pointer-events-none absolute inset-x-0 bottom-1 text-center text-lg text-base-content/50">
+                BPM
+              </span>
+            </div>
+            <NumericPad
+              value={state.bpm}
+              onChange={(n) => handleStep(n - state.bpm)}
+              side="plus"
+            />
+          </div>
           <button type="button" className="btn btn-soft btn-secondary" onClick={handleTap}>
             タップで指定
           </button>
