@@ -11,6 +11,55 @@ import {
 
 export type SoundType = "electronic" | "analog" | "woodfish";
 export type ThemeMode = "light" | "dark";
+export type AccelerationMode = "off" | "accel" | "decel";
+
+const STORAGE_KEY = "music-tools:metronome-settings";
+const DEFAULT_ACCEL_TARGET = 300;
+const DEFAULT_DECEL_TARGET = 30;
+const MIN_BPM = 10;
+const MAX_BPM = 999;
+const MIN_BEATS_PER_MEASURE = 1;
+const MAX_BEATS_PER_MEASURE = 12;
+const MIN_ACCELERATION_INTERVAL = 1;
+const MAX_ACCELERATION_INTERVAL = 16;
+const MIN_ACCELERATION_STEP = 1;
+const MAX_ACCELERATION_STEP = 20;
+
+const SOUND_TYPES: SoundType[] = ["electronic", "analog", "woodfish"];
+const ACCELERATION_MODES: AccelerationMode[] = ["off", "accel", "decel"];
+const THEMES: ThemeMode[] = ["light", "dark"];
+
+function clampBpm(bpm: number): number {
+  return Math.max(MIN_BPM, Math.min(MAX_BPM, bpm));
+}
+
+function clampBeatsPerMeasure(beats: number): number {
+  return Math.max(MIN_BEATS_PER_MEASURE, Math.min(MAX_BEATS_PER_MEASURE, beats));
+}
+
+function clampAccelerationInterval(interval: number): number {
+  return Math.max(MIN_ACCELERATION_INTERVAL, Math.min(MAX_ACCELERATION_INTERVAL, interval));
+}
+
+function clampAccelerationStep(step: number): number {
+  return Math.max(MIN_ACCELERATION_STEP, Math.min(MAX_ACCELERATION_STEP, step));
+}
+
+function clampVolume(volume: number): number {
+  return Math.max(0, Math.min(1, volume));
+}
+
+function isSoundType(value: unknown): value is SoundType {
+  return typeof value === "string" && SOUND_TYPES.includes(value as SoundType);
+}
+
+function isAccelerationMode(value: unknown): value is AccelerationMode {
+  return typeof value === "string" && ACCELERATION_MODES.includes(value as AccelerationMode);
+}
+
+function isThemeMode(value: unknown): value is ThemeMode {
+  return typeof value === "string" && THEMES.includes(value as ThemeMode);
+}
 
 type State = {
   bpm: number;
@@ -19,9 +68,9 @@ type State = {
   currentBeat: number;
   beatsPerMeasure: number;
   isAccelerating: boolean;
-  accelerationEnabled: boolean;
+  accelerationMode: AccelerationMode;
   accelerationStartBpm: number;
-  accelerationTargetBpm: number;
+  accelerationTargetBpm: number | null;
   accelerationInterval: number;
   accelerationStep: number;
   volume: number;
@@ -29,14 +78,28 @@ type State = {
   theme: ThemeMode;
 };
 
+type PersistedSettings = Pick<
+  State,
+  | "bpm"
+  | "beatsPerMeasure"
+  | "accelerationMode"
+  | "accelerationStartBpm"
+  | "accelerationTargetBpm"
+  | "accelerationInterval"
+  | "accelerationStep"
+  | "volume"
+  | "soundType"
+  | "theme"
+>;
+
 type Action =
   | { type: "SET_BPM"; bpm: number }
   | { type: "SET_BEATS_PER_MEASURE"; beats: number }
   | { type: "SET_ACCELERATION_START_BPM"; bpm: number }
-  | { type: "SET_ACCELERATION_TARGET_BPM"; bpm: number }
+  | { type: "SET_ACCELERATION_TARGET_BPM"; bpm: number | null }
   | { type: "SET_ACCELERATION_INTERVAL"; value: number }
   | { type: "SET_ACCELERATION_STEP"; value: number }
-  | { type: "SET_ACCELERATION_ENABLED"; value: boolean }
+  | { type: "SET_ACCELERATION_MODE"; value: AccelerationMode }
   | { type: "SET_CURRENT_BEAT"; value: number }
   | { type: "SET_VOLUME"; value: number }
   | { type: "SET_SOUND_TYPE"; value: SoundType }
@@ -45,25 +108,13 @@ type Action =
   | { type: "RESUME" }
   | { type: "PAUSE" }
   | { type: "STOP" }
-  | { type: "STOP_ACCELERATION" };
+  | { type: "STOP_ACCELERATION" }
+  | { type: "RESET" };
 
-const computeStep = (startBpm: number, targetBpm: number): number | null => {
-  if (startBpm >= targetBpm) return null;
-  const totalChange = targetBpm - startBpm;
-  let step: number;
-  if (totalChange <= 10) {
-    step = 1;
-  } else if (totalChange <= 30) {
-    step = 2;
-  } else if (totalChange <= 60) {
-    step = Math.ceil(totalChange / 15);
-  } else {
-    step = Math.ceil(totalChange / 20);
-  }
-  return Math.max(1, Math.min(10, step));
-};
-
-const initialAccelerationStep = computeStep(120, 160) ?? 1;
+export function effectiveTargetBpm(state: State): number {
+  if (state.accelerationTargetBpm !== null) return state.accelerationTargetBpm;
+  return state.accelerationMode === "decel" ? DEFAULT_DECEL_TARGET : DEFAULT_ACCEL_TARGET;
+}
 
 const initialState: State = {
   bpm: 120,
@@ -72,43 +123,135 @@ const initialState: State = {
   currentBeat: 0,
   beatsPerMeasure: 4,
   isAccelerating: false,
-  accelerationEnabled: true,
+  accelerationMode: "off",
   accelerationStartBpm: 120,
-  accelerationTargetBpm: 160,
+  accelerationTargetBpm: null,
   accelerationInterval: 1,
-  accelerationStep: initialAccelerationStep,
+  accelerationStep: 1,
   volume: 0.3,
   soundType: "electronic",
   theme: "light",
 };
 
+function sanitizePersistedSettings(value: unknown): PersistedSettings | null {
+  if (!value || typeof value !== "object") return null;
+
+  const candidate = value as Record<string, unknown>;
+
+  return {
+    bpm: clampBpm(
+      typeof candidate.bpm === "number" && Number.isFinite(candidate.bpm)
+        ? candidate.bpm
+        : initialState.bpm,
+    ),
+    beatsPerMeasure: clampBeatsPerMeasure(
+      typeof candidate.beatsPerMeasure === "number" && Number.isFinite(candidate.beatsPerMeasure)
+        ? candidate.beatsPerMeasure
+        : initialState.beatsPerMeasure,
+    ),
+    accelerationMode: isAccelerationMode(candidate.accelerationMode)
+      ? candidate.accelerationMode
+      : initialState.accelerationMode,
+    accelerationStartBpm: clampBpm(
+      typeof candidate.accelerationStartBpm === "number" &&
+        Number.isFinite(candidate.accelerationStartBpm)
+        ? candidate.accelerationStartBpm
+        : initialState.accelerationStartBpm,
+    ),
+    accelerationTargetBpm:
+      candidate.accelerationTargetBpm === null || candidate.accelerationTargetBpm === undefined
+        ? initialState.accelerationTargetBpm
+        : clampBpm(
+            typeof candidate.accelerationTargetBpm === "number" &&
+              Number.isFinite(candidate.accelerationTargetBpm)
+              ? candidate.accelerationTargetBpm
+              : initialState.accelerationTargetBpm ?? DEFAULT_ACCEL_TARGET,
+          ),
+    accelerationInterval: clampAccelerationInterval(
+      typeof candidate.accelerationInterval === "number" &&
+        Number.isFinite(candidate.accelerationInterval)
+        ? candidate.accelerationInterval
+        : initialState.accelerationInterval,
+    ),
+    accelerationStep: clampAccelerationStep(
+      typeof candidate.accelerationStep === "number" && Number.isFinite(candidate.accelerationStep)
+        ? candidate.accelerationStep
+        : initialState.accelerationStep,
+    ),
+    volume: clampVolume(
+      typeof candidate.volume === "number" && Number.isFinite(candidate.volume)
+        ? candidate.volume
+        : initialState.volume,
+    ),
+    soundType: isSoundType(candidate.soundType) ? candidate.soundType : initialState.soundType,
+    theme: isThemeMode(candidate.theme) ? candidate.theme : initialState.theme,
+  };
+}
+
+function loadInitialState(): State {
+  if (typeof window === "undefined") return initialState;
+
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return initialState;
+    const parsed = JSON.parse(raw);
+    const persisted = sanitizePersistedSettings(parsed);
+    if (!persisted) return initialState;
+    return {
+      ...initialState,
+      ...persisted,
+    };
+  } catch {
+    return initialState;
+  }
+}
+
+function toPersistedSettings(state: State): PersistedSettings {
+  return {
+    bpm: state.bpm,
+    beatsPerMeasure: state.beatsPerMeasure,
+    accelerationMode: state.accelerationMode,
+    accelerationStartBpm: state.accelerationStartBpm,
+    accelerationTargetBpm: state.accelerationTargetBpm,
+    accelerationInterval: state.accelerationInterval,
+    accelerationStep: state.accelerationStep,
+    volume: state.volume,
+    soundType: state.soundType,
+    theme: state.theme,
+  };
+}
+
 function reducer(state: State, action: Action): State {
   switch (action.type) {
     case "SET_BPM":
-      return { ...state, bpm: Math.max(0, Math.min(600, action.bpm)) };
+      return { ...state, bpm: clampBpm(action.bpm) };
     case "SET_BEATS_PER_MEASURE":
-      return { ...state, beatsPerMeasure: action.beats };
+      return { ...state, beatsPerMeasure: clampBeatsPerMeasure(action.beats) };
     case "SET_ACCELERATION_START_BPM":
-      return { ...state, accelerationStartBpm: action.bpm };
+      return { ...state, accelerationStartBpm: clampBpm(action.bpm) };
     case "SET_ACCELERATION_TARGET_BPM":
-      return { ...state, accelerationTargetBpm: action.bpm };
+      return {
+        ...state,
+        accelerationTargetBpm: action.bpm === null ? null : clampBpm(action.bpm),
+      };
     case "SET_ACCELERATION_INTERVAL":
-      return { ...state, accelerationInterval: action.value };
+      return { ...state, accelerationInterval: clampAccelerationInterval(action.value) };
     case "SET_ACCELERATION_STEP":
-      return { ...state, accelerationStep: action.value };
-    case "SET_ACCELERATION_ENABLED":
-      return { ...state, accelerationEnabled: action.value };
+      return { ...state, accelerationStep: clampAccelerationStep(action.value) };
+    case "SET_ACCELERATION_MODE":
+      return { ...state, accelerationMode: action.value };
     case "SET_CURRENT_BEAT":
       return { ...state, currentBeat: action.value };
     case "SET_VOLUME":
-      return { ...state, volume: Math.max(0, Math.min(1, action.value)) };
+      return { ...state, volume: clampVolume(action.value) };
     case "SET_SOUND_TYPE":
       return { ...state, soundType: action.value };
     case "SET_THEME":
       return { ...state, theme: action.value };
     case "START_FRESH": {
+      const target = effectiveTargetBpm(state);
       const shouldAccelerate =
-        state.accelerationEnabled && state.accelerationStartBpm < state.accelerationTargetBpm;
+        state.accelerationMode !== "off" && state.accelerationStartBpm !== target;
       return {
         ...state,
         isPlaying: true,
@@ -129,10 +272,19 @@ function reducer(state: State, action: Action): State {
         isPaused: false,
         currentBeat: 0,
         isAccelerating: false,
-        bpm: state.accelerationStartBpm,
+        bpm: state.accelerationMode !== "off" ? state.accelerationStartBpm : state.bpm,
       };
     case "STOP_ACCELERATION":
       return { ...state, isAccelerating: false };
+    case "RESET":
+      return {
+        ...initialState,
+        isPlaying: state.isPlaying,
+        isPaused: state.isPaused,
+        currentBeat: state.currentBeat,
+        isAccelerating: false,
+        theme: state.theme,
+      };
   }
 }
 
@@ -144,13 +296,14 @@ type Actions = {
   setBpm: (n: number) => void;
   setBeatsPerMeasure: (n: number) => void;
   setAccelerationStartBpm: (n: number) => void;
-  setAccelerationTargetBpm: (n: number) => void;
+  setAccelerationTargetBpm: (n: number | null) => void;
   setAccelerationInterval: (n: number) => void;
   setAccelerationStep: (n: number) => void;
-  setAccelerationEnabled: (v: boolean) => void;
+  setAccelerationMode: (v: AccelerationMode) => void;
   setVolume: (n: number) => void;
   setSoundType: (v: SoundType) => void;
   setTheme: (v: ThemeMode) => void;
+  reset: () => void;
 };
 
 type ContextValue = {
@@ -162,14 +315,13 @@ type ContextValue = {
 const MetronomeContext = createContext<ContextValue | null>(null);
 
 export function MetronomeProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, initialState);
+  const [state, dispatch] = useReducer(reducer, initialState, loadInitialState);
 
   const stateRef = useRef(state);
   const audioContextRef = useRef<AudioContext | null>(null);
   const intervalIdRef = useRef<number | null>(null);
   const accelerationBeatCountRef = useRef(0);
 
-  // stateRef を reducer 経由で常に同期する
   const syncDispatch = useCallback((action: Action) => {
     stateRef.current = reducer(stateRef.current, action);
     dispatch(action);
@@ -242,13 +394,15 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
     syncDispatch({ type: "SET_CURRENT_BEAT", value: nextBeat });
     playClick(isAccent);
 
-    // 加速機能：1拍目がなった後に加速処理を実行
-    // ただし、開始直後の最初の1拍目はスキップ
     if (s.isAccelerating && isAccent && accelerationBeatCountRef.current > 0) {
       if (accelerationBeatCountRef.current >= s.accelerationInterval) {
         accelerationBeatCountRef.current = 0;
-        if (s.bpm < s.accelerationTargetBpm) {
-          const newBpm = Math.min(s.bpm + s.accelerationStep, s.accelerationTargetBpm);
+        const target = effectiveTargetBpm(s);
+        if (s.accelerationMode === "accel" && s.bpm < target) {
+          const newBpm = Math.min(s.bpm + s.accelerationStep, target);
+          setBpmRef.current(newBpm);
+        } else if (s.accelerationMode === "decel" && s.bpm > target) {
+          const newBpm = Math.max(s.bpm - s.accelerationStep, target);
           setBpmRef.current(newBpm);
         } else {
           syncDispatch({ type: "STOP_ACCELERATION" });
@@ -256,7 +410,6 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // 1拍目でカウントを増加（加速処理の後に行う）
     if (stateRef.current.isAccelerating && isAccent) {
       accelerationBeatCountRef.current++;
     }
@@ -264,7 +417,7 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
 
   const setBpm = useCallback(
     (newBpm: number) => {
-      const clamped = Math.max(0, Math.min(600, newBpm));
+      const clamped = clampBpm(newBpm);
       syncDispatch({ type: "SET_BPM", bpm: clamped });
 
       if (stateRef.current.isPlaying && intervalIdRef.current !== null) {
@@ -304,7 +457,7 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
   }, [syncDispatch, tick]);
 
   const stop = useCallback(() => {
-    if (!stateRef.current.isPlaying) return;
+    if (!stateRef.current.isPlaying && !stateRef.current.isPaused) return;
 
     syncDispatch({ type: "STOP" });
     accelerationBeatCountRef.current = 0;
@@ -345,7 +498,7 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
   );
 
   const setAccelerationTargetBpm = useCallback(
-    (n: number) => syncDispatch({ type: "SET_ACCELERATION_TARGET_BPM", bpm: n }),
+    (n: number | null) => syncDispatch({ type: "SET_ACCELERATION_TARGET_BPM", bpm: n }),
     [syncDispatch],
   );
 
@@ -359,8 +512,8 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
     [syncDispatch],
   );
 
-  const setAccelerationEnabled = useCallback(
-    (v: boolean) => syncDispatch({ type: "SET_ACCELERATION_ENABLED", value: v }),
+  const setAccelerationMode = useCallback(
+    (v: AccelerationMode) => syncDispatch({ type: "SET_ACCELERATION_MODE", value: v }),
     [syncDispatch],
   );
 
@@ -379,10 +532,40 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
     [syncDispatch],
   );
 
+  const reset = useCallback(() => {
+    accelerationBeatCountRef.current = 0;
+    syncDispatch({ type: "RESET" });
+    if (intervalIdRef.current !== null && stateRef.current.isPlaying) {
+      window.clearInterval(intervalIdRef.current);
+      intervalIdRef.current = window.setInterval(tick, 60000 / stateRef.current.bpm);
+    }
+  }, [syncDispatch, tick]);
+
+  const persistedSettings = useMemo(() => toPersistedSettings(state), [
+    state.bpm,
+    state.beatsPerMeasure,
+    state.accelerationMode,
+    state.accelerationStartBpm,
+    state.accelerationTargetBpm,
+    state.accelerationInterval,
+    state.accelerationStep,
+    state.volume,
+    state.soundType,
+    state.theme,
+  ]);
+
   useEffect(() => {
     const themeName = state.theme === "dark" ? "dark" : "light";
     document.documentElement.setAttribute("data-theme", themeName);
   }, [state.theme]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(persistedSettings));
+    } catch {
+      // noop
+    }
+  }, [persistedSettings]);
 
   useEffect(() => {
     return () => {
@@ -407,10 +590,11 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
         setAccelerationTargetBpm,
         setAccelerationInterval,
         setAccelerationStep,
-        setAccelerationEnabled,
+        setAccelerationMode,
         setVolume,
         setSoundType,
         setTheme,
+        reset,
       },
     }),
     [
@@ -425,10 +609,11 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
       setAccelerationTargetBpm,
       setAccelerationInterval,
       setAccelerationStep,
-      setAccelerationEnabled,
+      setAccelerationMode,
       setVolume,
       setSoundType,
       setTheme,
+      reset,
     ],
   );
 

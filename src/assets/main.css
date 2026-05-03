@@ -1,6 +1,6 @@
 @import "tailwindcss";
 @plugin "daisyui" {
-  themes: light --default, dark --prefersdark;
+  themes: corporate --default, dark --prefersdark;
 }
 
 input[type="number"]::-webkit-inner-spin-button,
@@ -17,6 +17,10 @@ input[type="number"] {
   animation: beat-pulse 0.1s ease-in-out;
 }
 
+.bpm-scale-flash {
+  animation: bpm-scale-flash 0.24s ease-out;
+}
+
 @keyframes beat-pulse {
   0% {
     transform: scale(1);
@@ -29,5 +33,17 @@ input[type="number"] {
   100% {
     transform: scale(1);
     box-shadow: 0 0 0 0 rgba(var(--color-primary), 0);
+  }
+}
+
+@keyframes bpm-scale-flash {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
   }
 }
