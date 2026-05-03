@@ -91,17 +91,17 @@ export default function MetronomeApp() {
 
   const playPauseButton =
     state.isPlaying && !state.isPaused ? (
-      <button className="btn btn-circle btn-secondary w-16 h-16" onClick={actions.pause}>
-        <Icon icon="material-symbols:pause-rounded" width="48" height="48" />
+      <button className="btn btn-circle btn-secondary size-20" onClick={actions.pause}>
+        <Icon icon="material-symbols:pause-rounded" width="q48" height="48" />
       </button>
     ) : (
-      <button className="btn btn-circle btn-primary w-16 h-16" onClick={actions.start}>
+      <button className="btn btn-circle btn-primary size-20" onClick={actions.start}>
         <Icon icon="material-symbols:play-arrow-rounded" width="48" height="48" />
       </button>
     );
 
   const resetButton = (
-    <button className="btn btn-circle btn-outline" onClick={actions.stop} aria-label="停止">
+    <button className="btn btn-circle btn-secondary btn-outline" onClick={actions.stop} aria-label="停止">
       <Icon icon="material-symbols:stop-rounded" width="24" height="24" />
     </button>
   );
@@ -116,7 +116,7 @@ export default function MetronomeApp() {
       <div className="flex justify-center">
         <div className="relative">
           {!isIdle && (
-            <div className="absolute right-full top-1/2 -translate-y-1/2 mr-2">
+            <div className="absolute right-full top-1/2 -translate-y-1/2 mr-4">
               {resetButton}
             </div>
           )}

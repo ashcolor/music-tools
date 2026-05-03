@@ -1,11 +1,13 @@
 import { useRef } from "react";
 import { Icon } from "@iconify/react";
 import { useMetronome, type AccelerationMode } from "@/contexts/MetronomeContext";
+import { useNumericInputDraft } from "@/hooks/useNumericInputDraft";
 import AccelerationIntervalInput from "./AccelerationIntervalInput";
 import AccelerationStepInput from "./AccelerationStepInput";
 
 const MIN_BPM = 10;
 const MAX_BPM = 999;
+const DEFAULT_BPM = 120;
 
 const TAP_RESET_MS = 2000;
 const TAP_MAX_SAMPLES = 8;
@@ -63,15 +65,23 @@ function BpmStepperColumn({
   onChange,
   allowEmpty = false,
   placeholder,
+  fallbackOnBlur,
 }: {
   label: string;
   value: number | null;
   onChange: (n: number | null) => void;
   allowEmpty?: boolean;
-  placeholder?: string;
+  placeholder?: number;
+  fallbackOnBlur?: number;
 }) {
   const tapsRef = useRef<number[]>([]);
-  const numericValue = value ?? MIN_BPM;
+  const numericValue = value ?? placeholder ?? MIN_BPM;
+  const inputProps = useNumericInputDraft(value, onChange, {
+    allowEmpty,
+    fallbackOnBlur,
+    minOnBlur: MIN_BPM,
+    maxOnBlur: MAX_BPM,
+  });
 
   const handleTap = () => {
     const now = performance.now();
@@ -100,16 +110,8 @@ function BpmStepperColumn({
         type="number"
         min={MIN_BPM}
         max={MAX_BPM}
-        value={value === null ? "" : value}
-        placeholder={placeholder ?? ""}
-        onChange={(e) => {
-          const raw = e.target.value;
-          if (raw === "" && allowEmpty) {
-            onChange(null);
-          } else {
-            onChange(Number(raw));
-          }
-        }}
+        placeholder={placeholder !== undefined ? String(placeholder) : ""}
+        {...inputProps}
         className="input input-ghost w-28 px-1 text-center text-4xl md:text-5xl font-mono font-bold text-primary focus:text-primary focus:outline-none h-auto py-2"
       />
       <StepGrid value={numericValue} onChange={(n) => onChange(n)} />
@@ -123,6 +125,13 @@ function BpmStepperColumn({
 export default function TempoEditor() {
   const { state, actions } = useMetronome();
   const tapsRef = useRef<number[]>([]);
+  const bpmField = useNumericInputDraft(
+    state.bpm,
+    (n) => {
+      if (n !== null) actions.setBpm(n);
+    },
+    { fallbackOnBlur: DEFAULT_BPM, minOnBlur: MIN_BPM, maxOnBlur: MAX_BPM },
+  );
 
   const handleStep = (delta: number) => {
     actions.setBpm(state.bpm + delta);
@@ -172,8 +181,8 @@ export default function TempoEditor() {
             type="number"
             min={MIN_BPM}
             max={MAX_BPM}
-            value={state.bpm}
-            onChange={(e) => actions.setBpm(Number(e.target.value))}
+            placeholder={String(DEFAULT_BPM)}
+            {...bpmField}
             className="input input-ghost w-40 text-center text-5xl font-mono font-bold text-primary focus:text-primary focus:outline-none h-auto py-2"
           />
           <StepGrid value={state.bpm} onChange={(n) => handleStep(n - state.bpm)} />
@@ -190,6 +199,7 @@ export default function TempoEditor() {
               label="スタート"
               value={state.accelerationStartBpm}
               onChange={(n) => actions.setAccelerationStartBpm(n ?? MIN_BPM)}
+              fallbackOnBlur={DEFAULT_BPM}
             />
             <Icon
               icon="material-symbols:double-arrow-rounded"
@@ -201,7 +211,7 @@ export default function TempoEditor() {
               value={state.accelerationTargetBpm}
               onChange={actions.setAccelerationTargetBpm}
               allowEmpty
-              placeholder={state.accelerationMode === "decel" ? "30" : "300"}
+              placeholder={state.accelerationMode === "decel" ? 30 : 300}
             />
           </div>
           <div className="flex flex-row flex-wrap gap-2 items-center justify-center">
