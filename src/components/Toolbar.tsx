@@ -96,23 +96,44 @@ export default function Toolbar() {
             </div>
             <div>
               <p className="font-bold">設定</p>
-              <p>BPM設定は BPM をクリック</p>
-              <p>拍子は拍子をクリック</p>
+              <p className="flex items-center gap-2 mt-1">
+                <span className="inline-flex items-center justify-center rounded-full border border-primary/30 size-10 shrink-0">
+                  <span className="text-[10px] text-base-content/50 leading-none">BPM</span>
+                </span>
+                <span>をクリックでテンポ設定</span>
+              </p>
+              <p className="flex items-center gap-2 mt-1">
+                <span className="inline-flex items-center gap-1 rounded-md border border-base-300 px-2 py-1 shrink-0">
+                  <span className="size-2 rounded-full bg-base-content/30" />
+                  <span className="size-2 rounded-full bg-base-content/30" />
+                  <span className="size-2 rounded-full bg-base-content/30" />
+                  <span className="size-2 rounded-full bg-base-content/30" />
+                </span>
+                <span>をクリックで拍子設定</span>
+              </p>
             </div>
             <div>
               <p className="font-bold">再生</p>
-              <p className="flex items-center gap-2">
-                <span className="inline-flex items-center justify-center rounded-full bg-secondary text-secondary-content size-6 shrink-0">
-                  <Icon icon="material-symbols:pause-rounded" className="size-4" />
-                </span>
-                <span>再生位置から再開</span>
-              </p>
-              <p className="flex items-center gap-2">
-                <span className="inline-flex items-center justify-center rounded-full border border-base-300 size-6 shrink-0">
-                  <Icon icon="material-symbols:stop-rounded" className="size-4" />
-                </span>
-                <span>再生位置をリセット</span>
-              </p>
+              <div className="mt-1 flex flex-col gap-1">
+                <p className="flex items-center gap-2">
+                  <span className="inline-flex items-center justify-center rounded-full bg-primary text-primary-content size-6 shrink-0">
+                    <Icon icon="material-symbols:play-arrow-rounded" className="size-4" />
+                  </span>
+                  <span>再生 / 一時停止から再開</span>
+                </p>
+                <p className="flex items-center gap-2">
+                  <span className="inline-flex items-center justify-center rounded-full bg-secondary text-secondary-content size-6 shrink-0">
+                    <Icon icon="material-symbols:pause-rounded" className="size-4" />
+                  </span>
+                  <span>一時停止</span>
+                </p>
+                <p className="flex items-center gap-2">
+                  <span className="inline-flex items-center justify-center rounded-full border border-base-300 size-6 shrink-0">
+                    <Icon icon="material-symbols:stop-rounded" className="size-4" />
+                  </span>
+                  <span>停止（再生位置をリセット）</span>
+                </p>
+              </div>
             </div>
             <div>
               <p className="font-bold">ショートカットキー</p>
@@ -151,27 +172,39 @@ export default function Toolbar() {
                 </thead>
                 <tbody>
                   <tr>
-                    <td>Space</td>
+                    <td>
+                      <kbd className="kbd">Space</kbd>
+                    </td>
                     <td>再生 / 一時停止</td>
                   </tr>
                   <tr>
-                    <td>R</td>
+                    <td>
+                      <kbd className="kbd">R</kbd>
+                    </td>
                     <td>停止</td>
                   </tr>
                   <tr>
-                    <td>M</td>
+                    <td>
+                      <kbd className="kbd">M</kbd>
+                    </td>
                     <td>ミュート切り替え</td>
                   </tr>
                   <tr>
-                    <td>↑</td>
+                    <td>
+                      <kbd className="kbd">↑</kbd>
+                    </td>
                     <td>BPM を 1 上げる</td>
                   </tr>
                   <tr>
-                    <td>↓</td>
+                    <td>
+                      <kbd className="kbd">↓</kbd>
+                    </td>
                     <td>BPM を 1 下げる</td>
                   </tr>
                   <tr>
-                    <td>1 - 9</td>
+                    <td>
+                      <kbd className="kbd">1</kbd> 〜 <kbd className="kbd">9</kbd>
+                    </td>
                     <td>拍子を設定</td>
                   </tr>
                 </tbody>
