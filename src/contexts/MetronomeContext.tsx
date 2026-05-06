@@ -65,6 +65,7 @@ type State = {
   isPaused: boolean;
   currentBeat: number;
   beatsPerMeasure: number;
+  accentBeats: number[];
   isAccelerating: boolean;
   accelerationMode: AccelerationMode;
   accelerationStartBpm: number;
@@ -79,6 +80,7 @@ type PersistedSettings = Pick<
   State,
   | "bpm"
   | "beatsPerMeasure"
+  | "accentBeats"
   | "accelerationMode"
   | "accelerationStartBpm"
   | "accelerationInterval"
@@ -91,6 +93,7 @@ type PersistedSettings = Pick<
 type Action =
   | { type: "SET_BPM"; bpm: number }
   | { type: "SET_BEATS_PER_MEASURE"; beats: number }
+  | { type: "TOGGLE_ACCENT_BEAT"; beat: number }
   | { type: "SET_ACCELERATION_START_BPM"; bpm: number }
   | { type: "SET_ACCELERATION_INTERVAL"; value: number }
   | { type: "SET_ACCELERATION_STEP"; value: number }
@@ -116,6 +119,7 @@ const initialState: State = {
   isPaused: false,
   currentBeat: 0,
   beatsPerMeasure: 4,
+  accentBeats: [1],
   isAccelerating: false,
   accelerationMode: "off",
   accelerationStartBpm: 120,
@@ -126,10 +130,27 @@ const initialState: State = {
   theme: "light",
 };
 
+function sanitizeAccentBeats(value: unknown, beatsPerMeasure: number): number[] {
+  if (!Array.isArray(value)) {
+    return initialState.accentBeats.filter((b) => b <= beatsPerMeasure);
+  }
+  const filtered = value.filter(
+    (b): b is number =>
+      typeof b === "number" && Number.isInteger(b) && b >= 1 && b <= beatsPerMeasure,
+  );
+  return Array.from(new Set(filtered)).sort((a, b) => a - b);
+}
+
 function sanitizePersistedSettings(value: unknown): PersistedSettings | null {
   if (!value || typeof value !== "object") return null;
 
   const candidate = value as Record<string, unknown>;
+
+  const beatsPerMeasure = clampBeatsPerMeasure(
+    typeof candidate.beatsPerMeasure === "number" && Number.isFinite(candidate.beatsPerMeasure)
+      ? candidate.beatsPerMeasure
+      : initialState.beatsPerMeasure,
+  );
 
   return {
     bpm: clampBpm(
@@ -137,11 +158,8 @@ function sanitizePersistedSettings(value: unknown): PersistedSettings | null {
         ? candidate.bpm
         : initialState.bpm,
     ),
-    beatsPerMeasure: clampBeatsPerMeasure(
-      typeof candidate.beatsPerMeasure === "number" && Number.isFinite(candidate.beatsPerMeasure)
-        ? candidate.beatsPerMeasure
-        : initialState.beatsPerMeasure,
-    ),
+    beatsPerMeasure,
+    accentBeats: sanitizeAccentBeats(candidate.accentBeats, beatsPerMeasure),
     accelerationMode: isAccelerationMode(candidate.accelerationMode)
       ? candidate.accelerationMode
       : initialState.accelerationMode,
@@ -194,6 +212,7 @@ function toPersistedSettings(state: State): PersistedSettings {
   return {
     bpm: state.bpm,
     beatsPerMeasure: state.beatsPerMeasure,
+    accentBeats: state.accentBeats,
     accelerationMode: state.accelerationMode,
     accelerationStartBpm: state.accelerationStartBpm,
     accelerationInterval: state.accelerationInterval,
@@ -208,8 +227,23 @@ function reducer(state: State, action: Action): State {
   switch (action.type) {
     case "SET_BPM":
       return { ...state, bpm: clampBpm(action.bpm) };
-    case "SET_BEATS_PER_MEASURE":
-      return { ...state, beatsPerMeasure: clampBeatsPerMeasure(action.beats) };
+    case "SET_BEATS_PER_MEASURE": {
+      const beats = clampBeatsPerMeasure(action.beats);
+      return {
+        ...state,
+        beatsPerMeasure: beats,
+        accentBeats: state.accentBeats.filter((b) => b <= beats),
+      };
+    }
+    case "TOGGLE_ACCENT_BEAT": {
+      const beat = action.beat;
+      if (beat < 1 || beat > state.beatsPerMeasure) return state;
+      const exists = state.accentBeats.includes(beat);
+      const next = exists
+        ? state.accentBeats.filter((b) => b !== beat)
+        : [...state.accentBeats, beat].sort((a, b) => a - b);
+      return { ...state, accentBeats: next };
+    }
     case "SET_ACCELERATION_START_BPM":
       return { ...state, accelerationStartBpm: clampBpm(action.bpm) };
     case "SET_ACCELERATION_INTERVAL":
@@ -271,6 +305,7 @@ type Actions = {
   toggle: () => void;
   setBpm: (n: number) => void;
   setBeatsPerMeasure: (n: number) => void;
+  toggleAccentBeat: (beat: number) => void;
   setAccelerationStartBpm: (n: number) => void;
   setAccelerationInterval: (n: number) => void;
   setAccelerationStep: (n: number) => void;
@@ -386,13 +421,14 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
     while (nextNoteTimeRef.current < ctx.currentTime + SCHEDULE_AHEAD_TIME) {
       const s = stateRef.current;
       const beatNumber = nextBeatNumberRef.current;
-      const isAccent = beatNumber === 1;
+      const isAccent = s.accentBeats.includes(beatNumber);
+      const isMeasureStart = beatNumber === 1;
       const time = nextNoteTimeRef.current;
 
       playClick(time, isAccent);
       scheduledQueueRef.current.push({ beat: beatNumber, time });
 
-      if (s.isAccelerating && isAccent && accelerationBeatCountRef.current > 0) {
+      if (s.isAccelerating && isMeasureStart && accelerationBeatCountRef.current > 0) {
         if (accelerationBeatCountRef.current >= s.accelerationInterval) {
           accelerationBeatCountRef.current = 0;
           const bound = accelerationBoundBpm(s.accelerationMode);
@@ -407,7 +443,7 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
           }
         }
       }
-      if (stateRef.current.isAccelerating && isAccent) {
+      if (stateRef.current.isAccelerating && isMeasureStart) {
         accelerationBeatCountRef.current++;
       }
 
@@ -496,6 +532,11 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
     [syncDispatch],
   );
 
+  const toggleAccentBeat = useCallback(
+    (beat: number) => syncDispatch({ type: "TOGGLE_ACCENT_BEAT", beat }),
+    [syncDispatch],
+  );
+
   const setAccelerationStartBpm = useCallback(
     (n: number) => syncDispatch({ type: "SET_ACCELERATION_START_BPM", bpm: n }),
     [syncDispatch],
@@ -546,6 +587,7 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
   const persistedSettings = useMemo(() => toPersistedSettings(state), [
     state.bpm,
     state.beatsPerMeasure,
+    state.accentBeats,
     state.accelerationMode,
     state.accelerationStartBpm,
     state.accelerationInterval,
@@ -585,6 +627,7 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
         toggle,
         setBpm,
         setBeatsPerMeasure,
+        toggleAccentBeat,
         setAccelerationStartBpm,
         setAccelerationInterval,
         setAccelerationStep,
@@ -603,6 +646,7 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
       toggle,
       setBpm,
       setBeatsPerMeasure,
+      toggleAccentBeat,
       setAccelerationStartBpm,
       setAccelerationInterval,
       setAccelerationStep,

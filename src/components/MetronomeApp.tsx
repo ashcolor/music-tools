@@ -197,6 +197,7 @@ export default function MetronomeApp() {
           isPlaying={state.isPlaying}
           currentBeat={state.currentBeat}
           beatsPerMeasure={state.beatsPerMeasure}
+          accentBeats={state.accentBeats}
           onClick={() => beatsModalRef.current?.showModal()}
         />
         </div>
@@ -222,7 +223,16 @@ export default function MetronomeApp() {
       <dialog ref={beatsModalRef} className="modal">
         <div className="modal-box">
           <h3 className="font-bold text-lg mb-4">拍子</h3>
-          <BeatsInput value={state.beatsPerMeasure} onChange={actions.setBeatsPerMeasure} />
+          <div className="flex flex-col gap-4">
+            <BeatsDots
+              isPlaying={state.isPlaying}
+              currentBeat={state.currentBeat}
+              beatsPerMeasure={state.beatsPerMeasure}
+              accentBeats={state.accentBeats}
+              onToggleAccent={actions.toggleAccentBeat}
+            />
+            <BeatsInput value={state.beatsPerMeasure} onChange={actions.setBeatsPerMeasure} />
+          </div>
           <div className="modal-action">
             <form method="dialog">
               <button className="btn">閉じる</button>
