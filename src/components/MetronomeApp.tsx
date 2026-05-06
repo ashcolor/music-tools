@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
-import { useMetronome, effectiveTargetBpm } from "@/contexts/MetronomeContext";
+import { useMetronome } from "@/contexts/MetronomeContext";
 import BeatsInput from "./BeatsInput";
 import BeatsDots from "./BeatsDots";
 import TempoEditor from "./TempoEditor";
@@ -133,26 +133,44 @@ export default function MetronomeApp() {
     <div className="flex-1 flex flex-col w-full max-w-xl mx-auto">
       <div className="flex-1 flex flex-col items-center justify-center gap-8 p-4 md:p-8">
         <div className="flex flex-col gap-6">
-        <div className="grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 md:gap-4">
-          <div className="flex justify-self-end items-center gap-2 md:gap-4">
-            {state.accelerationMode !== "off" && (
-              <>
-                <button
-                  type="button"
-                  className="text-2xl md:text-3xl font-mono text-primary px-2 py-1 rounded hover:bg-base-200 transition-colors"
-                  onClick={() => bpmModalRef.current?.showModal()}
-                >
+        <div className="flex flex-col items-center gap-2">
+          {state.accelerationMode !== "off" && (
+            <div className="flex flex-col items-center">
+              <button
+                type="button"
+                className="flex items-baseline gap-2 px-2 py-1 rounded hover:bg-base-200 transition-colors"
+                onClick={() => bpmModalRef.current?.showModal()}
+              >
+                <span className="text-sm text-base-content/70">スタート</span>
+                <span className="text-2xl md:text-3xl font-mono text-primary">
                   {state.accelerationStartBpm}
-                </button>
+                </span>
+              </button>
+              <button
+                type="button"
+                className="flex items-baseline gap-1 text-sm text-base-content/70 px-2 py-1 rounded hover:bg-base-200 transition-colors"
+                onClick={() => bpmModalRef.current?.showModal()}
+              >
                 <Icon
-                  icon="material-symbols:double-arrow-rounded"
-                  width="24"
-                  height="24"
-                  className="text-base-content/50"
+                  icon={
+                    state.accelerationMode === "accel"
+                      ? "material-symbols:trending-up-rounded"
+                      : "material-symbols:trending-down-rounded"
+                  }
+                  width="16"
+                  height="16"
                 />
-              </>
-            )}
-          </div>
+                <span className="font-bold text-lg md:text-xl">{state.accelerationStep}</span> BPM /{" "}
+                <span className="font-bold text-lg md:text-xl">{state.accelerationInterval}</span> 小節
+              </button>
+              <Icon
+                icon="material-symbols:keyboard-double-arrow-down-rounded"
+                width="24"
+                height="24"
+                className="text-base-content/50"
+              />
+            </div>
+          )}
           <div
             className="relative rounded-full border border-primary/30 w-48 h-48 md:w-56 md:h-56 flex items-center justify-center shrink-0 cursor-pointer hover:bg-base-200 transition-colors"
             onClick={() => bpmModalRef.current?.showModal()}
@@ -173,25 +191,6 @@ export default function MetronomeApp() {
             >
               BPM
             </button>
-          </div>
-          <div className="flex justify-self-start items-center gap-2 md:gap-4">
-            {state.accelerationMode !== "off" && (
-              <>
-                <Icon
-                  icon="material-symbols:double-arrow-rounded"
-                  width="24"
-                  height="24"
-                  className="text-base-content/50"
-                />
-                <button
-                  type="button"
-                  className="text-2xl md:text-3xl font-mono text-primary px-2 py-1 rounded hover:bg-base-200 transition-colors"
-                  onClick={() => bpmModalRef.current?.showModal()}
-                >
-                  {effectiveTargetBpm(state)}
-                </button>
-              </>
-            )}
           </div>
         </div>
         <BeatsDots
