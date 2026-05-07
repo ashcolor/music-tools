@@ -1,23 +1,85 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
 import { useMetronome } from "@/contexts/MetronomeContext";
+
+type SnsShare = {
+  label: string;
+  iconName: string;
+  color: string;
+  buildHref: (shareUrl: string, title: string) => string;
+};
+
+const SNS_SHARES: SnsShare[] = [
+  {
+    label: "X(Twitter)",
+    iconName: "mingcute:social-x-fill",
+    color: "#0f1419",
+    buildHref: (url, title) =>
+      `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`,
+  },
+  {
+    label: "Facebook",
+    iconName: "simple-icons:facebook",
+    color: "#1877f2",
+    buildHref: (url) => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
+  },
+  {
+    label: "LINE",
+    iconName: "simple-icons:line",
+    color: "#06c755",
+    buildHref: (url) =>
+      `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(url)}`,
+  },
+  {
+    label: "はてなブックマーク",
+    iconName: "simple-icons:hatenabookmark",
+    color: "#00a4de",
+    buildHref: (url) => {
+      try {
+        const u = new URL(url);
+        return `https://b.hatena.ne.jp/entry/s/${encodeURIComponent(`${u.host}${u.pathname}${u.search}`)}`;
+      } catch {
+        return "https://b.hatena.ne.jp/";
+      }
+    },
+  },
+];
 
 export default function Toolbar() {
   const { actions } = useMetronome();
   const helpRef = useRef<HTMLDialogElement>(null);
   const shortcutsRef = useRef<HTMLDialogElement>(null);
   const resetRef = useRef<HTMLDialogElement>(null);
+  const shareRef = useRef<HTMLDialogElement>(null);
+  const [shareBaseUrl, setShareBaseUrl] = useState("");
+  const [shareSearch, setShareSearch] = useState("");
+  const [includeSettings, setIncludeSettings] = useState(true);
   const [copied, setCopied] = useState(false);
+
+  const shareUrl = includeSettings ? `${shareBaseUrl}${shareSearch}` : shareBaseUrl;
+  const snsLinks = useMemo(
+    () =>
+      SNS_SHARES.map((s) => ({ ...s, href: s.buildHref(shareUrl, document.title) })),
+    [shareUrl],
+  );
 
   const openShortcutsFromHelp = () => {
     helpRef.current?.close();
     shortcutsRef.current?.showModal();
   };
 
-  const handleShare = async () => {
-    const url = window.location.href;
+  const openShare = () => {
+    const { origin, pathname, search } = window.location;
+    setShareBaseUrl(`${origin}${pathname}`);
+    setShareSearch(search);
+    setIncludeSettings(true);
+    setCopied(false);
+    shareRef.current?.showModal();
+  };
+
+  const handleCopyShareUrl = async () => {
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1600);
     } catch {
@@ -63,10 +125,10 @@ export default function Toolbar() {
         type="button"
         className="btn btn-ghost btn-sm btn-square"
         aria-label="URL共有"
-        title={copied ? "コピーしました" : "URL共有"}
-        onClick={handleShare}
+        title="URL共有"
+        onClick={openShare}
       >
-        <Icon icon={copied ? "mdi:check" : "lucide:share"} className="size-5" />
+        <Icon icon="lucide:share" className="size-5" />
       </button>
 
       <dialog ref={helpRef} className="modal">
@@ -210,6 +272,66 @@ export default function Toolbar() {
                 </tbody>
               </table>
             </div>
+          </div>
+          <div className="modal-action">
+            <form method="dialog">
+              <button className="btn">閉じる</button>
+            </form>
+          </div>
+        </div>
+        <form method="dialog" className="modal-backdrop">
+          <button>close</button>
+        </form>
+      </dialog>
+
+      <dialog ref={shareRef} className="modal">
+        <div className="modal-box">
+          <h3 className="font-bold text-lg mb-4">URL共有</h3>
+          <label className="label cursor-pointer justify-start gap-3 mb-3">
+            <input
+              type="checkbox"
+              className="toggle toggle-primary"
+              checked={includeSettings}
+              onChange={(e) => {
+                setIncludeSettings(e.target.checked);
+                setCopied(false);
+              }}
+            />
+            <span className="label-text">設定を共有</span>
+          </label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              readOnly
+              value={shareUrl}
+              onFocus={(e) => e.currentTarget.select()}
+              className="input input-bordered flex-1 font-mono text-xs"
+            />
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={handleCopyShareUrl}
+              aria-label={copied ? "コピーしました" : "URLをコピー"}
+            >
+              <Icon icon={copied ? "mdi:check" : "mdi:content-copy"} className="size-5" />
+              {copied ? "コピーしました" : "コピー"}
+            </button>
+          </div>
+          <div className="mt-4 flex flex-row justify-center gap-3">
+            {snsLinks.map((s) => (
+              <a
+                key={s.label}
+                href={s.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={s.label}
+                title={s.label}
+                className="btn btn-sm btn-square text-white border-0"
+                style={{ backgroundColor: s.color }}
+              >
+                <Icon icon={s.iconName} className="size-5" />
+              </a>
+            ))}
           </div>
           <div className="modal-action">
             <form method="dialog">

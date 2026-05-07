@@ -94,6 +94,7 @@ type Action =
   | { type: "SET_BPM"; bpm: number }
   | { type: "SET_BEATS_PER_MEASURE"; beats: number }
   | { type: "TOGGLE_ACCENT_BEAT"; beat: number }
+  | { type: "SET_ACCENT_BEATS"; beats: number[] }
   | { type: "SET_ACCELERATION_START_BPM"; bpm: number }
   | { type: "SET_ACCELERATION_INTERVAL"; value: number }
   | { type: "SET_ACCELERATION_STEP"; value: number }
@@ -244,6 +245,8 @@ function reducer(state: State, action: Action): State {
         : [...state.accentBeats, beat].sort((a, b) => a - b);
       return { ...state, accentBeats: next };
     }
+    case "SET_ACCENT_BEATS":
+      return { ...state, accentBeats: sanitizeAccentBeats(action.beats, state.beatsPerMeasure) };
     case "SET_ACCELERATION_START_BPM":
       return { ...state, accelerationStartBpm: clampBpm(action.bpm) };
     case "SET_ACCELERATION_INTERVAL":
@@ -306,6 +309,7 @@ type Actions = {
   setBpm: (n: number) => void;
   setBeatsPerMeasure: (n: number) => void;
   toggleAccentBeat: (beat: number) => void;
+  setAccentBeats: (beats: number[]) => void;
   setAccelerationStartBpm: (n: number) => void;
   setAccelerationInterval: (n: number) => void;
   setAccelerationStep: (n: number) => void;
@@ -537,6 +541,11 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
     [syncDispatch],
   );
 
+  const setAccentBeats = useCallback(
+    (beats: number[]) => syncDispatch({ type: "SET_ACCENT_BEATS", beats }),
+    [syncDispatch],
+  );
+
   const setAccelerationStartBpm = useCallback(
     (n: number) => syncDispatch({ type: "SET_ACCELERATION_START_BPM", bpm: n }),
     [syncDispatch],
@@ -628,6 +637,7 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
         setBpm,
         setBeatsPerMeasure,
         toggleAccentBeat,
+        setAccentBeats,
         setAccelerationStartBpm,
         setAccelerationInterval,
         setAccelerationStep,
@@ -647,6 +657,7 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
       setBpm,
       setBeatsPerMeasure,
       toggleAccentBeat,
+      setAccentBeats,
       setAccelerationStartBpm,
       setAccelerationInterval,
       setAccelerationStep,

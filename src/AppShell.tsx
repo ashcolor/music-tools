@@ -5,6 +5,7 @@ import MetronomeApp from "./components/MetronomeApp";
 import Toolbar from "./components/Toolbar";
 import { PAGE_META, SITE_NAME } from "./constants";
 import { MetronomeProvider } from "./contexts/MetronomeContext";
+import { useMetronomeUrlSync } from "./hooks/useMetronomeUrlSync";
 import { Contact } from "./features/contact/route";
 import { Home } from "./features/home/route";
 import { OperatorInfo } from "./features/operator-info/route";
@@ -95,6 +96,7 @@ function syncSeoMetadata(pathname: string) {
 }
 
 function MetronomeRoute() {
+  useMetronomeUrlSync();
   return (
     <div className="flex flex-1 flex-col">
       <Toolbar />
