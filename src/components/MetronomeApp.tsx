@@ -6,6 +6,7 @@ import BeatsDots from "./BeatsDots";
 import TempoEditor from "./TempoEditor";
 import VolumeControl from "./VolumeControl";
 import FullscreenButton from "./FullscreenButton";
+import Pendulum from "./Pendulum";
 
 function isEditableTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
@@ -132,7 +133,7 @@ export default function MetronomeApp() {
   return (
     <div className="flex-1 flex flex-col w-full max-w-xl mx-auto">
       <div className="flex-1 flex flex-col items-center justify-center gap-8 p-4 md:p-8">
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col items-center gap-6">
         <div className="flex flex-col items-center gap-2">
           {state.accelerationMode !== "off" && (
             <div className="flex flex-col items-center">
@@ -193,6 +194,7 @@ export default function MetronomeApp() {
             </button>
           </div>
         </div>
+        <Pendulum />
         <BeatsDots
           isPlaying={state.isPlaying}
           currentBeat={state.currentBeat}
