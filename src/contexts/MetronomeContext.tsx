@@ -292,10 +292,6 @@ function reducer(state: State, action: Action): State {
     case "RESET":
       return {
         ...initialState,
-        isPlaying: state.isPlaying,
-        isPaused: state.isPaused,
-        currentBeat: state.currentBeat,
-        isAccelerating: false,
         theme: state.theme,
       };
   }
@@ -590,8 +586,9 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
 
   const reset = useCallback(() => {
     accelerationBeatCountRef.current = 0;
+    stopAudioClock();
     syncDispatch({ type: "RESET" });
-  }, [syncDispatch]);
+  }, [syncDispatch, stopAudioClock]);
 
   const persistedSettings = useMemo(() => toPersistedSettings(state), [
     state.bpm,
