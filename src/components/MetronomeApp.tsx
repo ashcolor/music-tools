@@ -194,7 +194,7 @@ export default function MetronomeApp() {
             </button>
           </div>
         </div>
-        <Pendulum />
+        {state.showPendulum && <Pendulum />}
         <BeatsDots
           isPlaying={state.isPlaying}
           currentBeat={state.currentBeat}

@@ -75,6 +75,7 @@ type State = {
   soundType: SoundType;
   theme: ThemeMode;
   wakeLock: boolean;
+  showPendulum: boolean;
 };
 
 type PersistedSettings = Pick<
@@ -90,6 +91,7 @@ type PersistedSettings = Pick<
   | "soundType"
   | "theme"
   | "wakeLock"
+  | "showPendulum"
 >;
 
 type Action =
@@ -106,6 +108,7 @@ type Action =
   | { type: "SET_SOUND_TYPE"; value: SoundType }
   | { type: "SET_THEME"; value: ThemeMode }
   | { type: "SET_WAKE_LOCK"; value: boolean }
+  | { type: "SET_SHOW_PENDULUM"; value: boolean }
   | { type: "START_FRESH" }
   | { type: "RESUME" }
   | { type: "PAUSE" }
@@ -132,7 +135,8 @@ const initialState: State = {
   volume: 0.3,
   soundType: "electronic",
   theme: "light",
-  wakeLock: false,
+  wakeLock: true,
+  showPendulum: false,
 };
 
 function sanitizeAccentBeats(value: unknown, beatsPerMeasure: number): number[] {
@@ -194,6 +198,10 @@ function sanitizePersistedSettings(value: unknown): PersistedSettings | null {
     theme: isThemeMode(candidate.theme) ? candidate.theme : initialState.theme,
     wakeLock:
       typeof candidate.wakeLock === "boolean" ? candidate.wakeLock : initialState.wakeLock,
+    showPendulum:
+      typeof candidate.showPendulum === "boolean"
+        ? candidate.showPendulum
+        : initialState.showPendulum,
   };
 }
 
@@ -228,6 +236,7 @@ function toPersistedSettings(state: State): PersistedSettings {
     soundType: state.soundType,
     theme: state.theme,
     wakeLock: state.wakeLock,
+    showPendulum: state.showPendulum,
   };
 }
 
@@ -272,6 +281,8 @@ function reducer(state: State, action: Action): State {
       return { ...state, theme: action.value };
     case "SET_WAKE_LOCK":
       return { ...state, wakeLock: action.value };
+    case "SET_SHOW_PENDULUM":
+      return { ...state, showPendulum: action.value };
     case "START_FRESH": {
       const shouldAccelerate = state.accelerationMode !== "off";
       return {
@@ -303,6 +314,7 @@ function reducer(state: State, action: Action): State {
         ...initialState,
         theme: state.theme,
         wakeLock: state.wakeLock,
+        showPendulum: state.showPendulum,
       };
   }
 }
@@ -324,6 +336,7 @@ type Actions = {
   setSoundType: (v: SoundType) => void;
   setTheme: (v: ThemeMode) => void;
   setWakeLock: (v: boolean) => void;
+  setShowPendulum: (v: boolean) => void;
   reset: () => void;
 };
 
@@ -600,6 +613,11 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
     [syncDispatch],
   );
 
+  const setShowPendulum = useCallback(
+    (v: boolean) => syncDispatch({ type: "SET_SHOW_PENDULUM", value: v }),
+    [syncDispatch],
+  );
+
   const reset = useCallback(() => {
     accelerationBeatCountRef.current = 0;
     stopAudioClock();
@@ -618,6 +636,7 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
     state.soundType,
     state.theme,
     state.wakeLock,
+    state.showPendulum,
   ]);
 
   useEffect(() => {
@@ -660,6 +679,7 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
         setSoundType,
         setTheme,
         setWakeLock,
+        setShowPendulum,
         reset,
       },
     }),
@@ -681,6 +701,7 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
       setSoundType,
       setTheme,
       setWakeLock,
+      setShowPendulum,
       reset,
     ],
   );
