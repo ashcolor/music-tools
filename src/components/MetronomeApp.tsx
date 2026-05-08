@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
-import { useMetronome, effectiveTargetBpm } from "@/contexts/MetronomeContext";
+import { useMetronome } from "@/contexts/MetronomeContext";
 import BeatsInput from "./BeatsInput";
 import BeatsDots from "./BeatsDots";
 import TempoEditor from "./TempoEditor";
 import VolumeControl from "./VolumeControl";
 import FullscreenButton from "./FullscreenButton";
+import Pendulum from "./Pendulum";
 
 function isEditableTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
@@ -91,17 +92,17 @@ export default function MetronomeApp() {
 
   const playPauseButton =
     state.isPlaying && !state.isPaused ? (
-      <button className="btn btn-circle btn-secondary w-16 h-16" onClick={actions.pause}>
-        <Icon icon="material-symbols:pause-rounded" width="48" height="48" />
+      <button className="btn btn-circle btn-secondary size-20" onClick={actions.pause}>
+        <Icon icon="material-symbols:pause-rounded" width="q48" height="48" />
       </button>
     ) : (
-      <button className="btn btn-circle btn-primary w-16 h-16" onClick={actions.start}>
+      <button className="btn btn-circle btn-primary size-20" onClick={actions.start}>
         <Icon icon="material-symbols:play-arrow-rounded" width="48" height="48" />
       </button>
     );
 
   const resetButton = (
-    <button className="btn btn-circle btn-outline" onClick={actions.stop} aria-label="停止">
+    <button className="btn btn-circle btn-secondary btn-outline" onClick={actions.stop} aria-label="停止">
       <Icon icon="material-symbols:stop-rounded" width="24" height="24" />
     </button>
   );
@@ -116,7 +117,7 @@ export default function MetronomeApp() {
       <div className="flex justify-center">
         <div className="relative">
           {!isIdle && (
-            <div className="absolute right-full top-1/2 -translate-y-1/2 mr-2">
+            <div className="absolute right-full top-1/2 -translate-y-1/2 mr-4">
               {resetButton}
             </div>
           )}
@@ -132,27 +133,45 @@ export default function MetronomeApp() {
   return (
     <div className="flex-1 flex flex-col w-full max-w-xl mx-auto">
       <div className="flex-1 flex flex-col items-center justify-center gap-8 p-4 md:p-8">
-        <div className="flex flex-col gap-6">
-        <div className="grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 md:gap-4">
-          <div className="flex justify-self-end items-center gap-2 md:gap-4">
-            {state.accelerationMode !== "off" && (
-              <>
-                <button
-                  type="button"
-                  className="text-2xl md:text-3xl font-mono text-primary px-2 py-1 rounded hover:bg-base-200 transition-colors"
-                  onClick={() => bpmModalRef.current?.showModal()}
-                >
+        <div className="flex flex-col items-center gap-6">
+        <div className="flex flex-col items-center gap-2">
+          {state.accelerationMode !== "off" && (
+            <div className="flex flex-col items-center">
+              <button
+                type="button"
+                className="flex items-baseline gap-2 px-2 py-1 rounded hover:bg-base-200 transition-colors"
+                onClick={() => bpmModalRef.current?.showModal()}
+              >
+                <span className="text-sm text-base-content/70">スタート</span>
+                <span className="text-2xl md:text-3xl font-mono text-primary">
                   {state.accelerationStartBpm}
-                </button>
+                </span>
+              </button>
+              <button
+                type="button"
+                className="flex items-baseline gap-1 text-sm text-base-content/70 px-2 py-1 rounded hover:bg-base-200 transition-colors"
+                onClick={() => bpmModalRef.current?.showModal()}
+              >
                 <Icon
-                  icon="material-symbols:double-arrow-rounded"
-                  width="24"
-                  height="24"
-                  className="text-base-content/50"
+                  icon={
+                    state.accelerationMode === "accel"
+                      ? "material-symbols:trending-up-rounded"
+                      : "material-symbols:trending-down-rounded"
+                  }
+                  width="16"
+                  height="16"
                 />
-              </>
-            )}
-          </div>
+                <span className="font-bold text-lg md:text-xl">{state.accelerationStep}</span> BPM /{" "}
+                <span className="font-bold text-lg md:text-xl">{state.accelerationInterval}</span> 小節
+              </button>
+              <Icon
+                icon="material-symbols:keyboard-double-arrow-down-rounded"
+                width="24"
+                height="24"
+                className="text-base-content/50"
+              />
+            </div>
+          )}
           <div
             className="relative rounded-full border border-primary/30 w-48 h-48 md:w-56 md:h-56 flex items-center justify-center shrink-0 cursor-pointer hover:bg-base-200 transition-colors"
             onClick={() => bpmModalRef.current?.showModal()}
@@ -169,35 +188,18 @@ export default function MetronomeApp() {
             />
             <button
               type="button"
-              className="pointer-events-none absolute bottom-6 md:bottom-8 text-lg text-base-content/50"
+              className="pointer-events-none absolute bottom-10 md:bottom-12 text-lg text-base-content/50"
             >
               BPM
             </button>
           </div>
-          <div className="flex justify-self-start items-center gap-2 md:gap-4">
-            {state.accelerationMode !== "off" && (
-              <>
-                <Icon
-                  icon="material-symbols:double-arrow-rounded"
-                  width="24"
-                  height="24"
-                  className="text-base-content/50"
-                />
-                <button
-                  type="button"
-                  className="text-2xl md:text-3xl font-mono text-primary px-2 py-1 rounded hover:bg-base-200 transition-colors"
-                  onClick={() => bpmModalRef.current?.showModal()}
-                >
-                  {effectiveTargetBpm(state)}
-                </button>
-              </>
-            )}
-          </div>
         </div>
+        {state.showPendulum && <Pendulum />}
         <BeatsDots
           isPlaying={state.isPlaying}
           currentBeat={state.currentBeat}
           beatsPerMeasure={state.beatsPerMeasure}
+          accentBeats={state.accentBeats}
           onClick={() => beatsModalRef.current?.showModal()}
         />
         </div>
@@ -223,7 +225,16 @@ export default function MetronomeApp() {
       <dialog ref={beatsModalRef} className="modal">
         <div className="modal-box">
           <h3 className="font-bold text-lg mb-4">拍子</h3>
-          <BeatsInput value={state.beatsPerMeasure} onChange={actions.setBeatsPerMeasure} />
+          <div className="flex flex-col gap-4">
+            <BeatsDots
+              isPlaying={state.isPlaying}
+              currentBeat={state.currentBeat}
+              beatsPerMeasure={state.beatsPerMeasure}
+              accentBeats={state.accentBeats}
+              onToggleAccent={actions.toggleAccentBeat}
+            />
+            <BeatsInput value={state.beatsPerMeasure} onChange={actions.setBeatsPerMeasure} />
+          </div>
           <div className="modal-action">
             <form method="dialog">
               <button className="btn">閉じる</button>

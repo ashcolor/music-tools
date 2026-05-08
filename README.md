@@ -23,3 +23,7 @@ pnpm build
 ```sh
 pnpm lint
 ```
+
+## 参考
+
+- [二つの時計についての物語](https://web.dev/articles/audio-scheduling?hl=ja)

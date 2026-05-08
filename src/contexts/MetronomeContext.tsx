@@ -14,8 +14,6 @@ export type ThemeMode = "light" | "dark";
 export type AccelerationMode = "off" | "accel" | "decel";
 
 const STORAGE_KEY = "music-tools:metronome-settings";
-const DEFAULT_ACCEL_TARGET = 300;
-const DEFAULT_DECEL_TARGET = 30;
 const MIN_BPM = 10;
 const MAX_BPM = 999;
 const MIN_BEATS_PER_MEASURE = 1;
@@ -67,36 +65,41 @@ type State = {
   isPaused: boolean;
   currentBeat: number;
   beatsPerMeasure: number;
+  accentBeats: number[];
   isAccelerating: boolean;
   accelerationMode: AccelerationMode;
   accelerationStartBpm: number;
-  accelerationTargetBpm: number | null;
   accelerationInterval: number;
   accelerationStep: number;
   volume: number;
   soundType: SoundType;
   theme: ThemeMode;
+  wakeLock: boolean;
+  showPendulum: boolean;
 };
 
 type PersistedSettings = Pick<
   State,
   | "bpm"
   | "beatsPerMeasure"
+  | "accentBeats"
   | "accelerationMode"
   | "accelerationStartBpm"
-  | "accelerationTargetBpm"
   | "accelerationInterval"
   | "accelerationStep"
   | "volume"
   | "soundType"
   | "theme"
+  | "wakeLock"
+  | "showPendulum"
 >;
 
 type Action =
   | { type: "SET_BPM"; bpm: number }
   | { type: "SET_BEATS_PER_MEASURE"; beats: number }
+  | { type: "TOGGLE_ACCENT_BEAT"; beat: number }
+  | { type: "SET_ACCENT_BEATS"; beats: number[] }
   | { type: "SET_ACCELERATION_START_BPM"; bpm: number }
-  | { type: "SET_ACCELERATION_TARGET_BPM"; bpm: number | null }
   | { type: "SET_ACCELERATION_INTERVAL"; value: number }
   | { type: "SET_ACCELERATION_STEP"; value: number }
   | { type: "SET_ACCELERATION_MODE"; value: AccelerationMode }
@@ -104,6 +107,8 @@ type Action =
   | { type: "SET_VOLUME"; value: number }
   | { type: "SET_SOUND_TYPE"; value: SoundType }
   | { type: "SET_THEME"; value: ThemeMode }
+  | { type: "SET_WAKE_LOCK"; value: boolean }
+  | { type: "SET_SHOW_PENDULUM"; value: boolean }
   | { type: "START_FRESH" }
   | { type: "RESUME" }
   | { type: "PAUSE" }
@@ -111,9 +116,8 @@ type Action =
   | { type: "STOP_ACCELERATION" }
   | { type: "RESET" };
 
-export function effectiveTargetBpm(state: State): number {
-  if (state.accelerationTargetBpm !== null) return state.accelerationTargetBpm;
-  return state.accelerationMode === "decel" ? DEFAULT_DECEL_TARGET : DEFAULT_ACCEL_TARGET;
+function accelerationBoundBpm(mode: AccelerationMode): number {
+  return mode === "decel" ? MIN_BPM : MAX_BPM;
 }
 
 const initialState: State = {
@@ -122,21 +126,40 @@ const initialState: State = {
   isPaused: false,
   currentBeat: 0,
   beatsPerMeasure: 4,
+  accentBeats: [1],
   isAccelerating: false,
   accelerationMode: "off",
   accelerationStartBpm: 120,
-  accelerationTargetBpm: null,
   accelerationInterval: 1,
   accelerationStep: 1,
   volume: 0.3,
   soundType: "electronic",
   theme: "light",
+  wakeLock: true,
+  showPendulum: false,
 };
+
+function sanitizeAccentBeats(value: unknown, beatsPerMeasure: number): number[] {
+  if (!Array.isArray(value)) {
+    return initialState.accentBeats.filter((b) => b <= beatsPerMeasure);
+  }
+  const filtered = value.filter(
+    (b): b is number =>
+      typeof b === "number" && Number.isInteger(b) && b >= 1 && b <= beatsPerMeasure,
+  );
+  return Array.from(new Set(filtered)).sort((a, b) => a - b);
+}
 
 function sanitizePersistedSettings(value: unknown): PersistedSettings | null {
   if (!value || typeof value !== "object") return null;
 
   const candidate = value as Record<string, unknown>;
+
+  const beatsPerMeasure = clampBeatsPerMeasure(
+    typeof candidate.beatsPerMeasure === "number" && Number.isFinite(candidate.beatsPerMeasure)
+      ? candidate.beatsPerMeasure
+      : initialState.beatsPerMeasure,
+  );
 
   return {
     bpm: clampBpm(
@@ -144,11 +167,8 @@ function sanitizePersistedSettings(value: unknown): PersistedSettings | null {
         ? candidate.bpm
         : initialState.bpm,
     ),
-    beatsPerMeasure: clampBeatsPerMeasure(
-      typeof candidate.beatsPerMeasure === "number" && Number.isFinite(candidate.beatsPerMeasure)
-        ? candidate.beatsPerMeasure
-        : initialState.beatsPerMeasure,
-    ),
+    beatsPerMeasure,
+    accentBeats: sanitizeAccentBeats(candidate.accentBeats, beatsPerMeasure),
     accelerationMode: isAccelerationMode(candidate.accelerationMode)
       ? candidate.accelerationMode
       : initialState.accelerationMode,
@@ -158,15 +178,6 @@ function sanitizePersistedSettings(value: unknown): PersistedSettings | null {
         ? candidate.accelerationStartBpm
         : initialState.accelerationStartBpm,
     ),
-    accelerationTargetBpm:
-      candidate.accelerationTargetBpm === null || candidate.accelerationTargetBpm === undefined
-        ? initialState.accelerationTargetBpm
-        : clampBpm(
-            typeof candidate.accelerationTargetBpm === "number" &&
-              Number.isFinite(candidate.accelerationTargetBpm)
-              ? candidate.accelerationTargetBpm
-              : initialState.accelerationTargetBpm ?? DEFAULT_ACCEL_TARGET,
-          ),
     accelerationInterval: clampAccelerationInterval(
       typeof candidate.accelerationInterval === "number" &&
         Number.isFinite(candidate.accelerationInterval)
@@ -185,6 +196,12 @@ function sanitizePersistedSettings(value: unknown): PersistedSettings | null {
     ),
     soundType: isSoundType(candidate.soundType) ? candidate.soundType : initialState.soundType,
     theme: isThemeMode(candidate.theme) ? candidate.theme : initialState.theme,
+    wakeLock:
+      typeof candidate.wakeLock === "boolean" ? candidate.wakeLock : initialState.wakeLock,
+    showPendulum:
+      typeof candidate.showPendulum === "boolean"
+        ? candidate.showPendulum
+        : initialState.showPendulum,
   };
 }
 
@@ -210,14 +227,16 @@ function toPersistedSettings(state: State): PersistedSettings {
   return {
     bpm: state.bpm,
     beatsPerMeasure: state.beatsPerMeasure,
+    accentBeats: state.accentBeats,
     accelerationMode: state.accelerationMode,
     accelerationStartBpm: state.accelerationStartBpm,
-    accelerationTargetBpm: state.accelerationTargetBpm,
     accelerationInterval: state.accelerationInterval,
     accelerationStep: state.accelerationStep,
     volume: state.volume,
     soundType: state.soundType,
     theme: state.theme,
+    wakeLock: state.wakeLock,
+    showPendulum: state.showPendulum,
   };
 }
 
@@ -225,15 +244,27 @@ function reducer(state: State, action: Action): State {
   switch (action.type) {
     case "SET_BPM":
       return { ...state, bpm: clampBpm(action.bpm) };
-    case "SET_BEATS_PER_MEASURE":
-      return { ...state, beatsPerMeasure: clampBeatsPerMeasure(action.beats) };
-    case "SET_ACCELERATION_START_BPM":
-      return { ...state, accelerationStartBpm: clampBpm(action.bpm) };
-    case "SET_ACCELERATION_TARGET_BPM":
+    case "SET_BEATS_PER_MEASURE": {
+      const beats = clampBeatsPerMeasure(action.beats);
       return {
         ...state,
-        accelerationTargetBpm: action.bpm === null ? null : clampBpm(action.bpm),
+        beatsPerMeasure: beats,
+        accentBeats: state.accentBeats.filter((b) => b <= beats),
       };
+    }
+    case "TOGGLE_ACCENT_BEAT": {
+      const beat = action.beat;
+      if (beat < 1 || beat > state.beatsPerMeasure) return state;
+      const exists = state.accentBeats.includes(beat);
+      const next = exists
+        ? state.accentBeats.filter((b) => b !== beat)
+        : [...state.accentBeats, beat].sort((a, b) => a - b);
+      return { ...state, accentBeats: next };
+    }
+    case "SET_ACCENT_BEATS":
+      return { ...state, accentBeats: sanitizeAccentBeats(action.beats, state.beatsPerMeasure) };
+    case "SET_ACCELERATION_START_BPM":
+      return { ...state, accelerationStartBpm: clampBpm(action.bpm) };
     case "SET_ACCELERATION_INTERVAL":
       return { ...state, accelerationInterval: clampAccelerationInterval(action.value) };
     case "SET_ACCELERATION_STEP":
@@ -248,10 +279,12 @@ function reducer(state: State, action: Action): State {
       return { ...state, soundType: action.value };
     case "SET_THEME":
       return { ...state, theme: action.value };
+    case "SET_WAKE_LOCK":
+      return { ...state, wakeLock: action.value };
+    case "SET_SHOW_PENDULUM":
+      return { ...state, showPendulum: action.value };
     case "START_FRESH": {
-      const target = effectiveTargetBpm(state);
-      const shouldAccelerate =
-        state.accelerationMode !== "off" && state.accelerationStartBpm !== target;
+      const shouldAccelerate = state.accelerationMode !== "off";
       return {
         ...state,
         isPlaying: true,
@@ -279,11 +312,9 @@ function reducer(state: State, action: Action): State {
     case "RESET":
       return {
         ...initialState,
-        isPlaying: state.isPlaying,
-        isPaused: state.isPaused,
-        currentBeat: state.currentBeat,
-        isAccelerating: false,
         theme: state.theme,
+        wakeLock: state.wakeLock,
+        showPendulum: state.showPendulum,
       };
   }
 }
@@ -295,14 +326,17 @@ type Actions = {
   toggle: () => void;
   setBpm: (n: number) => void;
   setBeatsPerMeasure: (n: number) => void;
+  toggleAccentBeat: (beat: number) => void;
+  setAccentBeats: (beats: number[]) => void;
   setAccelerationStartBpm: (n: number) => void;
-  setAccelerationTargetBpm: (n: number | null) => void;
   setAccelerationInterval: (n: number) => void;
   setAccelerationStep: (n: number) => void;
   setAccelerationMode: (v: AccelerationMode) => void;
   setVolume: (n: number) => void;
   setSoundType: (v: SoundType) => void;
   setTheme: (v: ThemeMode) => void;
+  setWakeLock: (v: boolean) => void;
+  setShowPendulum: (v: boolean) => void;
   reset: () => void;
 };
 
@@ -411,28 +445,29 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
     while (nextNoteTimeRef.current < ctx.currentTime + SCHEDULE_AHEAD_TIME) {
       const s = stateRef.current;
       const beatNumber = nextBeatNumberRef.current;
-      const isAccent = beatNumber === 1;
+      const isAccent = s.accentBeats.includes(beatNumber);
+      const isMeasureStart = beatNumber === 1;
       const time = nextNoteTimeRef.current;
 
       playClick(time, isAccent);
       scheduledQueueRef.current.push({ beat: beatNumber, time });
 
-      if (s.isAccelerating && isAccent && accelerationBeatCountRef.current > 0) {
+      if (s.isAccelerating && isMeasureStart && accelerationBeatCountRef.current > 0) {
         if (accelerationBeatCountRef.current >= s.accelerationInterval) {
           accelerationBeatCountRef.current = 0;
-          const target = effectiveTargetBpm(s);
-          if (s.accelerationMode === "accel" && s.bpm < target) {
-            const newBpm = Math.min(s.bpm + s.accelerationStep, target);
+          const bound = accelerationBoundBpm(s.accelerationMode);
+          if (s.accelerationMode === "accel" && s.bpm < bound) {
+            const newBpm = Math.min(s.bpm + s.accelerationStep, bound);
             syncDispatch({ type: "SET_BPM", bpm: newBpm });
-          } else if (s.accelerationMode === "decel" && s.bpm > target) {
-            const newBpm = Math.max(s.bpm - s.accelerationStep, target);
+          } else if (s.accelerationMode === "decel" && s.bpm > bound) {
+            const newBpm = Math.max(s.bpm - s.accelerationStep, bound);
             syncDispatch({ type: "SET_BPM", bpm: newBpm });
           } else {
             syncDispatch({ type: "STOP_ACCELERATION" });
           }
         }
       }
-      if (stateRef.current.isAccelerating && isAccent) {
+      if (stateRef.current.isAccelerating && isMeasureStart) {
         accelerationBeatCountRef.current++;
       }
 
@@ -521,13 +556,18 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
     [syncDispatch],
   );
 
-  const setAccelerationStartBpm = useCallback(
-    (n: number) => syncDispatch({ type: "SET_ACCELERATION_START_BPM", bpm: n }),
+  const toggleAccentBeat = useCallback(
+    (beat: number) => syncDispatch({ type: "TOGGLE_ACCENT_BEAT", beat }),
     [syncDispatch],
   );
 
-  const setAccelerationTargetBpm = useCallback(
-    (n: number | null) => syncDispatch({ type: "SET_ACCELERATION_TARGET_BPM", bpm: n }),
+  const setAccentBeats = useCallback(
+    (beats: number[]) => syncDispatch({ type: "SET_ACCENT_BEATS", beats }),
+    [syncDispatch],
+  );
+
+  const setAccelerationStartBpm = useCallback(
+    (n: number) => syncDispatch({ type: "SET_ACCELERATION_START_BPM", bpm: n }),
     [syncDispatch],
   );
 
@@ -568,22 +608,35 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
     [syncDispatch],
   );
 
+  const setWakeLock = useCallback(
+    (v: boolean) => syncDispatch({ type: "SET_WAKE_LOCK", value: v }),
+    [syncDispatch],
+  );
+
+  const setShowPendulum = useCallback(
+    (v: boolean) => syncDispatch({ type: "SET_SHOW_PENDULUM", value: v }),
+    [syncDispatch],
+  );
+
   const reset = useCallback(() => {
     accelerationBeatCountRef.current = 0;
+    stopAudioClock();
     syncDispatch({ type: "RESET" });
-  }, [syncDispatch]);
+  }, [syncDispatch, stopAudioClock]);
 
   const persistedSettings = useMemo(() => toPersistedSettings(state), [
     state.bpm,
     state.beatsPerMeasure,
+    state.accentBeats,
     state.accelerationMode,
     state.accelerationStartBpm,
-    state.accelerationTargetBpm,
     state.accelerationInterval,
     state.accelerationStep,
     state.volume,
     state.soundType,
     state.theme,
+    state.wakeLock,
+    state.showPendulum,
   ]);
 
   useEffect(() => {
@@ -616,14 +669,17 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
         toggle,
         setBpm,
         setBeatsPerMeasure,
+        toggleAccentBeat,
+        setAccentBeats,
         setAccelerationStartBpm,
-        setAccelerationTargetBpm,
         setAccelerationInterval,
         setAccelerationStep,
         setAccelerationMode,
         setVolume,
         setSoundType,
         setTheme,
+        setWakeLock,
+        setShowPendulum,
         reset,
       },
     }),
@@ -635,14 +691,17 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
       toggle,
       setBpm,
       setBeatsPerMeasure,
+      toggleAccentBeat,
+      setAccentBeats,
       setAccelerationStartBpm,
-      setAccelerationTargetBpm,
       setAccelerationInterval,
       setAccelerationStep,
       setAccelerationMode,
       setVolume,
       setSoundType,
       setTheme,
+      setWakeLock,
+      setShowPendulum,
       reset,
     ],
   );
