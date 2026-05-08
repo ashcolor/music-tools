@@ -74,6 +74,7 @@ type State = {
   volume: number;
   soundType: SoundType;
   theme: ThemeMode;
+  wakeLock: boolean;
 };
 
 type PersistedSettings = Pick<
@@ -88,6 +89,7 @@ type PersistedSettings = Pick<
   | "volume"
   | "soundType"
   | "theme"
+  | "wakeLock"
 >;
 
 type Action =
@@ -103,6 +105,7 @@ type Action =
   | { type: "SET_VOLUME"; value: number }
   | { type: "SET_SOUND_TYPE"; value: SoundType }
   | { type: "SET_THEME"; value: ThemeMode }
+  | { type: "SET_WAKE_LOCK"; value: boolean }
   | { type: "START_FRESH" }
   | { type: "RESUME" }
   | { type: "PAUSE" }
@@ -129,6 +132,7 @@ const initialState: State = {
   volume: 0.3,
   soundType: "electronic",
   theme: "light",
+  wakeLock: false,
 };
 
 function sanitizeAccentBeats(value: unknown, beatsPerMeasure: number): number[] {
@@ -188,6 +192,8 @@ function sanitizePersistedSettings(value: unknown): PersistedSettings | null {
     ),
     soundType: isSoundType(candidate.soundType) ? candidate.soundType : initialState.soundType,
     theme: isThemeMode(candidate.theme) ? candidate.theme : initialState.theme,
+    wakeLock:
+      typeof candidate.wakeLock === "boolean" ? candidate.wakeLock : initialState.wakeLock,
   };
 }
 
@@ -221,6 +227,7 @@ function toPersistedSettings(state: State): PersistedSettings {
     volume: state.volume,
     soundType: state.soundType,
     theme: state.theme,
+    wakeLock: state.wakeLock,
   };
 }
 
@@ -263,6 +270,8 @@ function reducer(state: State, action: Action): State {
       return { ...state, soundType: action.value };
     case "SET_THEME":
       return { ...state, theme: action.value };
+    case "SET_WAKE_LOCK":
+      return { ...state, wakeLock: action.value };
     case "START_FRESH": {
       const shouldAccelerate = state.accelerationMode !== "off";
       return {
@@ -293,6 +302,7 @@ function reducer(state: State, action: Action): State {
       return {
         ...initialState,
         theme: state.theme,
+        wakeLock: state.wakeLock,
       };
   }
 }
@@ -313,6 +323,7 @@ type Actions = {
   setVolume: (n: number) => void;
   setSoundType: (v: SoundType) => void;
   setTheme: (v: ThemeMode) => void;
+  setWakeLock: (v: boolean) => void;
   reset: () => void;
 };
 
@@ -584,6 +595,11 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
     [syncDispatch],
   );
 
+  const setWakeLock = useCallback(
+    (v: boolean) => syncDispatch({ type: "SET_WAKE_LOCK", value: v }),
+    [syncDispatch],
+  );
+
   const reset = useCallback(() => {
     accelerationBeatCountRef.current = 0;
     stopAudioClock();
@@ -601,6 +617,7 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
     state.volume,
     state.soundType,
     state.theme,
+    state.wakeLock,
   ]);
 
   useEffect(() => {
@@ -642,6 +659,7 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
         setVolume,
         setSoundType,
         setTheme,
+        setWakeLock,
         reset,
       },
     }),
@@ -662,6 +680,7 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
       setVolume,
       setSoundType,
       setTheme,
+      setWakeLock,
       reset,
     ],
   );

@@ -4,8 +4,9 @@ import Header from "./components/Header";
 import MetronomeApp from "./components/MetronomeApp";
 import Toolbar from "./components/Toolbar";
 import { PAGE_META, SITE_NAME } from "./constants";
-import { MetronomeProvider } from "./contexts/MetronomeContext";
+import { MetronomeProvider, useMetronome } from "./contexts/MetronomeContext";
 import { useMetronomeUrlSync } from "./hooks/useMetronomeUrlSync";
+import { useWakeLock } from "./hooks/useWakeLock";
 import { Contact } from "./features/contact/route";
 import { Home } from "./features/home/route";
 import { OperatorInfo } from "./features/operator-info/route";
@@ -96,7 +97,9 @@ function syncSeoMetadata(pathname: string) {
 }
 
 function MetronomeRoute() {
+  const { state } = useMetronome();
   useMetronomeUrlSync();
+  useWakeLock(state.wakeLock && state.isPlaying);
   return (
     <div className="flex flex-1 flex-col">
       <Toolbar />

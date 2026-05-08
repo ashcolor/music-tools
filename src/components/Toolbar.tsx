@@ -46,11 +46,14 @@ const SNS_SHARES: SnsShare[] = [
 ];
 
 export default function Toolbar() {
-  const { actions } = useMetronome();
+  const { state, actions } = useMetronome();
   const helpRef = useRef<HTMLDialogElement>(null);
   const shortcutsRef = useRef<HTMLDialogElement>(null);
   const resetRef = useRef<HTMLDialogElement>(null);
   const shareRef = useRef<HTMLDialogElement>(null);
+  const settingsRef = useRef<HTMLDialogElement>(null);
+  const isWakeLockSupported =
+    typeof navigator !== "undefined" && "wakeLock" in navigator;
   const [shareBaseUrl, setShareBaseUrl] = useState("");
   const [shareSearch, setShareSearch] = useState("");
   const [includeSettings, setIncludeSettings] = useState(true);
@@ -130,6 +133,15 @@ export default function Toolbar() {
       >
         <Icon icon="lucide:share" className="size-5" />
       </button>
+      <button
+        type="button"
+        className="btn btn-ghost btn-sm btn-square"
+        aria-label="設定"
+        title="設定"
+        onClick={() => settingsRef.current?.showModal()}
+      >
+        <Icon icon="mdi:cog" className="size-5" />
+      </button>
 
       <dialog ref={helpRef} className="modal">
         <div className="modal-box">
@@ -153,6 +165,10 @@ export default function Toolbar() {
                 <p className="flex items-center gap-2">
                   <Icon icon="lucide:share" className="size-4 shrink-0" />
                   <span>URLをコピー</span>
+                </p>
+                <p className="flex items-center gap-2">
+                  <Icon icon="mdi:cog" className="size-4 shrink-0" />
+                  <span>設定</span>
                 </p>
               </div>
             </div>
@@ -332,6 +348,39 @@ export default function Toolbar() {
                 <Icon icon={s.iconName} className="size-5" />
               </a>
             ))}
+          </div>
+          <div className="modal-action">
+            <form method="dialog">
+              <button className="btn">閉じる</button>
+            </form>
+          </div>
+        </div>
+        <form method="dialog" className="modal-backdrop">
+          <button>close</button>
+        </form>
+      </dialog>
+
+      <dialog ref={settingsRef} className="modal">
+        <div className="modal-box">
+          <h3 className="font-bold text-lg mb-4">設定</h3>
+          <div className="flex flex-col gap-3 text-sm">
+            <label className="label cursor-pointer justify-start gap-3">
+              <input
+                type="checkbox"
+                className="toggle toggle-primary"
+                checked={state.wakeLock}
+                disabled={!isWakeLockSupported}
+                onChange={(e) => actions.setWakeLock(e.target.checked)}
+              />
+              <div className="flex flex-col items-start">
+                <span className="label-text">再生中の画面消灯を抑制</span>
+                {!isWakeLockSupported && (
+                  <span className="text-xs text-base-content/60">
+                    お使いのブラウザは未対応です
+                  </span>
+                )}
+              </div>
+            </label>
           </div>
           <div className="modal-action">
             <form method="dialog">
