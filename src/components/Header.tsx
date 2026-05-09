@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router";
 import { Icon } from "@iconify/react";
 import { useMetronome } from "@/contexts/MetronomeContext";
-import { SITE_NAME, infoPages, tools } from "../constants";
+import { SITE_NAME, allTools, experimentalTools, infoPages, tools } from "../constants";
 
 const BRAND_TEXT = "音楽ツール";
 
@@ -12,7 +12,7 @@ export default function Header() {
   const isDark = state.theme === "dark";
   const location = useLocation();
   const isHome = location.pathname === "/";
-  const currentTool = tools.find((tool) => tool.path === location.pathname);
+  const currentTool = allTools.find((tool) => tool.path === location.pathname);
 
   return (
     <>
@@ -77,6 +77,19 @@ export default function Header() {
             </li>
             <li className="menu-title text-xs opacity-60">ツール</li>
             {tools.map((tool) => (
+              <li key={tool.path}>
+                <Link
+                  to={tool.path}
+                  onClick={() => setOpen(false)}
+                  className={`flex items-center gap-4 py-4 ${location.pathname === tool.path ? "bg-base-200" : ""}`}
+                >
+                  <Icon icon={tool.sidebarIcon} className="size-5 shrink-0" />
+                  <span>{tool.title}</span>
+                </Link>
+              </li>
+            ))}
+            <li className="menu-title text-xs opacity-60">実験</li>
+            {experimentalTools.map((tool) => (
               <li key={tool.path}>
                 <Link
                   to={tool.path}

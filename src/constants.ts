@@ -26,6 +26,17 @@ export const tools: Tool[] = [
   },
 ];
 
+export const experimentalTools: Tool[] = [
+  {
+    path: "/polyrhythm",
+    title: "ポリリズム",
+    description: "複数のリズムを同時に鳴らしてポリリズムを練習できるツール",
+    sidebarIcon: "material-symbols:graphic-eq-rounded",
+  },
+];
+
+export const allTools: Tool[] = [...tools, ...experimentalTools];
+
 export const infoPages: InfoPage[] = [
   { path: "/operator", title: "運営者情報" },
   { path: "/contact", title: "お問い合わせ" },
@@ -33,7 +44,7 @@ export const infoPages: InfoPage[] = [
 ];
 
 const toolPageMeta = Object.fromEntries(
-  tools.map((tool) => [
+  allTools.map((tool) => [
     tool.path,
     {
       title: tool.title,
