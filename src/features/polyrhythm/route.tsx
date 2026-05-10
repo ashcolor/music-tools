@@ -189,15 +189,22 @@ export function Polyrhythm() {
         onReset={handleReset}
       />
       <div className="flex-1 flex flex-col items-center justify-center gap-8 p-4 md:p-8">
-        <PolyrhythmVisualizer
-          bpm={bpm}
-          rhythms={rhythms}
-          isPlaying={isPlaying}
-          isPaused={isPaused}
-          getPlayheadTime={audio.getPlayheadTime}
-        />
-
-        <BpmDisplay bpm={bpm} onClick={() => bpmModalRef.current?.showModal()} />
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <PolyrhythmVisualizer
+              bpm={bpm}
+              rhythms={rhythms}
+              isPlaying={isPlaying}
+              isPaused={isPaused}
+              getPlayheadTime={audio.getPlayheadTime}
+            />
+          </div>
+          <BpmDisplay
+            bpm={bpm}
+            onClick={() => bpmModalRef.current?.showModal()}
+            showBorder={false}
+          />
+        </div>
 
         <div className="flex flex-col gap-4 w-full">
           <div className="grid grid-cols-2 gap-4 w-full">

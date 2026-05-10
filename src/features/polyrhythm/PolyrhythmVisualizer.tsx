@@ -62,7 +62,10 @@ export default function PolyrhythmVisualizer({
 
       const cx = w / 2;
       const cy = h / 2;
-      const radius = (Math.min(w, h) / 2) * 0.78;
+      const sizeMax = 10;
+      const sizeMin = 2;
+      const padding = sizeMax * 1.6 + 8;
+      const radius = Math.min(w, h) / 2 - padding;
 
       const active = s.isPlaying && !s.isPaused;
       const t = active ? s.getPlayheadTime() ?? 0 : 0;
@@ -74,9 +77,6 @@ export default function PolyrhythmVisualizer({
       ctx.strokeStyle = "oklch(0.6 0 0 / 0.2)";
       ctx.lineWidth = 1;
       ctx.stroke();
-
-      const sizeMax = 10;
-      const sizeMin = 2;
 
       s.rhythms.forEach((rhythm) => {
         const size =
@@ -131,7 +131,7 @@ export default function PolyrhythmVisualizer({
   }, []);
 
   return (
-    <div ref={containerRef} className="w-full max-w-[10rem] aspect-square mx-auto">
+    <div ref={containerRef} className="w-48 h-48 md:w-56 md:h-56">
       <canvas ref={canvasRef} className="block w-full h-full" />
     </div>
   );
