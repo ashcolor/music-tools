@@ -368,6 +368,17 @@ export default function Toolbar() {
               <input
                 type="checkbox"
                 className="toggle toggle-primary"
+                checked={state.showVisualizer}
+                onChange={(e) => actions.setShowVisualizer(e.target.checked)}
+              />
+              <div className="flex flex-col items-start">
+                <span className="label-text">ビジュアライザーを表示</span>
+              </div>
+            </label>
+            <label className="label cursor-pointer justify-start gap-3">
+              <input
+                type="checkbox"
+                className="toggle toggle-primary"
                 checked={state.showPendulum}
                 onChange={(e) => actions.setShowPendulum(e.target.checked)}
               />

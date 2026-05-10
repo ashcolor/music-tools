@@ -47,10 +47,18 @@ const SNS_SHARES: SnsShare[] = [
 type Props = {
   wakeLock: boolean;
   onWakeLockChange: (v: boolean) => void;
+  showVisualizer: boolean;
+  onShowVisualizerChange: (v: boolean) => void;
   onReset: () => void;
 };
 
-export default function PolyrhythmToolbar({ wakeLock, onWakeLockChange, onReset }: Props) {
+export default function PolyrhythmToolbar({
+  wakeLock,
+  onWakeLockChange,
+  showVisualizer,
+  onShowVisualizerChange,
+  onReset,
+}: Props) {
   const helpRef = useRef<HTMLDialogElement>(null);
   const shortcutsRef = useRef<HTMLDialogElement>(null);
   const resetRef = useRef<HTMLDialogElement>(null);
@@ -354,6 +362,17 @@ export default function PolyrhythmToolbar({ wakeLock, onWakeLockChange, onReset 
         <div className="modal-box">
           <h3 className="font-bold text-lg mb-4">設定</h3>
           <div className="flex flex-col gap-3 text-sm">
+            <label className="label cursor-pointer justify-start gap-3">
+              <input
+                type="checkbox"
+                className="toggle toggle-primary"
+                checked={showVisualizer}
+                onChange={(e) => onShowVisualizerChange(e.target.checked)}
+              />
+              <div className="flex flex-col items-start">
+                <span className="label-text">ビジュアライザーを表示</span>
+              </div>
+            </label>
             <label className="label cursor-pointer justify-start gap-3">
               <input
                 type="checkbox"

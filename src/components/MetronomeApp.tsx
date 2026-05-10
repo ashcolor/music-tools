@@ -4,6 +4,7 @@ import { useMetronome } from "@/contexts/MetronomeContext";
 import BeatsInput from "./BeatsInput";
 import BeatsDots from "./BeatsDots";
 import BpmDisplay from "./BpmDisplay";
+import MetronomeVisualizer from "./MetronomeVisualizer";
 import PlaybackBar from "./PlaybackBar";
 import TempoEditor from "./TempoEditor";
 import VolumeControl from "./VolumeControl";
@@ -16,7 +17,7 @@ function isEditableTarget(target: EventTarget | null): boolean {
 }
 
 export default function MetronomeApp() {
-  const { state, actions } = useMetronome();
+  const { state, actions, getMeasurePhase } = useMetronome();
   const beatsModalRef = useRef<HTMLDialogElement>(null);
   const bpmModalRef = useRef<HTMLDialogElement>(null);
   const lastNonZeroVolumeRef = useRef(state.volume > 0 ? state.volume : 0.3);
@@ -133,11 +134,31 @@ export default function MetronomeApp() {
               />
             </div>
           )}
-          <BpmDisplay
-            bpm={state.bpm}
-            flashTick={bpmFlashTick}
-            onClick={() => bpmModalRef.current?.showModal()}
-          />
+          {state.showVisualizer ? (
+            <div className="relative w-[15.5rem] h-[15.5rem] md:w-[17.5rem] md:h-[17.5rem] flex items-center justify-center">
+              <div className="absolute inset-0 pointer-events-none">
+                <MetronomeVisualizer
+                  beatsPerMeasure={state.beatsPerMeasure}
+                  accentBeats={state.accentBeats}
+                  isPlaying={state.isPlaying}
+                  isPaused={state.isPaused}
+                  getMeasurePhase={getMeasurePhase}
+                />
+              </div>
+              <BpmDisplay
+                bpm={state.bpm}
+                flashTick={bpmFlashTick}
+                onClick={() => bpmModalRef.current?.showModal()}
+                showBorder={false}
+              />
+            </div>
+          ) : (
+            <BpmDisplay
+              bpm={state.bpm}
+              flashTick={bpmFlashTick}
+              onClick={() => bpmModalRef.current?.showModal()}
+            />
+          )}
         </div>
         {state.showPendulum && <Pendulum />}
         <BeatsDots

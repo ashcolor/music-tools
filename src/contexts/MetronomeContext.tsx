@@ -76,6 +76,7 @@ type State = {
   theme: ThemeMode;
   wakeLock: boolean;
   showPendulum: boolean;
+  showVisualizer: boolean;
 };
 
 type PersistedSettings = Pick<
@@ -92,6 +93,7 @@ type PersistedSettings = Pick<
   | "theme"
   | "wakeLock"
   | "showPendulum"
+  | "showVisualizer"
 >;
 
 type Action =
@@ -109,6 +111,7 @@ type Action =
   | { type: "SET_THEME"; value: ThemeMode }
   | { type: "SET_WAKE_LOCK"; value: boolean }
   | { type: "SET_SHOW_PENDULUM"; value: boolean }
+  | { type: "SET_SHOW_VISUALIZER"; value: boolean }
   | { type: "START_FRESH" }
   | { type: "RESUME" }
   | { type: "PAUSE" }
@@ -137,6 +140,7 @@ const initialState: State = {
   theme: "light",
   wakeLock: true,
   showPendulum: false,
+  showVisualizer: true,
 };
 
 function sanitizeAccentBeats(value: unknown, beatsPerMeasure: number): number[] {
@@ -202,6 +206,10 @@ function sanitizePersistedSettings(value: unknown): PersistedSettings | null {
       typeof candidate.showPendulum === "boolean"
         ? candidate.showPendulum
         : initialState.showPendulum,
+    showVisualizer:
+      typeof candidate.showVisualizer === "boolean"
+        ? candidate.showVisualizer
+        : initialState.showVisualizer,
   };
 }
 
@@ -237,6 +245,7 @@ function toPersistedSettings(state: State): PersistedSettings {
     theme: state.theme,
     wakeLock: state.wakeLock,
     showPendulum: state.showPendulum,
+    showVisualizer: state.showVisualizer,
   };
 }
 
@@ -283,6 +292,8 @@ function reducer(state: State, action: Action): State {
       return { ...state, wakeLock: action.value };
     case "SET_SHOW_PENDULUM":
       return { ...state, showPendulum: action.value };
+    case "SET_SHOW_VISUALIZER":
+      return { ...state, showVisualizer: action.value };
     case "START_FRESH": {
       const shouldAccelerate = state.accelerationMode !== "off";
       return {
@@ -315,6 +326,7 @@ function reducer(state: State, action: Action): State {
         theme: state.theme,
         wakeLock: state.wakeLock,
         showPendulum: state.showPendulum,
+        showVisualizer: state.showVisualizer,
       };
   }
 }
@@ -337,6 +349,7 @@ type Actions = {
   setTheme: (v: ThemeMode) => void;
   setWakeLock: (v: boolean) => void;
   setShowPendulum: (v: boolean) => void;
+  setShowVisualizer: (v: boolean) => void;
   reset: () => void;
 };
 
@@ -344,6 +357,7 @@ type ContextValue = {
   state: State;
   actions: Actions;
   intervalMs: number;
+  getMeasurePhase: () => number;
 };
 
 const MetronomeContext = createContext<ContextValue | null>(null);
@@ -359,6 +373,7 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
   const nextBeatNumberRef = useRef(0);
   const scheduledQueueRef = useRef<{ beat: number; time: number }[]>([]);
   const accelerationBeatCountRef = useRef(0);
+  const lastBeatTimeRef = useRef(0);
 
   const SCHEDULER_INTERVAL_MS = 25;
   const SCHEDULE_AHEAD_TIME = 0.1;
@@ -484,6 +499,7 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
       const queue = scheduledQueueRef.current;
       while (queue.length > 0 && queue[0].time <= ctx.currentTime) {
         const note = queue.shift()!;
+        lastBeatTimeRef.current = note.time;
         if (stateRef.current.currentBeat !== note.beat) {
           syncDispatch({ type: "SET_CURRENT_BEAT", value: note.beat });
         }
@@ -618,11 +634,31 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
     [syncDispatch],
   );
 
+  const setShowVisualizer = useCallback(
+    (v: boolean) => syncDispatch({ type: "SET_SHOW_VISUALIZER", value: v }),
+    [syncDispatch],
+  );
+
   const reset = useCallback(() => {
     accelerationBeatCountRef.current = 0;
     stopAudioClock();
     syncDispatch({ type: "RESET" });
   }, [syncDispatch, stopAudioClock]);
+
+  const getMeasurePhase = useCallback(() => {
+    const ctx = audioContextRef.current;
+    if (!ctx) return 0;
+    const s = stateRef.current;
+    if (!s.isPlaying || s.currentBeat === 0) return 0;
+
+    const beatDuration = 60 / s.bpm;
+    const beatProgress = Math.max(
+      0,
+      Math.min(1, (ctx.currentTime - lastBeatTimeRef.current) / beatDuration),
+    );
+
+    return (s.currentBeat - 1 + beatProgress) / s.beatsPerMeasure;
+  }, []);
 
   const persistedSettings = useMemo(() => toPersistedSettings(state), [
     state.bpm,
@@ -637,6 +673,7 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
     state.theme,
     state.wakeLock,
     state.showPendulum,
+    state.showVisualizer,
   ]);
 
   useEffect(() => {
@@ -662,6 +699,7 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
     () => ({
       state,
       intervalMs: 60000 / state.bpm,
+      getMeasurePhase,
       actions: {
         start,
         pause,
@@ -680,6 +718,7 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
         setTheme,
         setWakeLock,
         setShowPendulum,
+        setShowVisualizer,
         reset,
       },
     }),
@@ -702,7 +741,9 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
       setTheme,
       setWakeLock,
       setShowPendulum,
+      setShowVisualizer,
       reset,
+      getMeasurePhase,
     ],
   );
 

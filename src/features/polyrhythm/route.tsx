@@ -20,6 +20,7 @@ const DEFAULT_RHYTHMS: RhythmSettings[] = [
   { pitch: "mid", beats: 4, volume: 0.5, pan: 1 },
 ];
 const DEFAULT_WAKE_LOCK = true;
+const DEFAULT_SHOW_VISUALIZER = true;
 
 const NEW_RHYTHM: RhythmSettings = { pitch: "mid", beats: 2, volume: 0.5, pan: 0 };
 
@@ -44,13 +45,19 @@ function sanitizeRhythm(v: unknown): RhythmSettings | null {
   };
 }
 
-type Persisted = { bpm: number; rhythms: RhythmSettings[]; wakeLock: boolean };
+type Persisted = {
+  bpm: number;
+  rhythms: RhythmSettings[];
+  wakeLock: boolean;
+  showVisualizer: boolean;
+};
 
 function loadPersisted(): Persisted {
   const fallback: Persisted = {
     bpm: DEFAULT_BPM,
     rhythms: DEFAULT_RHYTHMS,
     wakeLock: DEFAULT_WAKE_LOCK,
+    showVisualizer: DEFAULT_SHOW_VISUALIZER,
   };
   if (typeof window === "undefined") return fallback;
   try {
@@ -68,7 +75,9 @@ function loadPersisted(): Persisted {
       : fallback.rhythms;
     const wakeLock =
       typeof c.wakeLock === "boolean" ? c.wakeLock : fallback.wakeLock;
-    return { bpm, rhythms, wakeLock };
+    const showVisualizer =
+      typeof c.showVisualizer === "boolean" ? c.showVisualizer : fallback.showVisualizer;
+    return { bpm, rhythms, wakeLock, showVisualizer };
   } catch {
     return fallback;
   }
@@ -85,6 +94,7 @@ export function Polyrhythm() {
   const [bpm, setBpm] = useState(persisted.bpm);
   const [rhythms, setRhythms] = useState<RhythmSettings[]>(persisted.rhythms);
   const [wakeLock, setWakeLock] = useState(persisted.wakeLock);
+  const [showVisualizer, setShowVisualizer] = useState(persisted.showVisualizer);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const bpmModalRef = useRef<HTMLDialogElement>(null);
@@ -103,12 +113,12 @@ export function Polyrhythm() {
     try {
       window.localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ bpm, rhythms, wakeLock }),
+        JSON.stringify({ bpm, rhythms, wakeLock, showVisualizer }),
       );
     } catch {
       // noop
     }
-  }, [bpm, rhythms, wakeLock]);
+  }, [bpm, rhythms, wakeLock, showVisualizer]);
 
   const handlePlay = useCallback(() => {
     setIsPlaying(true);
@@ -179,6 +189,7 @@ export function Polyrhythm() {
     setBpm(DEFAULT_BPM);
     setRhythms(DEFAULT_RHYTHMS);
     setWakeLock(DEFAULT_WAKE_LOCK);
+    setShowVisualizer(DEFAULT_SHOW_VISUALIZER);
   };
 
   return (
@@ -186,25 +197,31 @@ export function Polyrhythm() {
       <PolyrhythmToolbar
         wakeLock={wakeLock}
         onWakeLockChange={setWakeLock}
+        showVisualizer={showVisualizer}
+        onShowVisualizerChange={setShowVisualizer}
         onReset={handleReset}
       />
       <div className="flex-1 flex flex-col items-center justify-center gap-8 p-4 md:p-8">
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <PolyrhythmVisualizer
+        {showVisualizer ? (
+          <div className="relative w-[15rem] h-[15rem] md:w-[17rem] md:h-[17rem] flex items-center justify-center">
+            <div className="absolute inset-0 pointer-events-none">
+              <PolyrhythmVisualizer
+                bpm={bpm}
+                rhythms={rhythms}
+                isPlaying={isPlaying}
+                isPaused={isPaused}
+                getPlayheadTime={audio.getPlayheadTime}
+              />
+            </div>
+            <BpmDisplay
               bpm={bpm}
-              rhythms={rhythms}
-              isPlaying={isPlaying}
-              isPaused={isPaused}
-              getPlayheadTime={audio.getPlayheadTime}
+              onClick={() => bpmModalRef.current?.showModal()}
+              showBorder={false}
             />
           </div>
-          <BpmDisplay
-            bpm={bpm}
-            onClick={() => bpmModalRef.current?.showModal()}
-            showBorder={false}
-          />
-        </div>
+        ) : (
+          <BpmDisplay bpm={bpm} onClick={() => bpmModalRef.current?.showModal()} />
+        )}
 
         <div className="flex flex-col gap-4 w-full">
           <div className="grid grid-cols-2 gap-4 w-full">

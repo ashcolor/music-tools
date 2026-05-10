@@ -131,7 +131,7 @@ export default function PolyrhythmVisualizer({
   }, []);
 
   return (
-    <div ref={containerRef} className="w-48 h-48 md:w-56 md:h-56">
+    <div ref={containerRef} className="w-full h-full">
       <canvas ref={canvasRef} className="block w-full h-full" />
     </div>
   );
