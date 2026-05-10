@@ -7,6 +7,14 @@ export type Tool = {
   sidebarIcon: string;
 };
 
+export type ExternalTool = {
+  url: string;
+  title: string;
+  description: string;
+  sidebarIcon: string;
+  category: string;
+};
+
 export type InfoPage = {
   path: string;
   title: string;
@@ -36,6 +44,29 @@ export const experimentalTools: Tool[] = [
 ];
 
 export const allTools: Tool[] = [...tools, ...experimentalTools];
+
+export const externalTools: ExternalTool[] = [
+  {
+    url: "https://chromewebstore.google.com/detail/chord-dictionary/lnefagbhokamcaedbeopnhdabkcemkcf",
+    title: "Chord Dictionary",
+    description: "コードの構成音や転回形を確認できるChrome拡張機能",
+    sidebarIcon: "material-symbols:library-music-outline-rounded",
+    category: "Chrome拡張機能",
+  },
+];
+
+export function groupExternalToolsByCategory(items: ExternalTool[]) {
+  const groups = new Map<string, ExternalTool[]>();
+  for (const item of items) {
+    const list = groups.get(item.category) ?? [];
+    list.push(item);
+    groups.set(item.category, list);
+  }
+  return Array.from(groups.entries()).map(([category, items]) => ({
+    category,
+    items,
+  }));
+}
 
 export const infoPages: InfoPage[] = [
   { path: "/operator", title: "運営者情報" },

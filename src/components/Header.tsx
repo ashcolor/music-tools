@@ -1,8 +1,33 @@
-import { useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router";
 import { Icon } from "@iconify/react";
 import { useMetronome } from "@/contexts/MetronomeContext";
-import { SITE_NAME, allTools, experimentalTools, infoPages, tools } from "../constants";
+import { usePwaInstallPrompt } from "@/hooks/usePwaInstallPrompt";
+import {
+  SITE_NAME,
+  allTools,
+  experimentalTools,
+  externalTools,
+  groupExternalToolsByCategory,
+  infoPages,
+  tools,
+} from "../constants";
+import { IosInstallGuideModal } from "./IosInstallGuideModal";
+
+function isMobileDevice() {
+  return (
+    /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+    window.matchMedia("(max-width: 768px)").matches
+  );
+}
+
+function isIosBrowser() {
+  const ua = navigator.userAgent;
+  const isIosDevice = /iPhone|iPad|iPod/i.test(ua);
+  const isIpadOsDesktopMode = navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+
+  return isIosDevice || isIpadOsDesktopMode;
+}
 
 const BRAND_TEXT = "音楽ツール";
 
@@ -13,6 +38,40 @@ export default function Header() {
   const location = useLocation();
   const isHome = location.pathname === "/";
   const currentTool = allTools.find((tool) => tool.path === location.pathname);
+  const externalGroups = groupExternalToolsByCategory(externalTools);
+  const [isMobile, setIsMobile] = useState(() => isMobileDevice());
+  const isIos = isIosBrowser();
+  const [showIosInstallHelp, setShowIosInstallHelp] = useState(false);
+  const { canInstall, isInstalled, promptInstall } = usePwaInstallPrompt();
+  const installLabel = isMobile ? "ホーム画面に追加" : "アプリをインストール";
+  const isInstallActionAvailable = canInstall || isIos;
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 768px)");
+    const updateDeviceState = () => {
+      setIsMobile(isMobileDevice());
+    };
+
+    updateDeviceState();
+    mediaQuery.addEventListener("change", updateDeviceState);
+
+    return () => {
+      mediaQuery.removeEventListener("change", updateDeviceState);
+    };
+  }, []);
+
+  const installApp = async () => {
+    if (!canInstall) {
+      if (isIos) {
+        setShowIosInstallHelp(true);
+      }
+      return;
+    }
+
+    await promptInstall();
+    setShowIosInstallHelp(false);
+    setOpen(false);
+  };
 
   return (
     <>
@@ -88,7 +147,31 @@ export default function Header() {
                 </Link>
               </li>
             ))}
-            <li className="menu-title text-xs opacity-60">実験</li>
+            {externalGroups.map((group) => (
+              <Fragment key={group.category}>
+                <li className="menu-title text-xs opacity-60">{group.category}</li>
+                {group.items.map((tool) => (
+                  <li key={tool.url}>
+                    <a
+                      href={tool.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setOpen(false)}
+                      className="flex items-center gap-4 py-4"
+                    >
+                      <Icon icon={tool.sidebarIcon} className="size-5 shrink-0" />
+                      <span className="flex-1">{tool.title}</span>
+                      <Icon
+                        icon="material-symbols:open-in-new-rounded"
+                        className="size-4 opacity-60"
+                        aria-label="外部リンク"
+                      />
+                    </a>
+                  </li>
+                ))}
+              </Fragment>
+            ))}
+            <li className="menu-title text-xs opacity-60">ベータ版</li>
             {experimentalTools.map((tool) => (
               <li key={tool.path}>
                 <Link
@@ -104,33 +187,44 @@ export default function Header() {
           </ul>
         </div>
 
-        <div className="mt-auto border-base-300 border-t p-4 text-xs">
-          {currentTool ? (
-            <>
-              <div className="font-bold">{currentTool.title}</div>
-              <p className="mt-1 opacity-60">{currentTool.description}</p>
-            </>
-          ) : (
-            <>
-              <div className="font-bold">{SITE_NAME}</div>
-              <p className="mt-1 opacity-60">音楽の練習や演奏に使えるWebツール集</p>
-            </>
-          )}
-          <div className="mt-4 flex flex-col gap-1">
-            {infoPages.map((page) => (
-              <Link
-                key={page.path}
-                to={page.path}
-                onClick={() => setOpen(false)}
-                className="link link-hover"
+        <div className="mt-auto">
+          {!isInstalled && (
+            <div className="p-4">
+              <button
+                type="button"
+                onClick={installApp}
+                disabled={!isInstallActionAvailable}
+                className="btn btn-primary w-full"
               >
-                {page.title}
-              </Link>
-            ))}
+                <Icon icon="fa6-solid:download" className="size-4" />
+                <span>{installLabel}</span>
+              </button>
+            </div>
+          )}
+
+          <div className="border-base-300 border-t" />
+          <div className="p-4 text-xs">
+            <div className="flex flex-col gap-1">
+              {infoPages.map((page) => (
+                <Link
+                  key={page.path}
+                  to={page.path}
+                  onClick={() => setOpen(false)}
+                  className="link link-hover"
+                >
+                  {page.title}
+                </Link>
+              ))}
+            </div>
+            <div className="mt-3 opacity-60">© {new Date().getFullYear()} {SITE_NAME}</div>
           </div>
-          <div className="mt-3 opacity-60">© {new Date().getFullYear()} {SITE_NAME}</div>
         </div>
       </div>
+
+      <IosInstallGuideModal
+        open={showIosInstallHelp}
+        onClose={() => setShowIosInstallHelp(false)}
+      />
     </>
   );
 }
