@@ -9,6 +9,7 @@ import RhythmSettingsCard, {
   type RhythmSettings,
 } from "./RhythmSettings";
 import PolyrhythmToolbar from "./PolyrhythmToolbar";
+import PolyrhythmVisualizer from "./PolyrhythmVisualizer";
 import { usePolyrhythmAudio } from "./usePolyrhythmAudio";
 import { usePolyrhythmUrlSync } from "./usePolyrhythmUrlSync";
 
@@ -188,6 +189,14 @@ export function Polyrhythm() {
         onReset={handleReset}
       />
       <div className="flex-1 flex flex-col items-center justify-center gap-8 p-4 md:p-8">
+        <PolyrhythmVisualizer
+          bpm={bpm}
+          rhythms={rhythms}
+          isPlaying={isPlaying}
+          isPaused={isPaused}
+          getPlayheadTime={audio.getPlayheadTime}
+        />
+
         <BpmDisplay bpm={bpm} onClick={() => bpmModalRef.current?.showModal()} />
 
         <div className="flex flex-col gap-4 w-full">

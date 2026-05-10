@@ -124,5 +124,11 @@ export function usePolyrhythmAudio({ bpm, rhythms }: Args) {
     };
   }, [stopAudioClock]);
 
-  return { start, pause, stop };
+  const getPlayheadTime = useCallback(() => {
+    const ctx = audioContextRef.current;
+    if (!ctx) return null;
+    return ctx.currentTime - startTimeRef.current;
+  }, []);
+
+  return { start, pause, stop, getPlayheadTime };
 }
