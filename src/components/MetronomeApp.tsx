@@ -3,9 +3,11 @@ import { Icon } from "@iconify/react";
 import { useMetronome } from "@/contexts/MetronomeContext";
 import BeatsInput from "./BeatsInput";
 import BeatsDots from "./BeatsDots";
+import BpmDisplay from "./BpmDisplay";
+import MetronomeVisualizer from "./MetronomeVisualizer";
+import PlaybackBar from "./PlaybackBar";
 import TempoEditor from "./TempoEditor";
 import VolumeControl from "./VolumeControl";
-import FullscreenButton from "./FullscreenButton";
 import Pendulum from "./Pendulum";
 
 function isEditableTarget(target: EventTarget | null): boolean {
@@ -15,7 +17,7 @@ function isEditableTarget(target: EventTarget | null): boolean {
 }
 
 export default function MetronomeApp() {
-  const { state, actions } = useMetronome();
+  const { state, actions, getMeasurePhase } = useMetronome();
   const beatsModalRef = useRef<HTMLDialogElement>(null);
   const bpmModalRef = useRef<HTMLDialogElement>(null);
   const lastNonZeroVolumeRef = useRef(state.volume > 0 ? state.volume : 0.3);
@@ -90,46 +92,6 @@ export default function MetronomeApp() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [actions, state.bpm, state.isPlaying, state.volume]);
 
-  const playPauseButton =
-    state.isPlaying && !state.isPaused ? (
-      <button className="btn btn-circle btn-secondary size-20" onClick={actions.pause}>
-        <Icon icon="material-symbols:pause-rounded" width="q48" height="48" />
-      </button>
-    ) : (
-      <button className="btn btn-circle btn-primary size-20" onClick={actions.start}>
-        <Icon icon="material-symbols:play-arrow-rounded" width="48" height="48" />
-      </button>
-    );
-
-  const resetButton = (
-    <button className="btn btn-circle btn-secondary btn-outline" onClick={actions.stop} aria-label="停止">
-      <Icon icon="material-symbols:stop-rounded" width="24" height="24" />
-    </button>
-  );
-
-  const isIdle = !state.isPlaying && !state.isPaused;
-
-  const playbackBar = (
-    <div className="grid grid-cols-3 items-center w-full max-w-xl px-4 py-2">
-      <div className="flex justify-start">
-        <VolumeControl />
-      </div>
-      <div className="flex justify-center">
-        <div className="relative">
-          {!isIdle && (
-            <div className="absolute right-full top-1/2 -translate-y-1/2 mr-4">
-              {resetButton}
-            </div>
-          )}
-          {playPauseButton}
-        </div>
-      </div>
-      <div className="flex justify-end">
-        <FullscreenButton />
-      </div>
-    </div>
-  );
-
   return (
     <div className="flex-1 flex flex-col w-full max-w-xl mx-auto">
       <div className="flex-1 flex flex-col items-center justify-center gap-8 p-4 md:p-8">
@@ -172,27 +134,31 @@ export default function MetronomeApp() {
               />
             </div>
           )}
-          <div
-            className="relative rounded-full border border-primary/30 w-48 h-48 md:w-56 md:h-56 flex items-center justify-center shrink-0 cursor-pointer hover:bg-base-200 transition-colors"
-            onClick={() => bpmModalRef.current?.showModal()}
-          >
-            <input
-              key={`bpm-${bpmFlashTick}`}
-              type="number"
-              min={10}
-              max={999}
-              value={state.bpm}
-              readOnly
-              className={`pointer-events-none w-32 md:w-36 bg-transparent text-center text-5xl md:text-6xl font-mono font-bold text-primary focus:text-primary focus:outline-none ${bpmFlashTick > 0 ? "bpm-scale-flash" : ""}`}
-              aria-label="テンポ"
+          {state.showVisualizer ? (
+            <div className="relative w-[15.5rem] h-[15.5rem] md:w-[17.5rem] md:h-[17.5rem] flex items-center justify-center">
+              <div className="absolute inset-0 pointer-events-none">
+                <MetronomeVisualizer
+                  beatsPerMeasure={state.beatsPerMeasure}
+                  accentBeats={state.accentBeats}
+                  isPlaying={state.isPlaying}
+                  isPaused={state.isPaused}
+                  getMeasurePhase={getMeasurePhase}
+                />
+              </div>
+              <BpmDisplay
+                bpm={state.bpm}
+                flashTick={bpmFlashTick}
+                onClick={() => bpmModalRef.current?.showModal()}
+                showBorder={false}
+              />
+            </div>
+          ) : (
+            <BpmDisplay
+              bpm={state.bpm}
+              flashTick={bpmFlashTick}
+              onClick={() => bpmModalRef.current?.showModal()}
             />
-            <button
-              type="button"
-              className="pointer-events-none absolute bottom-10 md:bottom-12 text-lg text-base-content/50"
-            >
-              BPM
-            </button>
-          </div>
+          )}
         </div>
         {state.showPendulum && <Pendulum />}
         <BeatsDots
@@ -205,7 +171,14 @@ export default function MetronomeApp() {
         </div>
       </div>
 
-      <div className="border-t border-base-300 flex justify-center">{playbackBar}</div>
+      <PlaybackBar
+        isPlaying={state.isPlaying}
+        isPaused={state.isPaused}
+        onPlay={actions.start}
+        onPause={actions.pause}
+        onStop={actions.stop}
+        leftSlot={<VolumeControl />}
+      />
 
       <dialog ref={bpmModalRef} className="modal">
         <div className="modal-box">

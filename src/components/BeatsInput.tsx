@@ -1,20 +1,21 @@
 type Props = {
   value: number;
   onChange: (value: number) => void;
+  min?: number;
+  max?: number;
 };
 
-const BEATS = Array.from({ length: 11 }, (_, i) => i + 2);
-
-export default function BeatsInput({ value, onChange }: Props) {
+export default function BeatsInput({ value, onChange, min = 2, max = 12 }: Props) {
+  const beats = Array.from({ length: max - min + 1 }, (_, i) => i + min);
   return (
     <div className="flex gap-2 flex-wrap justify-center">
-      {BEATS.map((beats) => (
+      {beats.map((b) => (
         <button
-          key={beats}
-          className={`btn btn-sm rounded-full btn-neutral ${value !== beats ? "btn-soft" : ""}`}
-          onClick={() => onChange(beats)}
+          key={b}
+          className={`btn btn-sm rounded-full btn-neutral ${value !== b ? "btn-soft" : ""}`}
+          onClick={() => onChange(b)}
         >
-          {beats}
+          {b}
         </button>
       ))}
     </div>
