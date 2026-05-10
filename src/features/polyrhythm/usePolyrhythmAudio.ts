@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
-import type { Pitch, SideSettings } from "./PolyrhythmSideSettings";
+import type { Pitch, RhythmSettings } from "./RhythmSettings";
 
 const SCHEDULER_INTERVAL_MS = 25;
 const SCHEDULE_AHEAD_TIME = 0.1;
@@ -12,14 +12,14 @@ const PITCH_FREQ: Record<Pitch, number> = {
 
 type Args = {
   bpm: number;
-  sides: SideSettings[];
+  rhythms: RhythmSettings[];
 };
 
-export function usePolyrhythmAudio({ bpm, sides }: Args) {
-  const stateRef = useRef({ bpm, sides });
+export function usePolyrhythmAudio({ bpm, rhythms }: Args) {
+  const stateRef = useRef({ bpm, rhythms });
   useEffect(() => {
-    stateRef.current = { bpm, sides };
-  }, [bpm, sides]);
+    stateRef.current = { bpm, rhythms };
+  }, [bpm, rhythms]);
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const schedulerIdRef = useRef<number | null>(null);
@@ -53,32 +53,32 @@ export function usePolyrhythmAudio({ bpm, sides }: Args) {
     const ctx = audioContextRef.current;
     if (!ctx) return;
     const horizon = ctx.currentTime + SCHEDULE_AHEAD_TIME;
-    const { bpm: curBpm, sides: curSides } = stateRef.current;
+    const { bpm: curBpm, rhythms: curRhythms } = stateRef.current;
     const startTime = startTimeRef.current;
 
-    if (nextTimesRef.current.length < curSides.length) {
+    if (nextTimesRef.current.length < curRhythms.length) {
       const now = ctx.currentTime;
-      while (nextTimesRef.current.length < curSides.length) {
+      while (nextTimesRef.current.length < curRhythms.length) {
         nextTimesRef.current.push(now);
         lastBeatsRef.current.push(0);
       }
-    } else if (nextTimesRef.current.length > curSides.length) {
-      nextTimesRef.current.length = curSides.length;
-      lastBeatsRef.current.length = curSides.length;
+    } else if (nextTimesRef.current.length > curRhythms.length) {
+      nextTimesRef.current.length = curRhythms.length;
+      lastBeatsRef.current.length = curRhythms.length;
     }
 
     const bpmChanged = lastBpmRef.current !== curBpm;
     lastBpmRef.current = curBpm;
 
-    curSides.forEach((side, i) => {
-      const interval = 60 / (curBpm * side.beats);
-      if (bpmChanged || lastBeatsRef.current[i] !== side.beats) {
+    curRhythms.forEach((rhythm, i) => {
+      const interval = 60 / (curBpm * rhythm.beats);
+      if (bpmChanged || lastBeatsRef.current[i] !== rhythm.beats) {
         const k = Math.ceil((ctx.currentTime - startTime) / interval - 1e-6);
         nextTimesRef.current[i] = startTime + Math.max(0, k) * interval;
-        lastBeatsRef.current[i] = side.beats;
+        lastBeatsRef.current[i] = rhythm.beats;
       }
       while (nextTimesRef.current[i] < horizon) {
-        playSound(nextTimesRef.current[i], side.pitch, side.volume, side.pan);
+        playSound(nextTimesRef.current[i], rhythm.pitch, rhythm.volume, rhythm.pan);
         nextTimesRef.current[i] += interval;
       }
     });
@@ -101,8 +101,8 @@ export function usePolyrhythmAudio({ bpm, sides }: Args) {
     const startTime = audioContextRef.current.currentTime;
     startTimeRef.current = startTime;
     lastBpmRef.current = 0;
-    lastBeatsRef.current = stateRef.current.sides.map(() => 0);
-    nextTimesRef.current = stateRef.current.sides.map(() => startTime);
+    lastBeatsRef.current = stateRef.current.rhythms.map(() => 0);
+    nextTimesRef.current = stateRef.current.rhythms.map(() => startTime);
 
     advanceScheduler();
     if (schedulerIdRef.current === null) {

@@ -10,7 +10,7 @@ const PITCH_OPTIONS: { value: Pitch; label: string }[] = [
   { value: "high", label: "高" },
 ];
 
-export type SideSettings = {
+export type RhythmSettings = {
   pitch: Pitch;
   beats: number;
   volume: number;
@@ -24,12 +24,12 @@ function formatPan(pan: number): string {
 }
 
 type Props = {
-  value: SideSettings;
-  onChange: (next: SideSettings) => void;
+  value: RhythmSettings;
+  onChange: (next: RhythmSettings) => void;
   onRemove?: () => void;
 };
 
-export default function PolyrhythmSideSettings({ value, onChange, onRemove }: Props) {
+export default function RhythmSettingsCard({ value, onChange, onRemove }: Props) {
   return (
     <div className="card bg-base-100 border border-base-300 shadow-sm relative">
       {onRemove && (

@@ -1,6 +1,5 @@
 import { useMemo, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
-import { useMetronome } from "@/contexts/MetronomeContext";
 
 type SnsShare = {
   label: string;
@@ -45,8 +44,13 @@ const SNS_SHARES: SnsShare[] = [
   },
 ];
 
-export default function Toolbar() {
-  const { state, actions } = useMetronome();
+type Props = {
+  wakeLock: boolean;
+  onWakeLockChange: (v: boolean) => void;
+  onReset: () => void;
+};
+
+export default function PolyrhythmToolbar({ wakeLock, onWakeLockChange, onReset }: Props) {
   const helpRef = useRef<HTMLDialogElement>(null);
   const shortcutsRef = useRef<HTMLDialogElement>(null);
   const resetRef = useRef<HTMLDialogElement>(null);
@@ -91,7 +95,7 @@ export default function Toolbar() {
   };
 
   const handleReset = () => {
-    actions.reset();
+    onReset();
     resetRef.current?.close();
   };
 
@@ -180,14 +184,12 @@ export default function Toolbar() {
                 </span>
                 <span>をクリックでテンポ設定</span>
               </p>
+              <p className="mt-1">各リズムのカードで連符数・ステレオ・音の高さ・音量を調整できます</p>
               <p className="flex items-center gap-2 mt-1">
-                <span className="inline-flex items-center gap-1 rounded-md border border-base-300 px-2 py-1 shrink-0">
-                  <span className="size-2 rounded-full bg-base-content/30" />
-                  <span className="size-2 rounded-full bg-base-content/30" />
-                  <span className="size-2 rounded-full bg-base-content/30" />
-                  <span className="size-2 rounded-full bg-base-content/30" />
+                <span className="inline-flex items-center justify-center rounded-full bg-primary/20 text-primary size-6 shrink-0">
+                  <Icon icon="material-symbols:add-rounded" className="size-4" />
                 </span>
-                <span>をクリックで拍子設定</span>
+                <span>でリズムを追加</span>
               </p>
             </div>
             <div>
@@ -209,7 +211,7 @@ export default function Toolbar() {
                   <span className="inline-flex items-center justify-center rounded-full border border-base-300 size-6 shrink-0">
                     <Icon icon="material-symbols:stop-rounded" className="size-4" />
                   </span>
-                  <span>停止（再生位置をリセット）</span>
+                  <span>停止</span>
                 </p>
               </div>
             </div>
@@ -263,12 +265,6 @@ export default function Toolbar() {
                   </tr>
                   <tr>
                     <td>
-                      <kbd className="kbd">M</kbd>
-                    </td>
-                    <td>ミュート切り替え</td>
-                  </tr>
-                  <tr>
-                    <td>
                       <kbd className="kbd">↑</kbd>
                     </td>
                     <td>BPM を 1 上げる</td>
@@ -278,12 +274,6 @@ export default function Toolbar() {
                       <kbd className="kbd">↓</kbd>
                     </td>
                     <td>BPM を 1 下げる</td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <kbd className="kbd">1</kbd> 〜 <kbd className="kbd">9</kbd>
-                    </td>
-                    <td>拍子を設定</td>
                   </tr>
                 </tbody>
               </table>
@@ -368,20 +358,9 @@ export default function Toolbar() {
               <input
                 type="checkbox"
                 className="toggle toggle-primary"
-                checked={state.showPendulum}
-                onChange={(e) => actions.setShowPendulum(e.target.checked)}
-              />
-              <div className="flex flex-col items-start">
-                <span className="label-text">振り子を表示</span>
-              </div>
-            </label>
-            <label className="label cursor-pointer justify-start gap-3">
-              <input
-                type="checkbox"
-                className="toggle toggle-primary"
-                checked={state.wakeLock}
+                checked={wakeLock}
                 disabled={!isWakeLockSupported}
-                onChange={(e) => actions.setWakeLock(e.target.checked)}
+                onChange={(e) => onWakeLockChange(e.target.checked)}
               />
               <div className="flex flex-col items-start">
                 <span className="label-text">再生中の画面消灯を抑制</span>
