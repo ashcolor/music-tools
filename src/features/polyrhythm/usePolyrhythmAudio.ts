@@ -41,7 +41,7 @@ export function usePolyrhythmAudio({ bpm, sides }: Args) {
       osc.type = "square";
       osc.frequency.setValueAtTime(PITCH_FREQ[pitch], time);
       panner.pan.setValueAtTime(pan, time);
-      gain.gain.setValueAtTime(volume, time);
+      gain.gain.setValueAtTime(volume * 0.5, time);
       gain.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
       osc.start(time);
       osc.stop(time + 0.1);

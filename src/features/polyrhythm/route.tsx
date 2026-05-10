@@ -10,9 +10,9 @@ import PolyrhythmSideSettings, {
 import { usePolyrhythmAudio } from "./usePolyrhythmAudio";
 
 const STORAGE_KEY = "music-tools:polyrhythm-settings";
-const DEFAULT_BPM = 120;
+const DEFAULT_BPM = 60;
 const DEFAULT_SIDES: SideSettings[] = [
-  { pitch: "high", beats: 3, volume: 0.5, pan: -1 },
+  { pitch: "low", beats: 3, volume: 0.5, pan: -1 },
   { pitch: "mid", beats: 4, volume: 0.5, pan: 1 },
 ];
 
