@@ -17,12 +17,6 @@ export type RhythmSettings = {
   pan: number;
 };
 
-function formatPan(pan: number): string {
-  if (pan === 0) return "C";
-  const sign = pan < 0 ? "L" : "R";
-  return `${sign}${Math.round(Math.abs(pan) * 100)}`;
-}
-
 type Props = {
   value: RhythmSettings;
   onChange: (next: RhythmSettings) => void;
@@ -46,40 +40,57 @@ export default function RhythmSettingsCard({ value, onChange, onRemove }: Props)
         <div className="flex flex-col gap-1">
           <span className="text-xs opacity-60">連符</span>
           <div className="flex justify-center">
-            <select
-              className="select select-bordered w-20 text-xl font-bold text-right"
-              value={value.beats}
-              onChange={(e) => onChange({ ...value, beats: Number(e.target.value) })}
-            >
-              {BEATS_OPTIONS.map((b) => (
-                <option key={b} value={b}>
-                  {b}
-                </option>
-              ))}
-            </select>
+            <details className="dropdown">
+              <summary className="btn btn-outline w-20 text-xl font-bold">
+                {value.beats}
+                <Icon icon="material-symbols:arrow-drop-down-rounded" className="size-5" />
+              </summary>
+              <ul className="menu dropdown-content bg-base-100 rounded-box z-10 w-20 p-2 shadow border border-base-300 max-h-60 overflow-y-auto flex-nowrap mt-1">
+                {BEATS_OPTIONS.map((b) => (
+                  <li key={b}>
+                    <button
+                      type="button"
+                      className={`justify-center text-base ${value.beats === b ? "menu-active" : ""}`}
+                      onClick={(e) => {
+                        onChange({ ...value, beats: b });
+                        e.currentTarget
+                          .closest("details")
+                          ?.removeAttribute("open");
+                      }}
+                    >
+                      {b}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </details>
           </div>
         </div>
 
         <div className="flex flex-col gap-1">
           <span className="text-xs opacity-60">ステレオ</span>
-          <div className="flex flex-row items-center gap-3">
-            <div className="relative flex-1">
-              <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-4 w-px bg-base-content/50" />
-              <input
-                type="range"
-                min={-1}
-                max={1}
-                step={0.01}
-                value={value.pan}
-                onChange={(e) => onChange({ ...value, pan: Number(e.target.value) })}
-                onDoubleClick={() => onChange({ ...value, pan: 0 })}
-                className="range range-sm range-primary w-full"
-                style={{ "--range-fill": 0 } as React.CSSProperties}
-              />
+          <div className="w-full">
+            <input
+              type="range"
+              min={-1}
+              max={1}
+              step={0.01}
+              value={value.pan}
+              onChange={(e) => onChange({ ...value, pan: Number(e.target.value) })}
+              onDoubleClick={() => onChange({ ...value, pan: 0 })}
+              className="range range-sm range-primary w-full"
+              style={{ "--range-fill": 0 } as React.CSSProperties}
+            />
+            <div className="flex justify-between px-2.5 mt-2 text-xs">
+              <span>|</span>
+              <span>|</span>
+              <span>|</span>
             </div>
-            <span className="text-xs w-10 text-right tabular-nums">
-              {formatPan(value.pan)}
-            </span>
+            <div className="flex justify-between px-2.5 mt-1 text-xs">
+              <span>左</span>
+              <span>中央</span>
+              <span>右</span>
+            </div>
           </div>
         </div>
 
