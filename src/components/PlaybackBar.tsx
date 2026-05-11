@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { Icon } from "@iconify/react";
-import FullscreenButton from "./FullscreenButton";
 
 type PlaybackBarProps = {
   isPlaying: boolean;
@@ -19,7 +18,7 @@ export default function PlaybackBar({
   onPause,
   onStop,
   leftSlot,
-  rightSlot = <FullscreenButton />,
+  rightSlot,
 }: PlaybackBarProps) {
   const isIdle = !isPlaying && !isPaused;
   const playPauseButton =
