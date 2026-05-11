@@ -69,7 +69,7 @@ export default function BeatsDots({
       {onClick && !onToggleAccent ? (
         <button
           type="button"
-          className="flex items-center gap-4 cursor-pointer px-6 py-4 rounded-lg hover:bg-base-200 transition-colors"
+          className="flex items-center gap-4 cursor-pointer rounded-lg hover:bg-base-200 transition-colors"
           onClick={onClick}
         >
           {dots}
