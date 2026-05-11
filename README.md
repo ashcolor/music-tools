@@ -24,6 +24,7 @@ pnpm build
 pnpm lint
 ```
 
-## 参考
+## 使用音源
 
-- [二つの時計についての物語](https://web.dev/articles/audio-scheduling?hl=ja)
+- https://creazilla.com/media/audio/15471724/metronome
+- https://creazilla.com/media/audio/15443411/drum-loop
