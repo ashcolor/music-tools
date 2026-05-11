@@ -118,9 +118,9 @@ export function AppShell() {
 
   return (
     <MetronomeProvider>
-      <div className="min-h-dvh bg-base-100 flex flex-col">
+      <div className="h-svh bg-base-100 flex flex-col overflow-hidden">
         <Header />
-        <main className="flex flex-1 flex-col">
+        <main className="flex flex-1 flex-col min-h-0 overflow-y-auto">
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/metronome" element={<MetronomeRoute />} />
