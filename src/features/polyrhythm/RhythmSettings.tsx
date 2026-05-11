@@ -2,16 +2,34 @@ import { Icon } from "@iconify/react";
 
 const BEATS_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
 
-export type Pitch = "low" | "mid" | "high";
+export type Sound =
+  | "electronicLow"
+  | "electronicMid"
+  | "electronicHigh"
+  | "bassDrum"
+  | "snare"
+  | "hiHat";
 
-const PITCH_OPTIONS: { value: Pitch; label: string }[] = [
-  { value: "low", label: "低" },
-  { value: "mid", label: "中" },
-  { value: "high", label: "高" },
+export const SOUNDS: Sound[] = [
+  "electronicLow",
+  "electronicMid",
+  "electronicHigh",
+  "bassDrum",
+  "snare",
+  "hiHat",
+];
+
+const SOUND_OPTIONS: { value: Sound; label: string }[] = [
+  { value: "electronicLow", label: "電子音低" },
+  { value: "electronicMid", label: "電子音中" },
+  { value: "electronicHigh", label: "電子音高" },
+  { value: "bassDrum", label: "バスドラム" },
+  { value: "snare", label: "スネア" },
+  { value: "hiHat", label: "ハイハット" },
 ];
 
 export type RhythmSettings = {
-  pitch: Pitch;
+  sound: Sound;
   beats: number;
   volume: number;
   pan: number;
@@ -95,19 +113,18 @@ export default function RhythmSettingsCard({ value, onChange, onRemove }: Props)
         </div>
 
         <div className="flex flex-col gap-1">
-          <span className="text-xs opacity-60">音の高さ</span>
-          <div className="flex gap-2 flex-wrap justify-center">
-            {PITCH_OPTIONS.map(({ value: pitch, label }) => (
-              <button
-                key={pitch}
-                type="button"
-                className={`btn btn-sm rounded-full btn-neutral ${value.pitch !== pitch ? "btn-soft" : ""}`}
-                onClick={() => onChange({ ...value, pitch })}
-              >
+          <span className="text-xs opacity-60">音の種類</span>
+          <select
+            className="select select-sm w-full"
+            value={value.sound}
+            onChange={(e) => onChange({ ...value, sound: e.target.value as Sound })}
+          >
+            {SOUND_OPTIONS.map(({ value: sound, label }) => (
+              <option key={sound} value={sound}>
                 {label}
-              </button>
+              </option>
             ))}
-          </div>
+          </select>
         </div>
 
         <div className="flex flex-col gap-1">
