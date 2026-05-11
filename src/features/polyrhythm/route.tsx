@@ -5,8 +5,9 @@ import BpmEditor from "../../components/BpmEditor";
 import PlaybackBar from "../../components/PlaybackBar";
 import { useWakeLock } from "../../hooks/useWakeLock";
 import RhythmSettingsCard, {
-  type Pitch,
+  SOUNDS,
   type RhythmSettings,
+  type Sound,
 } from "./RhythmSettings";
 import PolyrhythmToolbar from "./PolyrhythmToolbar";
 import PolyrhythmVisualizer from "./PolyrhythmVisualizer";
@@ -16,29 +17,44 @@ import { usePolyrhythmUrlSync } from "./usePolyrhythmUrlSync";
 const STORAGE_KEY = "music-tools:polyrhythm-settings";
 const DEFAULT_BPM = 60;
 const DEFAULT_RHYTHMS: RhythmSettings[] = [
-  { pitch: "low", beats: 3, volume: 0.5, pan: -1 },
-  { pitch: "mid", beats: 4, volume: 0.5, pan: 1 },
+  { sound: "electronicLow", beats: 3, volume: 0.5, pan: -1 },
+  { sound: "electronicMid", beats: 4, volume: 0.5, pan: 1 },
 ];
 const DEFAULT_WAKE_LOCK = true;
 const DEFAULT_SHOW_VISUALIZER = true;
 
-const NEW_RHYTHM: RhythmSettings = { pitch: "mid", beats: 2, volume: 0.5, pan: 0 };
+const NEW_RHYTHM: RhythmSettings = {
+  sound: "electronicMid",
+  beats: 2,
+  volume: 0.5,
+  pan: 0,
+};
+
+const LEGACY_PITCH_MAP: Record<string, Sound> = {
+  low: "electronicLow",
+  mid: "electronicMid",
+  high: "electronicHigh",
+};
 
 const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
 
-function isPitch(v: unknown): v is Pitch {
-  return v === "low" || v === "mid" || v === "high";
+function toSound(v: unknown): Sound | null {
+  if (typeof v !== "string") return null;
+  if ((SOUNDS as string[]).includes(v)) return v as Sound;
+  if (v in LEGACY_PITCH_MAP) return LEGACY_PITCH_MAP[v];
+  return null;
 }
 
 function sanitizeRhythm(v: unknown): RhythmSettings | null {
   if (!v || typeof v !== "object") return null;
   const c = v as Record<string, unknown>;
-  if (!isPitch(c.pitch)) return null;
+  const sound = toSound(c.sound) ?? toSound(c.pitch);
+  if (!sound) return null;
   if (typeof c.beats !== "number" || !Number.isFinite(c.beats)) return null;
   if (typeof c.volume !== "number" || !Number.isFinite(c.volume)) return null;
   if (typeof c.pan !== "number" || !Number.isFinite(c.pan)) return null;
   return {
-    pitch: c.pitch,
+    sound,
     beats: clamp(Math.round(c.beats), 1, 12),
     volume: clamp(c.volume, 0, 1),
     pan: clamp(c.pan, -1, 1),

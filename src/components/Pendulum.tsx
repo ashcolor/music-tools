@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { useMetronome } from "@/contexts/MetronomeContext";
 
 const TRACK_WIDTH_REM = 12;
@@ -8,8 +9,23 @@ export default function Pendulum() {
   const { state } = useMetronome();
   const { isPlaying, currentBeat, bpm } = state;
 
-  const isActive = isPlaying && currentBeat > 0;
-  const animationName = currentBeat % 2 === 1 ? "pendulum-right" : "pendulum-left";
+  const [tick, setTick] = useState(0);
+  const prevBeatRef = useRef(0);
+
+  useEffect(() => {
+    if (currentBeat === 0) {
+      prevBeatRef.current = 0;
+      setTick(0);
+      return;
+    }
+    if (currentBeat !== prevBeatRef.current) {
+      prevBeatRef.current = currentBeat;
+      setTick((n) => n + 1);
+    }
+  }, [currentBeat]);
+
+  const isActive = isPlaying && tick > 0;
+  const animationName = tick % 2 === 1 ? "pendulum-right" : "pendulum-left";
   const duration = 60 / bpm;
 
   return (
@@ -27,7 +43,7 @@ export default function Pendulum() {
       <div className="absolute inset-0 bg-base-content/10 rounded-full" />
       <div className="absolute left-1/2 top-0 bottom-0 w-px -translate-x-1/2 bg-base-content/40" />
       <div
-        key={isActive ? `beat-${currentBeat}` : "idle"}
+        key={isActive ? `tick-${tick}` : "idle"}
         className="absolute left-1/2 top-0 bottom-0 bg-primary rounded-full"
         style={{
           width: `${INDICATOR_WIDTH_REM}rem`,

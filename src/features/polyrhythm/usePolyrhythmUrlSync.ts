@@ -1,8 +1,12 @@
 import { useEffect, useRef } from "react";
 import { useSearchParams } from "react-router";
-import type { Pitch, RhythmSettings } from "./RhythmSettings";
+import { SOUNDS, type RhythmSettings, type Sound } from "./RhythmSettings";
 
-const PITCHES: Pitch[] = ["low", "mid", "high"];
+const LEGACY_PITCH_MAP: Record<string, Sound> = {
+  low: "electronicLow",
+  mid: "electronicMid",
+  high: "electronicHigh",
+};
 
 const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
 
@@ -12,15 +16,17 @@ function parseNumber(value: string | null): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-function isPitch(v: string): v is Pitch {
-  return (PITCHES as string[]).includes(v);
+function parseSound(v: string): Sound | null {
+  if ((SOUNDS as string[]).includes(v)) return v as Sound;
+  if (v in LEGACY_PITCH_MAP) return LEGACY_PITCH_MAP[v];
+  return null;
 }
 
 function serializeRhythms(rhythms: RhythmSettings[]): string {
   return rhythms
     .map(
       (r) =>
-        `${r.pitch}_${r.beats}_${Math.round(r.volume * 100)}_${Math.round(r.pan * 100)}`,
+        `${r.sound}_${r.beats}_${Math.round(r.volume * 100)}_${Math.round(r.pan * 100)}`,
     )
     .join(",");
 }
@@ -32,8 +38,9 @@ function parseRhythms(value: string | null): RhythmSettings[] | null {
   for (const token of value.split(",")) {
     const parts = token.split("_");
     if (parts.length !== 4) return null;
-    const [pitch, beatsStr, volStr, panStr] = parts;
-    if (!isPitch(pitch)) return null;
+    const [soundStr, beatsStr, volStr, panStr] = parts;
+    const sound = parseSound(soundStr);
+    if (!sound) return null;
     const beats = Number(beatsStr);
     const vol = Number(volStr);
     const pan = Number(panStr);
@@ -41,7 +48,7 @@ function parseRhythms(value: string | null): RhythmSettings[] | null {
       return null;
     }
     result.push({
-      pitch,
+      sound,
       beats: clamp(Math.round(beats), 1, 12),
       volume: clamp(vol / 100, 0, 1),
       pan: clamp(pan / 100, -1, 1),

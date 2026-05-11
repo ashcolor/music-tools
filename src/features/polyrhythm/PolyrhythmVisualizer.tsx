@@ -1,10 +1,13 @@
 import { useEffect, useRef } from "react";
-import type { Pitch, RhythmSettings } from "./RhythmSettings";
+import type { RhythmSettings, Sound } from "./RhythmSettings";
 
-const PITCH_COLOR: Record<Pitch, string> = {
-  low: "oklch(0.72 0.15 240)",
-  mid: "oklch(0.78 0.16 150)",
-  high: "oklch(0.80 0.17 60)",
+const SOUND_COLOR: Record<Sound, string> = {
+  electronicLow: "oklch(0.72 0.15 240)",
+  electronicMid: "oklch(0.78 0.16 150)",
+  electronicHigh: "oklch(0.80 0.17 60)",
+  bassDrum: "oklch(0.65 0.18 20)",
+  snare: "oklch(0.75 0.14 320)",
+  hiHat: "oklch(0.85 0.10 90)",
 };
 
 type Props = {
@@ -81,7 +84,7 @@ export default function PolyrhythmVisualizer({
       s.rhythms.forEach((rhythm) => {
         const size =
           sizeMax - ((sizeMax - sizeMin) * (rhythm.beats - 1)) / 11;
-        const color = PITCH_COLOR[rhythm.pitch];
+        const color = SOUND_COLOR[rhythm.sound];
         const dim = rhythm.volume <= 0 ? 0.25 : 1;
 
         const beatPhase = phase * rhythm.beats;
