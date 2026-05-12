@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Icon } from "@iconify/react";
 
 const BEATS_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -36,19 +37,20 @@ export type RhythmSettings = {
 };
 
 type Props = {
+  index: number;
   value: RhythmSettings;
-  onChange: (next: RhythmSettings) => void;
-  onRemove?: () => void;
+  onChange: (index: number, next: RhythmSettings) => void;
+  onRemove?: (index: number) => void;
 };
 
-export default function RhythmSettingsCard({ value, onChange, onRemove }: Props) {
+function RhythmSettingsCard({ index, value, onChange, onRemove }: Props) {
   return (
     <div className="card bg-base-100 border border-base-300 shadow-sm relative">
       {onRemove && (
         <button
           type="button"
           className="btn btn-circle btn-ghost btn-xs absolute top-1 right-1"
-          onClick={onRemove}
+          onClick={() => onRemove(index)}
           aria-label="削除"
         >
           <Icon icon="material-symbols:close-rounded" className="size-4" />
@@ -68,7 +70,7 @@ export default function RhythmSettingsCard({ value, onChange, onRemove }: Props)
                     type="button"
                     className={`justify-center text-base ${value.beats === b ? "menu-active" : ""}`}
                     onClick={(e) => {
-                      onChange({ ...value, beats: b });
+                      onChange(index, { ...value, beats: b });
                       e.currentTarget
                         .closest("details")
                         ?.removeAttribute("open");
@@ -91,8 +93,8 @@ export default function RhythmSettingsCard({ value, onChange, onRemove }: Props)
               max={1}
               step={0.01}
               value={value.pan}
-              onChange={(e) => onChange({ ...value, pan: Number(e.target.value) })}
-              onDoubleClick={() => onChange({ ...value, pan: 0 })}
+              onChange={(e) => onChange(index, { ...value, pan: Number(e.target.value) })}
+              onDoubleClick={() => onChange(index, { ...value, pan: 0 })}
               className="range range-xs range-primary w-full relative z-10"
               style={{ "--range-fill": 0 } as React.CSSProperties}
             />
@@ -108,7 +110,7 @@ export default function RhythmSettingsCard({ value, onChange, onRemove }: Props)
           <select
             className="select select-sm flex-1"
             value={value.sound}
-            onChange={(e) => onChange({ ...value, sound: e.target.value as Sound })}
+            onChange={(e) => onChange(index, { ...value, sound: e.target.value as Sound })}
           >
             {SOUND_OPTIONS.map(({ value: sound, label }) => (
               <option key={sound} value={sound}>
@@ -126,7 +128,7 @@ export default function RhythmSettingsCard({ value, onChange, onRemove }: Props)
             max={1}
             step={0.01}
             value={value.volume}
-            onChange={(e) => onChange({ ...value, volume: Number(e.target.value) })}
+            onChange={(e) => onChange(index, { ...value, volume: Number(e.target.value) })}
             className="range range-xs range-primary flex-1"
           />
           <span className="text-xs w-8 text-right tabular-nums">
@@ -137,3 +139,5 @@ export default function RhythmSettingsCard({ value, onChange, onRemove }: Props)
     </div>
   );
 }
+
+export default memo(RhythmSettingsCard);

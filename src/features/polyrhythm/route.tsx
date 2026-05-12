@@ -3,6 +3,8 @@ import { Icon } from "@iconify/react";
 import BpmDisplay from "../../components/BpmDisplay";
 import BpmEditor from "../../components/BpmEditor";
 import PlaybackBar from "../../components/PlaybackBar";
+import VolumeControl from "../../components/VolumeControl";
+import { useMetronome } from "../../contexts/MetronomeContext";
 import { useWakeLock } from "../../hooks/useWakeLock";
 import RhythmSettingsCard, {
   SOUNDS,
@@ -105,6 +107,14 @@ function isEditableTarget(target: EventTarget | null): boolean {
   return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable;
 }
 
+function MasterVolumeBridge({ volumeRef }: { volumeRef: React.RefObject<number> }) {
+  const { state } = useMetronome();
+  useEffect(() => {
+    volumeRef.current = state.volume;
+  }, [state.volume, volumeRef]);
+  return null;
+}
+
 export function Polyrhythm() {
   const [persisted] = useState(loadPersisted);
   const [bpm, setBpm] = useState(persisted.bpm);
@@ -115,7 +125,8 @@ export function Polyrhythm() {
   const [isPaused, setIsPaused] = useState(false);
   const bpmModalRef = useRef<HTMLDialogElement>(null);
 
-  const audio = usePolyrhythmAudio({ bpm, rhythms });
+  const masterVolumeRef = useRef(0);
+  const audio = usePolyrhythmAudio({ bpm, rhythms, masterVolumeRef });
 
   const setBpmClamped = useCallback((n: number) => {
     setBpm(clamp(Math.round(n), 10, 999));
@@ -190,15 +201,15 @@ export function Polyrhythm() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [bpm, isPaused, isPlaying, handlePlay, handlePause, handleStop, setBpmClamped]);
 
-  const updateRhythm = (index: number, next: RhythmSettings) => {
+  const updateRhythm = useCallback((index: number, next: RhythmSettings) => {
     setRhythms((prev) => prev.map((r, i) => (i === index ? next : r)));
-  };
-  const removeRhythm = (index: number) => {
+  }, []);
+  const removeRhythm = useCallback((index: number) => {
     setRhythms((prev) => prev.filter((_, i) => i !== index));
-  };
-  const addRhythm = () => {
+  }, []);
+  const addRhythm = useCallback(() => {
     setRhythms((prev) => [...prev, { ...NEW_RHYTHM }]);
-  };
+  }, []);
 
   const handleReset = () => {
     handleStop();
@@ -210,6 +221,7 @@ export function Polyrhythm() {
 
   return (
     <div className="flex-1 min-h-0 flex flex-col w-full max-w-xl mx-auto">
+      <MasterVolumeBridge volumeRef={masterVolumeRef} />
       <PolyrhythmToolbar
         wakeLock={wakeLock}
         onWakeLockChange={setWakeLock}
@@ -244,9 +256,10 @@ export function Polyrhythm() {
             {rhythms.map((rhythm, i) => (
               <RhythmSettingsCard
                 key={i}
+                index={i}
                 value={rhythm}
-                onChange={(next) => updateRhythm(i, next)}
-                onRemove={() => removeRhythm(i)}
+                onChange={updateRhythm}
+                onRemove={removeRhythm}
               />
             ))}
             <button
@@ -267,6 +280,7 @@ export function Polyrhythm() {
         onPlay={handlePlay}
         onPause={handlePause}
         onStop={handleStop}
+        leftSlot={<VolumeControl showSoundType={false} />}
       />
 
       <dialog ref={bpmModalRef} className="modal">

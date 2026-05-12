@@ -7,7 +7,11 @@ const SOUND_TYPES: { value: SoundType; label: string; icon: string }[] = [
   { value: "classic", label: "クラシック", icon: "mdi:metronome-tick" },
 ];
 
-export default function VolumeControl() {
+type Props = {
+  showSoundType?: boolean;
+};
+
+export default function VolumeControl({ showSoundType = true }: Props = {}) {
   const { state, actions } = useMetronome();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -34,19 +38,21 @@ export default function VolumeControl() {
     <div ref={containerRef} className="relative">
       {open && (
         <div className="absolute bottom-full left-0 mb-2 bg-base-100 border border-base-300 rounded-box shadow-lg p-3 flex flex-col gap-3 z-40 w-56">
-          <div className="flex flex-row gap-1 flex-wrap">
-            {SOUND_TYPES.map(({ value, label, icon }) => (
-              <button
-                key={value}
-                type="button"
-                className={`btn btn-sm rounded-full btn-neutral gap-1 ${state.soundType !== value ? "btn-soft" : ""}`}
-                onClick={() => actions.setSoundType(value)}
-              >
-                <Icon icon={icon} className="size-4" />
-                {label}
-              </button>
-            ))}
-          </div>
+          {showSoundType && (
+            <div className="flex flex-row gap-1 flex-wrap">
+              {SOUND_TYPES.map(({ value, label, icon }) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={`btn btn-sm rounded-full btn-neutral gap-1 ${state.soundType !== value ? "btn-soft" : ""}`}
+                  onClick={() => actions.setSoundType(value)}
+                >
+                  <Icon icon={icon} className="size-4" />
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="flex flex-row items-center gap-3">
             <input
               type="range"

@@ -31,10 +31,27 @@ function isIosBrowser() {
 
 const BRAND_TEXT = "音楽ツール";
 
-export default function Header() {
-  const [open, setOpen] = useState(false);
+function ThemeToggleButton() {
   const { state, actions } = useMetronome();
   const isDark = state.theme === "dark";
+  return (
+    <button
+      type="button"
+      className="btn btn-square btn-ghost btn-sm ml-auto"
+      onClick={() => actions.setTheme(isDark ? "light" : "dark")}
+      aria-label={isDark ? "ライトモードに切り替え" : "ダークモードに切り替え"}
+    >
+      {isDark ? (
+        <Icon icon="bi:moon" className="size-5" />
+      ) : (
+        <Icon icon="bi:sun" className="size-5" />
+      )}
+    </button>
+  );
+}
+
+export default function Header() {
+  const [open, setOpen] = useState(false);
   const location = useLocation();
   const isHome = location.pathname === "/";
   const currentTool = allTools.find((tool) => tool.path === location.pathname);
@@ -109,18 +126,7 @@ export default function Header() {
             <span>{BRAND_TEXT}</span>
             <Icon icon="fa-solid:plus" className="size-4" aria-hidden />
           </span>
-          <button
-            type="button"
-            className="btn btn-square btn-ghost btn-sm ml-auto"
-            onClick={() => actions.setTheme(isDark ? "light" : "dark")}
-            aria-label={isDark ? "ライトモードに切り替え" : "ダークモードに切り替え"}
-          >
-            {isDark ? (
-              <Icon icon="bi:moon" className="size-5" />
-            ) : (
-              <Icon icon="bi:sun" className="size-5" />
-            )}
-          </button>
+          <ThemeToggleButton />
         </div>
 
         <div>
