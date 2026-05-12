@@ -217,7 +217,7 @@ export function Polyrhythm() {
         onShowVisualizerChange={setShowVisualizer}
         onReset={handleReset}
       />
-      <div className="flex-1 flex flex-col items-center justify-center gap-8 p-4 md:p-8">
+      <div className="flex-1 min-h-0 flex flex-col items-center gap-8 p-4 md:p-8">
         {showVisualizer ? (
           <div className="relative w-[15rem] h-[15rem] md:w-[17rem] md:h-[17rem] flex items-center justify-center">
             <div className="absolute inset-0 pointer-events-none">
@@ -239,7 +239,7 @@ export function Polyrhythm() {
           <BpmDisplay bpm={bpm} onClick={() => bpmModalRef.current?.showModal()} />
         )}
 
-        <div className="flex flex-col gap-4 w-full">
+        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-4 w-full">
           <div className="grid grid-cols-2 gap-4 w-full">
             {rhythms.map((rhythm, i) => (
               <RhythmSettingsCard

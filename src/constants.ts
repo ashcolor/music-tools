@@ -32,9 +32,6 @@ export const tools: Tool[] = [
     description: "BPM、拍子、加速・減速、ショートカットに対応したメトロノーム",
     sidebarIcon: "material-symbols:timer-outline-rounded",
   },
-];
-
-export const experimentalTools: Tool[] = [
   {
     path: "/polyrhythm",
     title: "ポリリズム",
@@ -42,6 +39,8 @@ export const experimentalTools: Tool[] = [
     sidebarIcon: "material-symbols:graphic-eq-rounded",
   },
 ];
+
+export const experimentalTools: Tool[] = [];
 
 export const allTools: Tool[] = [...tools, ...experimentalTools];
 

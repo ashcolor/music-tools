@@ -171,19 +171,23 @@ export default function Header() {
                 ))}
               </Fragment>
             ))}
-            <li className="menu-title text-xs opacity-60">ベータ版</li>
-            {experimentalTools.map((tool) => (
-              <li key={tool.path}>
-                <Link
-                  to={tool.path}
-                  onClick={() => setOpen(false)}
-                  className={`flex items-center gap-4 py-4 ${location.pathname === tool.path ? "bg-base-200" : ""}`}
-                >
-                  <Icon icon={tool.sidebarIcon} className="size-5 shrink-0" />
-                  <span>{tool.title}</span>
-                </Link>
-              </li>
-            ))}
+            {experimentalTools.length > 0 && (
+              <>
+                <li className="menu-title text-xs opacity-60">ベータ版</li>
+                {experimentalTools.map((tool) => (
+                  <li key={tool.path}>
+                    <Link
+                      to={tool.path}
+                      onClick={() => setOpen(false)}
+                      className={`flex items-center gap-4 py-4 ${location.pathname === tool.path ? "bg-base-200" : ""}`}
+                    >
+                      <Icon icon={tool.sidebarIcon} className="size-5 shrink-0" />
+                      <span>{tool.title}</span>
+                    </Link>
+                  </li>
+                ))}
+              </>
+            )}
           </ul>
         </div>
 
