@@ -209,7 +209,7 @@ export function Polyrhythm() {
   };
 
   return (
-    <div className="flex-1 flex flex-col w-full max-w-xl mx-auto">
+    <div className="flex-1 min-h-0 flex flex-col w-full max-w-xl mx-auto">
       <PolyrhythmToolbar
         wakeLock={wakeLock}
         onWakeLockChange={setWakeLock}
@@ -219,7 +219,7 @@ export function Polyrhythm() {
       />
       <div className="flex-1 min-h-0 flex flex-col items-center gap-8 p-4 md:p-8">
         {showVisualizer ? (
-          <div className="relative w-[15rem] h-[15rem] md:w-[17rem] md:h-[17rem] flex items-center justify-center">
+          <div className="relative shrink-0 w-[15rem] h-[15rem] md:w-[17rem] md:h-[17rem] flex items-center justify-center">
             <div className="absolute inset-0 pointer-events-none">
               <PolyrhythmVisualizer
                 bpm={bpm}
@@ -239,7 +239,7 @@ export function Polyrhythm() {
           <BpmDisplay bpm={bpm} onClick={() => bpmModalRef.current?.showModal()} />
         )}
 
-        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-4 w-full">
+        <div className="flex-1 min-h-0 overflow-y-auto w-full">
           <div className="grid grid-cols-2 gap-4 w-full">
             {rhythms.map((rhythm, i) => (
               <RhythmSettingsCard
@@ -249,15 +249,13 @@ export function Polyrhythm() {
                 onRemove={() => removeRhythm(i)}
               />
             ))}
-          </div>
-          <div className="flex justify-center">
             <button
               type="button"
-              className="btn btn-circle btn-primary btn-soft"
+              className="card bg-base-100 border-2 border-dashed border-base-300 hover:border-primary hover:bg-base-200 transition-colors flex items-center justify-center min-h-[8rem] text-primary"
               onClick={addRhythm}
               aria-label="リズムを追加"
             >
-              <Icon icon="material-symbols:add-rounded" className="size-6" />
+              <Icon icon="material-symbols:add-rounded" className="size-8" />
             </button>
           </div>
         </div>

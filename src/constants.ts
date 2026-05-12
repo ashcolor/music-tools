@@ -36,7 +36,7 @@ export const tools: Tool[] = [
     path: "/polyrhythm",
     title: "ポリリズム",
     description: "複数のリズムを同時に鳴らしてポリリズムを練習できるツール",
-    sidebarIcon: "material-symbols:graphic-eq-rounded",
+    sidebarIcon: "material-symbols:pentagon-outline-rounded",
   },
 ];
 
