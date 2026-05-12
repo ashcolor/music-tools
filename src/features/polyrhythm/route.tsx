@@ -281,6 +281,17 @@ export function Polyrhythm() {
         onPause={handlePause}
         onStop={handleStop}
         leftSlot={<VolumeControl showSoundType={false} />}
+        rightSlot={
+          <button
+            type="button"
+            className="btn btn-circle btn-ghost"
+            onClick={() => bpmModalRef.current?.showModal()}
+            aria-label="テンポ設定"
+            title="テンポ設定"
+          >
+            <Icon icon="lucide:metronome" className="size-6" />
+          </button>
+        }
       />
 
       <dialog ref={bpmModalRef} className="modal">

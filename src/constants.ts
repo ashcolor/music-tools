@@ -30,13 +30,13 @@ export const tools: Tool[] = [
     path: "/metronome",
     title: "メトロノーム",
     description: "BPM、拍子、加速・減速、ショートカットに対応したメトロノーム",
-    sidebarIcon: "material-symbols:timer-outline-rounded",
+    sidebarIcon: "lucide:metronome",
   },
   {
     path: "/polyrhythm",
     title: "ポリリズム",
     description: "複数のリズムを同時に鳴らしてポリリズムを練習できるツール",
-    sidebarIcon: "material-symbols:pentagon-outline-rounded",
+    sidebarIcon: "lucide:pentagon",
   },
 ];
 

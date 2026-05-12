@@ -18,8 +18,7 @@ function isEditableTarget(target: EventTarget | null): boolean {
 
 export default function MetronomeApp() {
   const { state, actions, getMeasurePhase } = useMetronome();
-  const beatsModalRef = useRef<HTMLDialogElement>(null);
-  const bpmModalRef = useRef<HTMLDialogElement>(null);
+  const settingsModalRef = useRef<HTMLDialogElement>(null);
   const lastNonZeroVolumeRef = useRef(state.volume > 0 ? state.volume : 0.3);
   const previousBpmRef = useRef(state.bpm);
   const [bpmFlashTick, setBpmFlashTick] = useState(0);
@@ -102,7 +101,7 @@ export default function MetronomeApp() {
               <button
                 type="button"
                 className="flex items-baseline gap-2 px-2 py-1 rounded hover:bg-base-200 transition-colors"
-                onClick={() => bpmModalRef.current?.showModal()}
+                onClick={() => settingsModalRef.current?.showModal()}
               >
                 <span className="text-sm text-base-content/70">スタート</span>
                 <span className="text-2xl md:text-3xl font-mono text-primary">
@@ -112,7 +111,7 @@ export default function MetronomeApp() {
               <button
                 type="button"
                 className="flex items-baseline gap-1 text-sm text-base-content/70 px-2 py-1 rounded hover:bg-base-200 transition-colors"
-                onClick={() => bpmModalRef.current?.showModal()}
+                onClick={() => settingsModalRef.current?.showModal()}
               >
                 <Icon
                   icon={
@@ -148,7 +147,7 @@ export default function MetronomeApp() {
               <BpmDisplay
                 bpm={state.bpm}
                 flashTick={bpmFlashTick}
-                onClick={() => bpmModalRef.current?.showModal()}
+                onClick={() => settingsModalRef.current?.showModal()}
                 showBorder={false}
               />
             </div>
@@ -156,7 +155,7 @@ export default function MetronomeApp() {
             <BpmDisplay
               bpm={state.bpm}
               flashTick={bpmFlashTick}
-              onClick={() => bpmModalRef.current?.showModal()}
+              onClick={() => settingsModalRef.current?.showModal()}
             />
           )}
         </div>
@@ -166,7 +165,7 @@ export default function MetronomeApp() {
           currentBeat={state.currentBeat}
           beatsPerMeasure={state.beatsPerMeasure}
           accentBeats={state.accentBeats}
-          onClick={() => beatsModalRef.current?.showModal()}
+          onClick={() => settingsModalRef.current?.showModal()}
         />
         </div>
       </div>
@@ -178,26 +177,24 @@ export default function MetronomeApp() {
         onPause={actions.pause}
         onStop={actions.stop}
         leftSlot={<VolumeControl />}
+        rightSlot={
+          <button
+            type="button"
+            className="btn btn-circle btn-ghost"
+            onClick={() => settingsModalRef.current?.showModal()}
+            aria-label="テンポ・拍子設定"
+            title="テンポ・拍子設定"
+          >
+            <Icon icon="lucide:metronome" className="size-6" />
+          </button>
+        }
       />
 
-      <dialog ref={bpmModalRef} className="modal">
+      <dialog ref={settingsModalRef} className="modal">
         <div className="modal-box">
           <h3 className="font-bold text-lg mb-4">テンポ</h3>
           <TempoEditor />
-          <div className="modal-action">
-            <form method="dialog">
-              <button className="btn">閉じる</button>
-            </form>
-          </div>
-        </div>
-        <form method="dialog" className="modal-backdrop">
-          <button>close</button>
-        </form>
-      </dialog>
-
-      <dialog ref={beatsModalRef} className="modal">
-        <div className="modal-box">
-          <h3 className="font-bold text-lg mb-4">拍子</h3>
+          <h3 className="font-bold text-lg mt-6 mb-4">拍子</h3>
           <div className="flex flex-col gap-4">
             <BeatsDots
               isPlaying={state.isPlaying}
