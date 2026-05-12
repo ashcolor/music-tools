@@ -75,7 +75,7 @@ export default function BeatsDots({
           {dots}
         </button>
       ) : (
-        <div className="flex items-center gap-4 px-6 py-4">{dots}</div>
+        <div className="flex items-center gap-4">{dots}</div>
       )}
     </div>
   );
