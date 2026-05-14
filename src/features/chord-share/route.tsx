@@ -9,7 +9,7 @@ import { ChordDisplay } from "./ChordDisplay";
 import { ChordSelectModal } from "./ChordSelectModal";
 import { PianoRoll } from "./PianoRoll";
 import { ChordShareProvider, useChordShare } from "./ChordShareContext";
-import { INITIAL_CHORDS, parseChord } from "./constants";
+import { INITIAL_CHORDS, isValidChordNotes, isValidNote, parseChord } from "./constants";
 
 const BEAT_SEC = 1;
 
@@ -59,6 +59,16 @@ function ChordShareInner() {
   }, [chords, setSearchParams]);
 
   const chordNotes = useMemo(() => computeChordNotes(chords), [chords]);
+  const hasInvalidChord = useMemo(
+    () =>
+      chords.some((chord) => {
+        const { root, type, bass } = parseChord(chord);
+        return (
+          !isValidNote(root) || !isValidNote(bass) || !isValidChordNotes(root, type)
+        );
+      }),
+    [chords],
+  );
   useEffect(() => {
     chordNotesRef.current = chordNotes;
   }, [chordNotes]);
@@ -193,6 +203,7 @@ function ChordShareInner() {
         onPause={() => void handlePause()}
         onStop={handleStop}
         leftSlot={<VolumeControl showSoundType={false} />}
+        disabled={hasInvalidChord}
       />
 
       <ChordSelectModal

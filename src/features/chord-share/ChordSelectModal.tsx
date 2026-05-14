@@ -8,9 +8,22 @@ import {
   DERIVED_NOTES,
   MAIN_TYPES,
   NATURAL_NOTES,
+  isValidMainType,
+  isValidNote,
+  isValidTension,
   parseChord,
   serializeChord,
 } from "./constants";
+
+function WarningIcon() {
+  return (
+    <Icon
+      icon="material-symbols:warning-outline-rounded"
+      className="size-5 shrink-0 text-warning"
+      aria-label="無効な値"
+    />
+  );
+}
 
 function splitType(type: string): { main: string; tension: string } {
   const sorted = [...MAIN_TYPES].sort((a, b) => b.value.length - a.value.length);
@@ -147,33 +160,43 @@ export function ChordSelectModal({
           ✕
         </button>
         <div className="flex w-full flex-row items-center gap-2">
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm flex-1 justify-end opacity-50 disabled:opacity-20"
-            disabled={!prev}
-            onClick={() => onChangeIndex(editingIndex - 1)}
-          >
-            {prev && <span className="text-base">{renderChordLabel(prev)}</span>}
-          </button>
-          <Icon
-            icon="material-symbols:chevron-right-rounded"
-            className="size-5 shrink-0 opacity-50"
-            aria-hidden
-          />
+          {prev ? (
+            <>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm flex-1 justify-end opacity-50"
+                onClick={() => onChangeIndex(editingIndex - 1)}
+              >
+                <span className="text-base">{renderChordLabel(prev)}</span>
+              </button>
+              <Icon
+                icon="material-symbols:chevron-right-rounded"
+                className="size-5 shrink-0 opacity-50"
+                aria-hidden
+              />
+            </>
+          ) : (
+            <div className="flex-1" />
+          )}
           <h3 className="text-2xl font-bold px-2 text-center">{renderChordLabel(current)}</h3>
-          <Icon
-            icon="material-symbols:chevron-right-rounded"
-            className="size-5 shrink-0 opacity-50"
-            aria-hidden
-          />
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm flex-1 justify-start opacity-50 disabled:opacity-20"
-            disabled={!next}
-            onClick={() => onChangeIndex(editingIndex + 1)}
-          >
-            {next && <span className="text-base">{renderChordLabel(next)}</span>}
-          </button>
+          {next ? (
+            <>
+              <Icon
+                icon="material-symbols:chevron-right-rounded"
+                className="size-5 shrink-0 opacity-50"
+                aria-hidden
+              />
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm flex-1 justify-start opacity-50"
+                onClick={() => onChangeIndex(editingIndex + 1)}
+              >
+                <span className="text-base">{renderChordLabel(next)}</span>
+              </button>
+            </>
+          ) : (
+            <div className="flex-1" />
+          )}
         </div>
 
         <div className="flex w-full flex-col gap-3 md:hidden">
@@ -184,12 +207,16 @@ export function ChordSelectModal({
               value={root}
               onChange={(e) => onRootChange(e.target.value)}
             >
+              {!isValidNote(root) && (
+                <option value={root}>{root || "(無効)"}</option>
+              )}
               {noteOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
                 </option>
               ))}
             </select>
+            {!isValidNote(root) && <WarningIcon />}
           </label>
           <label className="flex items-center gap-3">
             <span className="w-20 text-sm">タイプ</span>
@@ -198,12 +225,16 @@ export function ChordSelectModal({
               value={mainType}
               onChange={(e) => handleMainChange(e.target.value)}
             >
+              {!isValidMainType(mainType) && (
+                <option value={mainType}>{mainType || "(無効)"}</option>
+              )}
               {MAIN_TYPES.map((t) => (
                 <option key={t.value} value={t.value}>
                   {t.label}
                 </option>
               ))}
             </select>
+            {!isValidMainType(mainType) && <WarningIcon />}
           </label>
           <label className="flex items-center gap-3">
             <span className="w-20 text-sm">テンション</span>
@@ -213,6 +244,9 @@ export function ChordSelectModal({
               onChange={(e) => handleTensionChange(e.target.value)}
               disabled={availableTensions.length === 0}
             >
+              {!isValidTension(mainType, tension) && (
+                <option value={tension}>{tension || "(無効)"}</option>
+              )}
               <option value="">なし</option>
               {availableTensions.map((t) => (
                 <option key={t} value={t}>
@@ -220,6 +254,7 @@ export function ChordSelectModal({
                 </option>
               ))}
             </select>
+            {!isValidTension(mainType, tension) && <WarningIcon />}
           </label>
           <label className="flex items-center gap-3">
             <span className="w-20 text-sm">オンコード</span>
@@ -238,21 +273,33 @@ export function ChordSelectModal({
                 value={bass}
                 onChange={(e) => onBassChange(e.target.value)}
               >
+                {!isValidNote(bass) && (
+                  <option value={bass}>{bass || "(無効)"}</option>
+                )}
                 {noteOptions.map((opt) => (
                   <option key={opt.value} value={opt.value}>
                     {opt.label}
                   </option>
                 ))}
               </select>
+              {!isValidNote(bass) && <WarningIcon />}
             </label>
           )}
         </div>
 
         <div className="hidden md:flex md:flex-col md:gap-4">
-          <span className="text-lg">ルート</span>
+          <span className="flex items-center gap-2 text-lg">
+            ルート
+            {!isValidNote(root) && <WarningIcon />}
+          </span>
           <NoteSelect value={root} onChange={onRootChange} />
           <div className="divider" />
-          <ChordTypeSelect value={type} onChange={onTypeChange} />
+          <ChordTypeSelect
+            value={type}
+            onChange={onTypeChange}
+            mainTypeInvalid={!isValidMainType(mainType)}
+            tensionInvalid={!isValidTension(mainType, tension)}
+          />
           <div className="divider" />
           <label className="flex items-center gap-3">
             <span className="text-lg">オンコード</span>
@@ -265,7 +312,10 @@ export function ChordSelectModal({
           </label>
           {isOnChord && (
             <>
-              <span className="text-lg">ベース</span>
+              <span className="flex items-center gap-2 text-lg">
+                ベース
+                {!isValidNote(bass) && <WarningIcon />}
+              </span>
               <NoteSelect value={bass} onChange={onBassChange} />
             </>
           )}

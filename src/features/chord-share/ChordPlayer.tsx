@@ -28,7 +28,7 @@ export function ChordPlayer({ chord }: Props) {
   return (
     <button
       type="button"
-      className={`btn btn-circle btn-sm ${isPlaying ? "btn-error" : ""}`}
+      className={`btn btn-circle btn-sm ${isPlaying ? "btn-error" : "btn-secondary"}`}
       onClick={onClick}
     >
       <Icon icon={isPlaying ? "bi:stop-fill" : "bi:volume-up-fill"} className="size-4" />
