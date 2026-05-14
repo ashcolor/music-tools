@@ -1,4 +1,5 @@
-import { DERIVED_NOTES, NATURAL_NOTES } from "./constants";
+import { getDerivedNotes, NATURAL_NOTES } from "./constants";
+import { useChordShare } from "./ChordShareContext";
 
 type Props = {
   value: string;
@@ -6,10 +7,12 @@ type Props = {
 };
 
 export function NoteSelect({ value, onChange }: Props) {
+  const { accidentalDisplay } = useChordShare();
+  const derivedNotes = getDerivedNotes(accidentalDisplay);
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-row place-items-center px-10">
-        {DERIVED_NOTES.map((note, i) => (
+        {derivedNotes.map((note, i) => (
           <div key={i} className="m-auto h-2/3 w-20">
             {note.value && (
               <span

@@ -9,7 +9,13 @@ import { ChordDisplay } from "./ChordDisplay";
 import { ChordSelectModal } from "./ChordSelectModal";
 import { PianoRoll } from "./PianoRoll";
 import { ChordShareProvider, useChordShare } from "./ChordShareContext";
-import { INITIAL_CHORDS, isValidChordNotes, isValidNote, parseChord } from "./constants";
+import {
+  INITIAL_CHORDS,
+  convertChordToAccidental,
+  isValidChordNotes,
+  isValidNote,
+  parseChord,
+} from "./constants";
 
 const BEAT_SEC = 1;
 
@@ -32,6 +38,13 @@ function MasterVolumeBridge() {
 
 function ChordShareInner() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const {
+    sampler,
+    activeChordIndex,
+    setActiveChordIndex,
+    accidentalDisplay,
+    setAccidentalDisplay,
+  } = useChordShare();
   const initial = useMemo(() => {
     const chordParam = searchParams.get("chord");
     return chordParam ? chordParam.split(",") : INITIAL_CHORDS;
@@ -39,7 +52,20 @@ function ChordShareInner() {
   }, []);
   const [chords, setChords] = useState<string[]>(initial);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const { sampler, activeChordIndex, setActiveChordIndex } = useChordShare();
+
+  // URL ?accidental= があれば初回マウント時にローカル設定へ反映
+  useEffect(() => {
+    const param = searchParams.get("accidental");
+    if (param === "sharp" || param === "flat") {
+      setAccidentalDisplay(param);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 表示設定変化に合わせて既存コード列も異名変換
+  useEffect(() => {
+    setChords((prev) => prev.map((c) => convertChordToAccidental(c, accidentalDisplay)));
+  }, [accidentalDisplay]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const timeoutsRef = useRef<number[]>([]);
@@ -52,11 +78,12 @@ function ChordShareInner() {
       (prev) => {
         const next = new URLSearchParams(prev);
         next.set("chord", chords.join(","));
+        next.set("accidental", accidentalDisplay);
         return next;
       },
       { replace: true },
     );
-  }, [chords, setSearchParams]);
+  }, [chords, accidentalDisplay, setSearchParams]);
 
   const chordNotes = useMemo(() => computeChordNotes(chords), [chords]);
   const hasInvalidChord = useMemo(
@@ -203,6 +230,26 @@ function ChordShareInner() {
         onPause={() => void handlePause()}
         onStop={handleStop}
         leftSlot={<VolumeControl showSoundType={false} />}
+        rightSlot={
+          <div className="join">
+            <button
+              type="button"
+              className={`btn btn-sm join-item ${accidentalDisplay === "sharp" ? "btn-primary" : ""}`}
+              onClick={() => setAccidentalDisplay("sharp")}
+              aria-label="シャープ表記"
+            >
+              ♯
+            </button>
+            <button
+              type="button"
+              className={`btn btn-sm join-item ${accidentalDisplay === "flat" ? "btn-primary" : ""}`}
+              onClick={() => setAccidentalDisplay("flat")}
+              aria-label="フラット表記"
+            >
+              ♭
+            </button>
+          </div>
+        }
         disabled={hasInvalidChord}
       />
 

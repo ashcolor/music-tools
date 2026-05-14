@@ -4,10 +4,11 @@ import { Note } from "tonal";
 import { ChordTypeSelect } from "./ChordTypeSelect";
 import { NoteSelect } from "./NoteSelect";
 import { ChordPlayer } from "./ChordPlayer";
+import { useChordShare } from "./ChordShareContext";
 import {
-  DERIVED_NOTES,
   MAIN_TYPES,
   NATURAL_NOTES,
+  getDerivedNotes,
   isValidMainType,
   isValidNote,
   isValidTension,
@@ -53,6 +54,7 @@ export function ChordSelectModal({
 }: Props) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const open = editingIndex !== null;
+  const { accidentalDisplay } = useChordShare();
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -64,7 +66,7 @@ export function ChordSelectModal({
   const noteOptions = useMemo(() => {
     const all: { label: string; value: string }[] = [];
     NATURAL_NOTES.forEach((n) => all.push({ label: n.label, value: n.value }));
-    DERIVED_NOTES.forEach((n) => {
+    getDerivedNotes(accidentalDisplay).forEach((n) => {
       if (n.value) all.push({ label: n.label, value: n.value });
     });
     return all.sort((a, b) => {
@@ -72,7 +74,7 @@ export function ChordSelectModal({
       const mb = Note.midi(`${b.value}3`) ?? 0;
       return ma - mb;
     });
-  }, []);
+  }, [accidentalDisplay]);
 
   const current = editingIndex !== null ? parseChord(chords[editingIndex] ?? "") : null;
   const prev =

@@ -1,6 +1,8 @@
-import { Chord } from "tonal";
+import { Chord, Note } from "tonal";
 
 export const INITIAL_CHORDS = ["Fsus2", "Gsus4", "Am7", "Em7"];
+
+export type AccidentalDisplay = "sharp" | "flat";
 
 export const NATURAL_NOTES = [
   { label: "C", value: "C" },
@@ -12,14 +14,56 @@ export const NATURAL_NOTES = [
   { label: "B", value: "B" },
 ];
 
-export const DERIVED_NOTES: { label: string; value: string | null }[] = [
-  { label: "C♯/D♭", value: "C#" },
-  { label: "D♯/E♭", value: "D#" },
+const SHARP_DERIVED = [
+  { label: "C♯", value: "C#" },
+  { label: "D♯", value: "D#" },
   { label: "", value: null },
-  { label: "F♯/G♭", value: "F#" },
-  { label: "G♯/A♭", value: "G#" },
-  { label: "A♯/B♭", value: "A#" },
-];
+  { label: "F♯", value: "F#" },
+  { label: "G♯", value: "G#" },
+  { label: "A♯", value: "A#" },
+] as const;
+
+const FLAT_DERIVED = [
+  { label: "D♭", value: "Db" },
+  { label: "E♭", value: "Eb" },
+  { label: "", value: null },
+  { label: "G♭", value: "Gb" },
+  { label: "A♭", value: "Ab" },
+  { label: "B♭", value: "Bb" },
+] as const;
+
+export function getDerivedNotes(
+  accidental: AccidentalDisplay,
+): { label: string; value: string | null }[] {
+  return accidental === "flat" ? [...FLAT_DERIVED] : [...SHARP_DERIVED];
+}
+
+const SHARP_TO_FLAT: Record<string, string> = {
+  "C#": "Db",
+  "D#": "Eb",
+  "F#": "Gb",
+  "G#": "Ab",
+  "A#": "Bb",
+};
+const FLAT_TO_SHARP: Record<string, string> = Object.fromEntries(
+  Object.entries(SHARP_TO_FLAT).map(([s, f]) => [f, s]),
+);
+
+export function toAccidental(note: string, accidental: AccidentalDisplay): string {
+  if (!note) return note;
+  if (accidental === "flat" && SHARP_TO_FLAT[note]) return SHARP_TO_FLAT[note];
+  if (accidental === "sharp" && FLAT_TO_SHARP[note]) return FLAT_TO_SHARP[note];
+  return note;
+}
+
+export function convertChordToAccidental(chord: string, accidental: AccidentalDisplay): string {
+  const { root, type, bass } = parseChord(chord);
+  return serializeChord(
+    toAccidental(root, accidental),
+    type,
+    toAccidental(bass, accidental),
+  );
+}
 
 export type MainType = {
   label: string;
@@ -67,7 +111,8 @@ export const TENSION_TYPES = [
 
 const VALID_NOTE_SET = new Set<string>([
   ...NATURAL_NOTES.map((n) => n.value),
-  ...DERIVED_NOTES.filter((n) => n.value).map((n) => n.value as string),
+  ...SHARP_DERIVED.filter((n) => n.value).map((n) => n.value as string),
+  ...FLAT_DERIVED.filter((n) => n.value).map((n) => n.value as string),
 ]);
 
 export function isValidNote(value: string) {
@@ -94,9 +139,10 @@ export function isValidChordNotes(root: string, type: string) {
       if (type === `${main.value}${tension}`) return true;
     }
   }
-  // それ以外は tonal で検証
+  // それ以外は tonal で検証（シャープ正規化したルートで安定して引く）
   try {
-    const chord = Chord.get(`${root}${type}`);
+    const normalizedRoot = Note.enharmonic(root) || root;
+    const chord = Chord.get(`${normalizedRoot}${type}`);
     return !chord.empty && chord.notes.length > 0;
   } catch {
     return false;
