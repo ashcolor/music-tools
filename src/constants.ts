@@ -40,7 +40,14 @@ export const tools: Tool[] = [
   },
 ];
 
-export const experimentalTools: Tool[] = [];
+export const experimentalTools: Tool[] = [
+  {
+    path: "/chord-share",
+    title: "コードシェア",
+    description: "コード進行を選んで再生・共有できるツール",
+    sidebarIcon: "material-symbols:library-music-outline-rounded",
+  },
+];
 
 export const allTools: Tool[] = [...tools, ...experimentalTools];
 

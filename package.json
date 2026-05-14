@@ -19,7 +19,8 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router": "^7.14.2",
-    "tailwindcss": "^4.1.14"
+    "tailwindcss": "^4.1.14",
+    "tonal": "^6.4.3"
   },
   "devDependencies": {
     "@tsconfig/node22": "^22.0.2",
