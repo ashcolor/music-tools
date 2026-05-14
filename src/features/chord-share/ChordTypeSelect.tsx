@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useMemo } from "react";
 import { Icon } from "@iconify/react";
-import { MAIN_TYPES, TENSION_TYPES } from "./constants";
+import { MAIN_TYPES, findMainTypeByType } from "./constants";
 
 type Props = {
   value: string;
@@ -15,9 +15,25 @@ export function ChordTypeSelect({
   mainTypeInvalid,
   tensionInvalid,
 }: Props) {
-  const [activeTension, setActiveTension] = useState("");
-  const activeTensions =
-    MAIN_TYPES.find((main) => main.value === value)?.tensionOptions ?? [];
+  const current = useMemo(() => findMainTypeByType(value), [value]);
+  const activeMainValue = current?.main.value ?? "";
+  const activeTensionType = current?.tension.type ?? value;
+  const activeTensionLabel = current?.tension.label ?? "";
+
+  const tensions = useMemo(
+    () =>
+      MAIN_TYPES.find((m) => m.value === activeMainValue)?.tensionOptions ?? [],
+    [activeMainValue],
+  );
+
+  const handleMainClick = (nextMainValue: string) => {
+    const next = MAIN_TYPES.find((m) => m.value === nextMainValue);
+    if (!next) return;
+    const nextOpt =
+      next.tensionOptions.find((t) => t.label === activeTensionLabel) ??
+      next.tensionOptions[0];
+    onChange(nextOpt.type);
+  };
 
   return (
     <>
@@ -34,11 +50,11 @@ export function ChordTypeSelect({
       <div className="flex flex-row flex-wrap place-content-center gap-2">
         {MAIN_TYPES.map((type) => (
           <span
-            key={type.value}
+            key={type.value || "major"}
             className={`btn btn-sm cursor-pointer ${
-              type.value === value ? "btn-primary" : ""
+              type.value === activeMainValue ? "btn-primary" : ""
             }`}
-            onClick={() => onChange(type.value)}
+            onClick={() => handleMainClick(type.value)}
           >
             {type.label}
           </span>
@@ -55,23 +71,17 @@ export function ChordTypeSelect({
         )}
       </span>
       <div className="flex flex-row flex-wrap place-content-center gap-2">
-        {TENSION_TYPES.map((type) => {
-          const isActive = type.value === activeTension;
-          const isDisabled = !activeTensions.includes(type.value);
-          return (
-            <span
-              key={type.value}
-              className={`btn btn-sm cursor-pointer ${
-                isActive ? "btn-primary" : ""
-              } ${isDisabled ? "btn-disabled" : ""}`}
-              onClick={() => {
-                if (!isDisabled) setActiveTension(type.value);
-              }}
-            >
-              {type.label}
-            </span>
-          );
-        })}
+        {tensions.map((t) => (
+          <span
+            key={t.type || "none"}
+            className={`btn btn-sm cursor-pointer ${
+              t.type === activeTensionType ? "btn-primary" : ""
+            }`}
+            onClick={() => onChange(t.type)}
+          >
+            {t.label}
+          </span>
+        ))}
       </div>
     </>
   );

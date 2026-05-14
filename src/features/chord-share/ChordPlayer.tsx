@@ -1,5 +1,5 @@
 import { Icon } from "@iconify/react";
-import { Chord } from "tonal";
+import { Chord, Note } from "tonal";
 import { useChordShare } from "./ChordShareContext";
 
 type Props = {
@@ -8,8 +8,12 @@ type Props = {
 
 export function ChordPlayer({ chord }: Props) {
   const { sampler, isPlaying, setIsPlaying } = useChordShare();
-  const [tonic, type] = Chord.tokenize(chord || "");
-  const notes = Chord.notes(type, `${tonic}3`);
+  const [tonic] = Chord.tokenize(chord || "");
+  const intervals = Chord.get(chord || "").intervals;
+  const baseRoot = `${tonic}3`;
+  const notes = intervals
+    .map((iv) => Note.transpose(baseRoot, iv))
+    .filter((n): n is string => Boolean(n));
 
   const onClick = async () => {
     if (isPlaying) {

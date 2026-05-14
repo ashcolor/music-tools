@@ -8,6 +8,7 @@ import { useChordShare } from "./ChordShareContext";
 import {
   MAIN_TYPES,
   NATURAL_NOTES,
+  findMainTypeByType,
   getDerivedNotes,
   isValidMainType,
   isValidNote,
@@ -26,15 +27,10 @@ function WarningIcon() {
   );
 }
 
-function splitType(type: string): { main: string; tension: string } {
-  const sorted = [...MAIN_TYPES].sort((a, b) => b.value.length - a.value.length);
-  for (const m of sorted) {
-    if (type === m.value) return { main: m.value, tension: "" };
-    if (type.startsWith(m.value)) {
-      return { main: m.value, tension: type.slice(m.value.length) };
-    }
-  }
-  return { main: "M", tension: type };
+function splitType(type: string): { main: string; tensionLabel: string } {
+  const found = findMainTypeByType(type);
+  if (found) return { main: found.main.value, tensionLabel: found.tension.label };
+  return { main: "", tensionLabel: type };
 }
 
 type Props = {
@@ -86,7 +82,7 @@ export function ChordSelectModal({
       ? parseChord(chords[editingIndex + 1] ?? "")
       : null;
 
-  const { main: mainType, tension } = useMemo(
+  const { main: mainType, tensionLabel } = useMemo(
     () => splitType(current?.type ?? ""),
     [current?.type],
   );
@@ -117,14 +113,17 @@ export function ChordSelectModal({
   const onBassChange = (v: string) => setField({ bass: v });
 
   const handleMainChange = (nextMain: string) => {
-    const nextAvailable =
-      MAIN_TYPES.find((m) => m.value === nextMain)?.tensionOptions ?? [];
-    const nextTension = nextAvailable.includes(tension) ? tension : "";
-    onTypeChange(`${nextMain}${nextTension}`);
+    const next = MAIN_TYPES.find((m) => m.value === nextMain);
+    if (!next) return;
+    // 同じラベルがあれば引き継ぎ、なければ最初の option（=「なし」）
+    const nextOpt =
+      next.tensionOptions.find((t) => t.label === tensionLabel) ??
+      next.tensionOptions[0];
+    onTypeChange(nextOpt.type);
   };
 
-  const handleTensionChange = (nextTension: string) => {
-    onTypeChange(`${mainType}${nextTension}`);
+  const handleTensionChange = (nextType: string) => {
+    onTypeChange(nextType);
   };
 
   const isOnChord = root !== bass;
@@ -242,21 +241,20 @@ export function ChordSelectModal({
             <span className="w-20 text-sm">テンション</span>
             <select
               className="select select-bordered flex-1"
-              value={tension}
+              value={type}
               onChange={(e) => handleTensionChange(e.target.value)}
-              disabled={availableTensions.length === 0}
+              disabled={availableTensions.length <= 1}
             >
-              {!isValidTension(mainType, tension) && (
-                <option value={tension}>{tension || "(無効)"}</option>
+              {!isValidTension(mainType, type) && (
+                <option value={type}>{type || "(無効)"}</option>
               )}
-              <option value="">なし</option>
               {availableTensions.map((t) => (
-                <option key={t} value={t}>
-                  {t}
+                <option key={t.type} value={t.type}>
+                  {t.label}
                 </option>
               ))}
             </select>
-            {!isValidTension(mainType, tension) && <WarningIcon />}
+            {!isValidTension(mainType, type) && <WarningIcon />}
           </label>
           <label className="flex items-center gap-3">
             <span className="w-20 text-sm">オンコード</span>
@@ -300,7 +298,7 @@ export function ChordSelectModal({
             value={type}
             onChange={onTypeChange}
             mainTypeInvalid={!isValidMainType(mainType)}
-            tensionInvalid={!isValidTension(mainType, tension)}
+            tensionInvalid={!isValidTension(mainType, type)}
           />
           <div className="divider" />
           <label className="flex items-center gap-3">

@@ -65,49 +65,99 @@ export function convertChordToAccidental(chord: string, accidental: AccidentalDi
   );
 }
 
+export type TensionOption = {
+  label: string;
+  type: string;
+};
+
 export type MainType = {
   label: string;
   value: string;
-  tensionOptions: string[];
+  tensionOptions: TensionOption[];
 };
 
 export const MAIN_TYPES: MainType[] = [
   {
     label: "メジャー",
-    value: "M",
-    tensionOptions: ["M7", "7", "b9", "9", "#9", "b5/#11", "#5/b13", "6/13"],
+    value: "",
+    tensionOptions: [
+      { label: "なし", type: "" },
+      { label: "M7", type: "M7" },
+      { label: "7", type: "7" },
+      { label: "6", type: "6" },
+      { label: "add9", type: "add9" },
+      { label: "9", type: "9" },
+      { label: "♭9", type: "7b9" },
+      { label: "♯9", type: "7#9" },
+      { label: "♯11", type: "7#11" },
+      { label: "M7♯11", type: "M7#11" },
+      { label: "13", type: "13" },
+      { label: "M13", type: "maj13" },
+    ],
   },
   {
     label: "マイナー",
     value: "m",
-    tensionOptions: ["M7", "7", "b9", "9", "11", "b5/#11", "#5/b13", "6/13"],
+    tensionOptions: [
+      { label: "なし", type: "m" },
+      { label: "M7", type: "mM7" },
+      { label: "7", type: "m7" },
+      { label: "6", type: "m6" },
+      { label: "9", type: "m9" },
+      { label: "11", type: "m11" },
+      { label: "13", type: "m13" },
+      { label: "♭5", type: "m7b5" },
+      { label: "♯5", type: "m7#5" },
+    ],
   },
   {
     label: "dim",
     value: "dim",
-    tensionOptions: ["M7", "7", "b9", "9", "6/13"],
+    tensionOptions: [
+      { label: "なし", type: "dim" },
+      { label: "7", type: "dim7" },
+    ],
   },
-  { label: "sus4", value: "sus4", tensionOptions: ["7", "9"] },
-  { label: "sus2", value: "sus2", tensionOptions: ["7"] },
+  {
+    label: "sus4",
+    value: "sus4",
+    tensionOptions: [
+      { label: "なし", type: "sus4" },
+      { label: "7", type: "7sus4" },
+      { label: "9", type: "9sus4" },
+    ],
+  },
+  {
+    label: "sus2",
+    value: "sus2",
+    tensionOptions: [{ label: "なし", type: "sus2" }],
+  },
   {
     label: "aug",
     value: "aug",
-    tensionOptions: ["M7", "b9", "9", "#9", "b5/#11", "6/13"],
+    tensionOptions: [
+      { label: "なし", type: "aug" },
+      { label: "M7", type: "maj7#5" },
+      { label: "7", type: "7#5" },
+      { label: "7♭9", type: "7b9#5" },
+      { label: "9", type: "9#5" },
+      { label: "7♯9", type: "7#5#9" },
+    ],
   },
-  { label: "パワーコード", value: "5", tensionOptions: [] },
+  {
+    label: "パワーコード",
+    value: "5",
+    tensionOptions: [{ label: "なし", type: "5" }],
+  },
 ];
 
-export const TENSION_TYPES = [
-  { label: "M7", value: "M7" },
-  { label: "7", value: "7" },
-  { label: "b9", value: "b9" },
-  { label: "9", value: "9" },
-  { label: "#9", value: "#9" },
-  { label: "11", value: "11" },
-  { label: "b5/#11", value: "b5/#11" },
-  { label: "#5/b13", value: "#5/b13" },
-  { label: "6/13", value: "6/13" },
-];
+export function findMainTypeByType(type: string) {
+  for (const main of MAIN_TYPES) {
+    const tension = main.tensionOptions.find((t) => t.type === type);
+    if (tension) return { main, tension };
+  }
+  return null;
+}
 
 const VALID_NOTE_SET = new Set<string>([
   ...NATURAL_NOTES.map((n) => n.value),
@@ -124,21 +174,16 @@ export function isValidMainType(value: string) {
   return MAIN_TYPES.some((m) => m.value === value);
 }
 
-export function isValidTension(mainType: string, tension: string) {
-  if (!tension) return true;
+export function isValidTension(mainType: string, type: string) {
   const main = MAIN_TYPES.find((m) => m.value === mainType);
-  return main ? main.tensionOptions.includes(tension) : false;
+  if (!main) return false;
+  return main.tensionOptions.some((t) => t.type === type);
 }
 
 export function isValidChordNotes(root: string, type: string) {
   if (!isValidNote(root)) return false;
-  // 登録済みのメインタイプ・テンション組合せは有効とみなす
-  for (const main of MAIN_TYPES) {
-    if (type === main.value) return true;
-    for (const tension of main.tensionOptions) {
-      if (type === `${main.value}${tension}`) return true;
-    }
-  }
+  // 登録済みの type は有効
+  if (findMainTypeByType(type)) return true;
   // それ以外は tonal で検証（シャープ正規化したルートで安定して引く）
   try {
     const normalizedRoot = Note.enharmonic(root) || root;

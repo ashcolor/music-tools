@@ -1,7 +1,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import { Icon } from "@iconify/react";
-import { Chord } from "tonal";
+import { Chord, Note } from "tonal";
 import PlaybackBar from "../../components/PlaybackBar";
 import VolumeControl from "../../components/VolumeControl";
 import { useMetronome } from "../../contexts/MetronomeContext";
@@ -23,7 +23,11 @@ function computeChordNotes(chords: string[]) {
   return chords.map((chord) => {
     const { root, type } = parseChord(chord || "");
     if (!root) return [];
-    return Chord.notes(type, `${root}3`);
+    const baseRoot = `${root}3`;
+    const intervals = Chord.get(`${root}${type}`).intervals;
+    return intervals
+      .map((iv) => Note.transpose(baseRoot, iv))
+      .filter((n): n is string => Boolean(n));
   });
 }
 

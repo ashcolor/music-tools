@@ -123,29 +123,45 @@
 ### 採用する形
 
 ```
-<Root><MainType><Tension>[/<Bass>]
+<Root><Type>[/<Bass>]
 ```
 
 - **Root**: `C D E F G A B` ＋ シャープ系の派生音 `C# D# F# G# A#`（内部値は `#` に正規化、UI 表示のみ `C♯/D♭` のように異名併記）
-- **MainType**: `M`（メジャー） / `m` / `dim` / `sus4` / `sus2` / `aug` / `5`（パワーコード）
-- **Tension**: `M7` `7` `b9` `9` `#9` `11` `b5/#11` `#5/b13` `6/13`
+- **Type**: 「メインタイプ」と「テンション」の組合せで決まる **完全な type 文字列**（tonal が `Chord.get(root + type)` で構成音を返せるもの）。詳細は次節。
 - **Bass**: ルートと異なる場合のみ `/Bass` を付加（同じなら省略が正規形）
+
+### メインタイプ × テンション 一覧
+
+UI 上は「メインタイプ → テンション」の 2 段選択。**選んだ組合せに対応する type 文字列が tonal でちゃんと構成音を返すよう、登録テーブルで一意にマッピング**してある（[MAIN_TYPES](../src/features/chord-share/constants.ts)）。
+
+| メインタイプ (value) | テンション label → 内部 type |
+|---|---|
+| **メジャー** (`""`) | なし→`""`, M7→`M7`, 7→`7`, 6→`6`, add9→`add9`, 9→`9`, ♭9→`7b9`, ♯9→`7#9`, ♯11→`7#11`, M7♯11→`M7#11`, 13→`13`, M13→`maj13` |
+| **マイナー** (`m`) | なし→`m`, M7→`mM7`, 7→`m7`, 6→`m6`, 9→`m9`, 11→`m11`, 13→`m13`, ♭5→`m7b5`, ♯5→`m7#5` |
+| **dim** (`dim`) | なし→`dim`, 7→`dim7` |
+| **sus4** (`sus4`) | なし→`sus4`, 7→`7sus4`, 9→`9sus4` |
+| **sus2** (`sus2`) | なし→`sus2` のみ |
+| **aug** (`aug`) | なし→`aug`, M7→`maj7#5`, 7→`7#5`, 7♭9→`7b9#5`, 9→`9#5`, 7♯9→`7#5#9` |
+| **パワー** (`5`) | なし→`5` のみ |
 
 ### 一般表記との差異
 
-- メジャー 7th は **`M7` 固定**（`maj7` / `△7` は内部で使わない）。
-- ディミニッシュ／オーグメントの記号表記（`°`, `+`, `ø`）は採用せず、ASCII の `dim` / `aug` を使う。
+- メジャー無印は内部値も **`""` 固定**（`M` ではない）。`C` 単独で C メジャー。
+- メジャー 7th は内部 `M7` 固定（`maj7` / `△7` は使わない）。ただし M13 のみ `maj13`（tonal が `M13` を認識しないため）。
+- aug は単独 `aug` のみ。aug + 拡張は **`#5` サフィックス系**（`maj7#5`, `7#5`, `7b9#5` 等）にマップ。
+- ディミニッシュ・オーグメントの記号表記（`°`, `+`, `ø`）は採用せず、ASCII の `dim` / `aug` を使う。
+- 「♭5」と「♯11」は **異名同音だが構成音が違う**ため別物として扱う（詳細は § 9）。`b5/#11` のような両論併記ラベルは廃止。
 - テンションは MainType ごとに使える集合を [MAIN_TYPES](../src/features/chord-share/constants.ts) で限定しており、UI 上は許可された組合せ以外は選べない。
-- ただし `tonal` ライブラリが解釈できる広めの記法（`Cadd9`、`C13b9` 等）も [isValidChordNotes](../src/features/chord-share/constants.ts) のフォールバック判定で有効扱いになる。
+- ただし `tonal` ライブラリが解釈できる広めの記法（`Cadd9`、`C13b9` 等）も [isValidChordNotes](../src/features/chord-share/constants.ts) のフォールバック判定で有効扱いになる（URL 直入力など）。
 
 ### パース・シリアライズ
 
-- [parseChord](../src/features/chord-share/constants.ts): 文字列内の **最後の `/`** を Bass の区切りとして見る（`b5/#11` のようにテンション内部の `/` を誤検出しないため）。残りを `tonal.Chord.tokenize` に渡して `(root, type)` を得る。
+- [parseChord](../src/features/chord-share/constants.ts): 文字列内の **最後の `/`** を Bass の区切りとして見る。残りを `tonal.Chord.tokenize` に渡して `(root, type)` を得る。type 文字列は登録テーブル ([findMainTypeByType](../src/features/chord-share/constants.ts)) で逆引きしてメインタイプ／テンションラベルを特定する。
 - [serializeChord](../src/features/chord-share/constants.ts): `Bass === Root` のとき `/Bass` を省略。
 
 ### 再生時
 
-[ChordPlayer](../src/features/chord-share/ChordPlayer.tsx) と [route.tsx](../src/features/chord-share/route.tsx) では `tonal.Chord.notes(type, root + "3")` で **オクターブ 3 起点の構成音** を取得して鳴らす。Bass は現状、表記専用で構成音には反映していない。
+[ChordPlayer](../src/features/chord-share/ChordPlayer.tsx) と [route.tsx](../src/features/chord-share/route.tsx) では `Chord.get(root + type).intervals` を取り、各 interval を `${root}3` から `Note.transpose` で展開して **オクターブ 3 起点の構成音** を得る（`Chord.notes("", "C3")` は空配列を返す tonal の制約を回避するため）。Bass は現状、表記専用で構成音には反映していない。
 
 ### URL シェア
 
@@ -154,6 +170,144 @@
 ```
 ?chord=Fsus2,Gsus4,Am7,Em7
 ```
+
+---
+
+## 9. tonal ライブラリでの解釈調査
+
+[tonal](https://github.com/tonaljs/tonal) v6.4.3 における `Chord.get(root + type)` の動作を実測した結果。アプリの内部値（type 文字列）として何を採用すべきかの判断材料。
+
+### 9.1 主要な発見
+
+#### ♭5 と ♯11 は別物として扱われる（異名同音だが構成音が違う）
+
+| 入力 | tonal の解釈 | 構成音 |
+|---|---|---|
+| `C7b5` | dominant 7♭5（5度置換） | `C, E, G♭, B♭` |
+| `C7#11` | lydian dominant | `C, E, G, B♭, F♯` |
+| `CM7b5` | major 7♭5（5度置換） | `C, E, G♭, B` |
+| `CM7#11` | major 7 ♯11 | `C, E, G, B, F♯` |
+| `Cm7b5` | half-diminished | `C, E♭, G♭, B♭` |
+| `Cm7#11` | **empty（認識不可）** | — |
+
+♭5 は完全 5 度を **置換**、♯11 は完全 5 度を **残したまま追加** という違いが構成音に反映される。
+
+#### 単独テンション表記はルート文字列を侵食する
+
+| 入力 | tonal の誤解釈 |
+|---|---|
+| `Cb5` | 「C♭ のパワーコード」（root が C♭ になる） |
+| `C#11` | 「C♯ の 11th コード」（root が C♯ になる） |
+| `C7(b9)` | **empty**（括弧記法は非対応） |
+| `C7(#11)` | **empty** |
+
+→ **アプリ内部の type 文字列に `()` は使えない**。`Cb9` や `C#11` のようにルート直後にテンションを置く形も避けるべき。
+
+### 9.2 メインタイプ別の動作確認結果
+
+ルート `C` で `Chord.get("C" + type)` を呼び、`empty: false` かつ `notes.length > 0` を OK とした。
+
+#### メジャー（value `""` を推奨、現状 `"M"` だと拡張が全滅）
+
+現状の `value: "M"` だと `CMb9`, `CM9`, `CM#9`, `CM6/13` などが NG。`value: ""` にすれば素直に `C7b9` の形になる。
+
+| 採用候補 type | 名前 | 構成音 |
+|---|---|---|
+| `(empty)` | C major | `C, E, G` |
+| `M7` / `maj7` | major seventh | `C, E, G, B` |
+| `7` | dominant seventh | `C, E, G, B♭` |
+| `6` | sixth | `C, E, G, A` |
+| `add9` | (add9) | `C, E, G, D` |
+| `9` | dominant ninth | `C, E, G, B♭, D` |
+| `7b9` | dominant ♭9 | `C, E, G, B♭, D♭` |
+| `7#9` | dominant ♯9 | `C, E, G, B♭, D♯` |
+| `7#11` | lydian dominant | `C, E, G, B♭, F♯` |
+| `M7#11` / `maj7#11` | major 7 ♯11 | `C, E, G, B, F♯` |
+| `7#5` | （aug 7 として扱われる） | `C, E, G♯, B♭` |
+| `7b13` | （5度なし） | `C, E, B♭, A♭` |
+| `13` | dominant 13 | `C, E, G, B♭, D, A` |
+| `maj13` | major 13 | `C, E, G, B, D, A` |
+
+NG だったもの: `(b9)`, `add b9`, `M7#5`, `+M7`, `M13`。
+
+#### マイナー（value `"m"` のまま OK）
+
+| type | 名前 | 構成音 |
+|---|---|---|
+| `m` | C minor | `C, E♭, G` |
+| `m7` | minor seventh | `C, E♭, G, B♭` |
+| `mM7` / `mMaj7` | minor/major seventh | `C, E♭, G, B` |
+| `m6` | minor sixth | `C, E♭, G, A` |
+| `m9` | minor ninth | `C, E♭, G, B♭, D` |
+| `m11` | minor eleventh | `C, E♭, G, B♭, D, F` |
+| `m13` | minor thirteenth | `C, E♭, G, B♭, D, A` |
+| `m7b5` / `h7` / `ø` | half-diminished | `C, E♭, G♭, B♭` |
+| `m7#5` | (♯5) | `C, E♭, A♭, B♭` |
+
+NG だったもの: `m7b9`, `m7#11`, `mb13`, `minMaj7`, `m(maj7)`。
+
+#### dim（拡張がほぼ全滅）
+
+| type | 名前 | 構成音 |
+|---|---|---|
+| `dim` / `°` | diminished | `C, E♭, G♭` |
+| `dim7` / `°7` | diminished seventh | `C, E♭, G♭, B𝄫` |
+
+NG: `dimMaj7`, `dim7b9`, `dim9`, `dim6`, `dim13` すべて非対応。
+
+#### sus 系
+
+| type | 名前 | 構成音 |
+|---|---|---|
+| `sus4` / `sus` | suspended 4 | `C, F, G` |
+| `7sus4` / `7sus` | sus4 7 | `C, F, G, B♭` |
+| `9sus4` | (sus4 9) | `C, F, G, B♭, D` |
+| `sus2` | suspended 2 | `C, D, G` |
+
+注意: `7sus2` は **NG**（tonal が認識しない）。sus2 + 7th を表現したい場合は別ルートが必要。
+
+#### aug（aug プレフィックスは効かず、`#5` サフィックスで表現）
+
+| type | 名前 | 構成音 |
+|---|---|---|
+| `aug` / `+` | augmented | `C, E, G♯` |
+| `maj7#5` | augmented seventh | `C, E, G♯, B` |
+| `7#5` | （ドミナント 7♯5） | `C, E, G♯, B♭` |
+| `7b9#5` | | `C, E, G♯, B♭, D♭` |
+| `9#5` | | `C, E, G♯, B♭, D` |
+| `7#5#9` | | `C, E, G♯, B♭, D♯` |
+
+NG: `augMaj7`, `+M7`, `aug7b9`, `aug9`, `+9`, `aug7#9`, `aug7#11`, `aug6`, `aug13`, `13#5`。
+→ **aug 系は `aug` プレフィックスではなく `#5` サフィックス**で表現する必要がある。実質、メジャー側の type バリエーションとして扱う方が tonal とは整合する。
+
+#### パワーコード
+
+| type | 名前 | 構成音 |
+|---|---|---|
+| `5` | fifth | `C, G` |
+
+### 9.3 現状実装との乖離
+
+[constants.ts](../src/features/chord-share/constants.ts) の `MAIN_TYPES` × `tensionOptions` の組み合わせのうち、以下が tonal で **構成音を取得できない**：
+
+- **メジャー (`M`)** のテンション: `M7`, `b9`, `9`, `#9`, `b5/#11`, `#5/b13`, `6/13` すべて NG（`CM` + 拡張 → `CMM7`, `CMb9` などが非対応）。例外: `CM7` のみ `C` + `M7` と解釈されて OK。
+- **マイナー (`m`)** のテンション: `b9`, `b5/#11`, `#5/b13`, `6/13` が NG。
+- **dim** のテンション: `M7`, `7` 以外すべて NG（`dim7` 以外）。
+- **sus4** のテンション: `7`, `9` ともに NG（`Csus47`, `Csus49` の順序問題）。
+- **sus2** のテンション: `7` が NG（`Csus27`）。
+- **aug** のテンション: すべて NG（`Caug` 以外）。
+- **`b5/#11`, `#5/b13`, `6/13`** はスラッシュを含むため、[parseChord](../src/features/chord-share/constants.ts) の `lastIndexOf("/")` で Bass と誤認される二重バグ。
+
+### 9.4 設計指針
+
+実装で破綻させないために最低限守るべきこと：
+
+1. **メジャー無印の value は `""` にする**（`M` ではなく）。現状の `M` プレフィックスは tonal とほぼ互換性がない。
+2. **テンション選択肢は「メインタイプ + テンション = tonal で解釈可能な完全な type 文字列」になるよう構築する**。例：メジャー側で「♯11」を選んだら内部値は `7#11`、「M7+♯11」を選んだら `M7#11`。
+3. **スラッシュを含むテンション表記（`b5/#11` 等）は廃止**。UI ラベルとして「♯11」「♯5」「6」のように片方に絞る。
+4. **aug + 拡張テンションはメインタイプ aug の配下ではなく、メジャー側の `7#5` 系として持つ**（tonal の解釈に合わせる）。または `aug` をメインタイプから外して「テンション扱い」にする。
+5. **sus2 + 7th は tonal で表現不可** なので選択肢から除外、または別途実装。
+6. **dim は `dim` / `dim7` のみ** を選択肢にする（他は捨てる）。
 
 ---
 
