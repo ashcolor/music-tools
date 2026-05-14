@@ -1,4 +1,19 @@
+import { Chord } from "tonal";
+
 export const INITIAL_CHORDS = ["Fsus2", "Gsus4", "Am7", "Em7"];
+
+export function parseChord(s: string) {
+  const parts = (s || "").split("/");
+  const main = parts[0] ?? "";
+  const bassPart = parts[1];
+  const [r, t] = Chord.tokenize(main);
+  const root = r || "C";
+  return { root, type: t || "", bass: bassPart || root };
+}
+
+export function serializeChord(root: string, type: string, bass: string) {
+  return bass && bass !== root ? `${root}${type}/${bass}` : `${root}${type}`;
+}
 
 export const NATURAL_NOTES = [
   { label: "C", value: "C" },

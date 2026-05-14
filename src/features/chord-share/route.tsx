@@ -6,17 +6,18 @@ import PlaybackBar from "../../components/PlaybackBar";
 import VolumeControl from "../../components/VolumeControl";
 import { useMetronome } from "../../contexts/MetronomeContext";
 import { ChordDisplay } from "./ChordDisplay";
+import { ChordSelectModal } from "./ChordSelectModal";
 import { PianoRoll } from "./PianoRoll";
 import { ChordShareProvider, useChordShare } from "./ChordShareContext";
-import { INITIAL_CHORDS } from "./constants";
+import { INITIAL_CHORDS, parseChord } from "./constants";
 
 const BEAT_SEC = 1;
 
 function computeChordNotes(chords: string[]) {
   return chords.map((chord) => {
-    const [tonic, type] = Chord.tokenize(chord || "");
-    if (!tonic) return [];
-    return Chord.notes(type, `${tonic}3`);
+    const { root, type } = parseChord(chord || "");
+    if (!root) return [];
+    return Chord.notes(type, `${root}3`);
   });
 }
 
@@ -37,6 +38,7 @@ function ChordShareInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const [chords, setChords] = useState<string[]>(initial);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const { sampler, activeChordIndex, setActiveChordIndex } = useChordShare();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -172,7 +174,7 @@ function ChordShareInner() {
               <div className="flex flex-col place-content-center place-items-center gap-2">
                 <ChordDisplay
                   value={chord}
-                  onChange={(next) => updateChord(index, next)}
+                  onClick={() => setEditingIndex(index)}
                   isActive={index === activeChordIndex}
                 />
               </div>
@@ -191,6 +193,14 @@ function ChordShareInner() {
         onPause={() => void handlePause()}
         onStop={handleStop}
         leftSlot={<VolumeControl showSoundType={false} />}
+      />
+
+      <ChordSelectModal
+        chords={chords}
+        editingIndex={editingIndex}
+        onUpdate={updateChord}
+        onChangeIndex={setEditingIndex}
+        onClose={() => setEditingIndex(null)}
       />
     </div>
   );

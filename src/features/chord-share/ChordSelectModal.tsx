@@ -1,30 +1,45 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
+import { Icon } from "@iconify/react";
+import { Note } from "tonal";
 import { ChordTypeSelect } from "./ChordTypeSelect";
 import { NoteSelect } from "./NoteSelect";
 import { ChordPlayer } from "./ChordPlayer";
+import {
+  DERIVED_NOTES,
+  MAIN_TYPES,
+  NATURAL_NOTES,
+  parseChord,
+  serializeChord,
+} from "./constants";
+
+function splitType(type: string): { main: string; tension: string } {
+  const sorted = [...MAIN_TYPES].sort((a, b) => b.value.length - a.value.length);
+  for (const m of sorted) {
+    if (type === m.value) return { main: m.value, tension: "" };
+    if (type.startsWith(m.value)) {
+      return { main: m.value, tension: type.slice(m.value.length) };
+    }
+  }
+  return { main: "M", tension: type };
+}
 
 type Props = {
-  open: boolean;
-  root: string;
-  type: string;
-  bass: string;
-  onRootChange: (v: string) => void;
-  onTypeChange: (v: string) => void;
-  onBassChange: (v: string) => void;
+  chords: string[];
+  editingIndex: number | null;
+  onUpdate: (index: number, next: string) => void;
+  onChangeIndex: (next: number) => void;
   onClose: () => void;
 };
 
 export function ChordSelectModal({
-  open,
-  root,
-  type,
-  bass,
-  onRootChange,
-  onTypeChange,
-  onBassChange,
+  chords,
+  editingIndex,
+  onUpdate,
+  onChangeIndex,
   onClose,
 }: Props) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const open = editingIndex !== null;
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -33,35 +48,231 @@ export function ChordSelectModal({
     if (!open && dialog.open) dialog.close();
   }, [open]);
 
+  const noteOptions = useMemo(() => {
+    const all: { label: string; value: string }[] = [];
+    NATURAL_NOTES.forEach((n) => all.push({ label: n.label, value: n.value }));
+    DERIVED_NOTES.forEach((n) => {
+      if (n.value) all.push({ label: n.label, value: n.value });
+    });
+    return all.sort((a, b) => {
+      const ma = Note.midi(`${a.value}3`) ?? 0;
+      const mb = Note.midi(`${b.value}3`) ?? 0;
+      return ma - mb;
+    });
+  }, []);
+
+  const current = editingIndex !== null ? parseChord(chords[editingIndex] ?? "") : null;
+  const prev =
+    editingIndex !== null && editingIndex > 0
+      ? parseChord(chords[editingIndex - 1] ?? "")
+      : null;
+  const next =
+    editingIndex !== null && editingIndex < chords.length - 1
+      ? parseChord(chords[editingIndex + 1] ?? "")
+      : null;
+
+  const { main: mainType, tension } = useMemo(
+    () => splitType(current?.type ?? ""),
+    [current?.type],
+  );
+  const availableTensions = useMemo(
+    () => MAIN_TYPES.find((m) => m.value === mainType)?.tensionOptions ?? [],
+    [mainType],
+  );
+
+  if (!current || editingIndex === null) {
+    return <dialog ref={dialogRef} className="modal" onClose={onClose} />;
+  }
+
+  const { root, type, bass } = current;
+
+  const setField = (overrides: Partial<{ root: string; type: string; bass: string }>) => {
+    const r = overrides.root ?? root;
+    const t = overrides.type ?? type;
+    let b = overrides.bass ?? bass;
+    // root変更時、オンコードでない場合はbassも追随
+    if (overrides.root !== undefined && bass === root) {
+      b = r;
+    }
+    onUpdate(editingIndex, serializeChord(r, t, b));
+  };
+
+  const onRootChange = (v: string) => setField({ root: v });
+  const onTypeChange = (v: string) => setField({ type: v });
+  const onBassChange = (v: string) => setField({ bass: v });
+
+  const handleMainChange = (nextMain: string) => {
+    const nextAvailable =
+      MAIN_TYPES.find((m) => m.value === nextMain)?.tensionOptions ?? [];
+    const nextTension = nextAvailable.includes(tension) ? tension : "";
+    onTypeChange(`${nextMain}${nextTension}`);
+  };
+
+  const handleTensionChange = (nextTension: string) => {
+    onTypeChange(`${mainType}${nextTension}`);
+  };
+
+  const isOnChord = root !== bass;
+  const handleOnChordToggle = (checked: boolean) => {
+    if (checked) {
+      const fallback = noteOptions.find((n) => n.value !== root)?.value ?? root;
+      onBassChange(fallback);
+    } else {
+      onBassChange(root);
+    }
+  };
+
+  const renderChordLabel = (c: { root: string; type: string; bass: string }) => (
+    <>
+      <span>{c.root}</span>
+      <span>{c.type}</span>
+      {c.root !== c.bass && (
+        <>
+          <span>&nbsp;/&nbsp;</span>
+          <span>{c.bass}</span>
+        </>
+      )}
+    </>
+  );
+
   return (
     <dialog ref={dialogRef} className="modal" onClose={onClose}>
-      <div className="modal-box flex max-w-2xl flex-col place-content-center place-items-center gap-8">
-        <h3 className="text-2xl font-bold">
-          <span>{root}</span>
-          <span>{type}</span>
-          {root !== bass && (
-            <>
-              <span>&nbsp;/&nbsp;</span>
-              <span>{bass}</span>
-            </>
+      <div className="modal-box relative flex max-w-2xl flex-col place-content-center place-items-center gap-8">
+        <button
+          type="button"
+          className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+          onClick={onClose}
+          aria-label="閉じる"
+        >
+          ✕
+        </button>
+        <div className="flex w-full flex-row items-center gap-2">
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm flex-1 justify-end opacity-50 disabled:opacity-20"
+            disabled={!prev}
+            onClick={() => onChangeIndex(editingIndex - 1)}
+          >
+            {prev && <span className="text-base">{renderChordLabel(prev)}</span>}
+          </button>
+          <Icon
+            icon="material-symbols:chevron-right-rounded"
+            className="size-5 shrink-0 opacity-50"
+            aria-hidden
+          />
+          <h3 className="text-2xl font-bold px-2 text-center">{renderChordLabel(current)}</h3>
+          <Icon
+            icon="material-symbols:chevron-right-rounded"
+            className="size-5 shrink-0 opacity-50"
+            aria-hidden
+          />
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm flex-1 justify-start opacity-50 disabled:opacity-20"
+            disabled={!next}
+            onClick={() => onChangeIndex(editingIndex + 1)}
+          >
+            {next && <span className="text-base">{renderChordLabel(next)}</span>}
+          </button>
+        </div>
+
+        <div className="flex w-full flex-col gap-3 md:hidden">
+          <label className="flex items-center gap-3">
+            <span className="w-20 text-sm">ルート</span>
+            <select
+              className="select select-bordered flex-1"
+              value={root}
+              onChange={(e) => onRootChange(e.target.value)}
+            >
+              {noteOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex items-center gap-3">
+            <span className="w-20 text-sm">タイプ</span>
+            <select
+              className="select select-bordered flex-1"
+              value={mainType}
+              onChange={(e) => handleMainChange(e.target.value)}
+            >
+              {MAIN_TYPES.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex items-center gap-3">
+            <span className="w-20 text-sm">テンション</span>
+            <select
+              className="select select-bordered flex-1"
+              value={tension}
+              onChange={(e) => handleTensionChange(e.target.value)}
+              disabled={availableTensions.length === 0}
+            >
+              <option value="">なし</option>
+              {availableTensions.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex items-center gap-3">
+            <span className="w-20 text-sm">オンコード</span>
+            <input
+              type="checkbox"
+              className="toggle toggle-primary"
+              checked={isOnChord}
+              onChange={(e) => handleOnChordToggle(e.target.checked)}
+            />
+          </label>
+          {isOnChord && (
+            <label className="flex items-center gap-3">
+              <span className="w-20 text-sm">ベース</span>
+              <select
+                className="select select-bordered flex-1"
+                value={bass}
+                onChange={(e) => onBassChange(e.target.value)}
+              >
+                {noteOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </label>
           )}
-        </h3>
-        <div className="flex flex-col gap-4">
+        </div>
+
+        <div className="hidden md:flex md:flex-col md:gap-4">
           <span className="text-lg">ルート</span>
           <NoteSelect value={root} onChange={onRootChange} />
           <div className="divider" />
           <ChordTypeSelect value={type} onChange={onTypeChange} />
           <div className="divider" />
-          <span className="text-lg">ベース</span>
-          <NoteSelect value={bass} onChange={onBassChange} />
-          <div className="modal-action justify-center">
-            <div className="flex flex-col place-items-center gap-2">
-              <ChordPlayer chord={`${root}${type}`} />
-              <button type="button" className="btn" onClick={onClose}>
-                閉じる
-              </button>
-            </div>
-          </div>
+          <label className="flex items-center gap-3">
+            <span className="text-lg">オンコード</span>
+            <input
+              type="checkbox"
+              className="toggle toggle-primary"
+              checked={isOnChord}
+              onChange={(e) => handleOnChordToggle(e.target.checked)}
+            />
+          </label>
+          {isOnChord && (
+            <>
+              <span className="text-lg">ベース</span>
+              <NoteSelect value={bass} onChange={onBassChange} />
+            </>
+          )}
+        </div>
+
+        <div className="modal-action justify-center">
+          <ChordPlayer chord={`${root}${type}`} />
         </div>
       </div>
       <form method="dialog" className="modal-backdrop">
