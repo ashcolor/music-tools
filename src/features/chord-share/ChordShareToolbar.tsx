@@ -48,14 +48,24 @@ type Props = {
   wakeLock: boolean;
   onWakeLockChange: (v: boolean) => void;
   onReset: () => void;
+  chords: string[];
+  onApplyChords: (text: string) => void;
 };
 
-export default function ChordShareToolbar({ wakeLock, onWakeLockChange, onReset }: Props) {
+export default function ChordShareToolbar({
+  wakeLock,
+  onWakeLockChange,
+  onReset,
+  chords,
+  onApplyChords,
+}: Props) {
   const helpRef = useRef<HTMLDialogElement>(null);
   const shortcutsRef = useRef<HTMLDialogElement>(null);
   const resetRef = useRef<HTMLDialogElement>(null);
   const shareRef = useRef<HTMLDialogElement>(null);
   const settingsRef = useRef<HTMLDialogElement>(null);
+  const chordInputRef = useRef<HTMLDialogElement>(null);
+  const [chordText, setChordText] = useState("");
   const isWakeLockSupported =
     typeof navigator !== "undefined" && "wakeLock" in navigator;
   const [shareBaseUrl, setShareBaseUrl] = useState("");
@@ -99,8 +109,27 @@ export default function ChordShareToolbar({ wakeLock, onWakeLockChange, onReset 
     resetRef.current?.close();
   };
 
+  const openChordInput = () => {
+    setChordText(chords.join(","));
+    chordInputRef.current?.showModal();
+  };
+
+  const handleApplyChordText = () => {
+    onApplyChords(chordText);
+    chordInputRef.current?.close();
+  };
+
   return (
     <div className="flex w-full items-center justify-end gap-1 px-4 py-2">
+      <button
+        type="button"
+        className="btn btn-ghost btn-sm btn-square mr-auto"
+        aria-label="コードを入力"
+        title="コードを入力"
+        onClick={openChordInput}
+      >
+        <Icon icon="mdi:alphabetical" className="size-5" />
+      </button>
       <button
         type="button"
         className="btn btn-ghost btn-sm btn-square"
@@ -351,6 +380,31 @@ export default function ChordShareToolbar({ wakeLock, onWakeLockChange, onReset 
           <div className="modal-action">
             <form method="dialog">
               <button className="btn">閉じる</button>
+            </form>
+          </div>
+        </div>
+        <form method="dialog" className="modal-backdrop">
+          <button>close</button>
+        </form>
+      </dialog>
+
+      <dialog ref={chordInputRef} className="modal">
+        <div className="modal-box">
+          <h3 className="font-bold text-lg mb-4">コードを入力</h3>
+          <p className="text-sm mb-3">コードをカンマ区切りで入力してください</p>
+          <textarea
+            className="textarea textarea-bordered w-full font-mono text-sm"
+            rows={3}
+            placeholder="Fsus2,Gsus4,Am7,Em7"
+            value={chordText}
+            onChange={(e) => setChordText(e.target.value)}
+          />
+          <div className="modal-action">
+            <form method="dialog" className="flex gap-2">
+              <button className="btn">キャンセル</button>
+              <button type="button" className="btn btn-primary" onClick={handleApplyChordText}>
+                適用
+              </button>
             </form>
           </div>
         </div>

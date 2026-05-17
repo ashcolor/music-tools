@@ -2,7 +2,7 @@ import { Chord, Note } from "tonal";
 
 export const INITIAL_CHORDS = ["Fsus2", "Gsus4", "Am7", "Em7"];
 
-export type AccidentalDisplay = "sharp" | "flat";
+export type AccidentalDisplay = "sharp" | "flat" | "auto";
 
 export const NATURAL_NOTES = [
   { label: "C", value: "C" },

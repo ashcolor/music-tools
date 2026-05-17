@@ -30,7 +30,7 @@ function loadAccidentalDisplay(): AccidentalDisplay {
   if (typeof window === "undefined") return "sharp";
   try {
     const raw = window.localStorage.getItem(ACCIDENTAL_STORAGE_KEY);
-    return raw === "flat" ? "flat" : "sharp";
+    return raw === "flat" ? "flat" : raw === "auto" ? "auto" : "sharp";
   } catch {
     return "sharp";
   }

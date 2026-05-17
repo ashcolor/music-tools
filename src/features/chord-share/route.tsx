@@ -63,7 +63,7 @@ function ChordShareInner() {
   // URL ?accidental= があれば初回マウント時にローカル設定へ反映
   useEffect(() => {
     const param = searchParams.get("accidental");
-    if (param === "sharp" || param === "flat") {
+    if (param === "sharp" || param === "flat" || param === "auto") {
       setAccidentalDisplay(param);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -110,6 +110,15 @@ function ChordShareInner() {
 
   const updateChord = useCallback((index: number, next: string) => {
     setChords((prev) => prev.map((c, i) => (i === index ? next : c)));
+  }, []);
+
+  const handleApplyChordsText = useCallback((text: string) => {
+    const parsed = text
+      .split(",")
+      .map((c) => c.trim())
+      .filter(Boolean);
+    if (parsed.length === 0) return;
+    setChords(parsed);
   }, []);
 
   const clearTimers = useCallback(() => {
@@ -234,9 +243,37 @@ function ChordShareInner() {
         wakeLock={wakeLock}
         onWakeLockChange={setWakeLock}
         onReset={handleReset}
+        chords={chords}
+        onApplyChords={handleApplyChordsText}
       />
       <div className="flex-1 min-h-0 flex flex-col w-full max-w-xl mx-auto">
         <div className="flex-1 min-h-0 flex flex-col place-content-center place-items-center gap-6 overflow-y-auto p-4">
+          <div className="join">
+            <button
+              type="button"
+              className={`btn btn-sm join-item ${accidentalDisplay === "sharp" ? "btn-primary" : ""}`}
+              onClick={() => setAccidentalDisplay("sharp")}
+              aria-label="シャープ表記"
+            >
+              ♯
+            </button>
+            <button
+              type="button"
+              className={`btn btn-sm join-item ${accidentalDisplay === "auto" ? "btn-primary" : ""}`}
+              onClick={() => setAccidentalDisplay("auto")}
+              aria-label="自動表記（入力のまま）"
+            >
+              自動
+            </button>
+            <button
+              type="button"
+              className={`btn btn-sm join-item ${accidentalDisplay === "flat" ? "btn-primary" : ""}`}
+              onClick={() => setAccidentalDisplay("flat")}
+              aria-label="フラット表記"
+            >
+              ♭
+            </button>
+          </div>
           <div className="flex flex-row flex-wrap place-content-center place-items-center gap-2">
             {chords.map((chord, index) => (
               <Fragment key={index}>
@@ -269,26 +306,6 @@ function ChordShareInner() {
           onPause={() => void handlePause()}
           onStop={handleStop}
           leftSlot={<VolumeControl showSoundType={false} />}
-          rightSlot={
-            <div className="join">
-              <button
-                type="button"
-                className={`btn btn-sm join-item ${accidentalDisplay === "sharp" ? "btn-primary" : ""}`}
-                onClick={() => setAccidentalDisplay("sharp")}
-                aria-label="シャープ表記"
-              >
-                ♯
-              </button>
-              <button
-                type="button"
-                className={`btn btn-sm join-item ${accidentalDisplay === "flat" ? "btn-primary" : ""}`}
-                onClick={() => setAccidentalDisplay("flat")}
-                aria-label="フラット表記"
-              >
-                ♭
-              </button>
-            </div>
-          }
           disabled={hasInvalidChord}
         />
       </div>
