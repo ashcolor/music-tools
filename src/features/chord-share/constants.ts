@@ -194,6 +194,41 @@ export function isValidChordNotes(root: string, type: string) {
   }
 }
 
+/**
+ * コード構成音をピッチクラスに潰し、C4(MIDI 60)付近のクローズドボイシングに
+ * 再配置する。テンションが入っても上に伸びず、間延びしない響きになる。
+ * bass を指定すると低音ベースとして先頭に追加する(スラッシュコード対応)。
+ */
+export function buildChordVoicing(
+  root: string,
+  type: string,
+  bass?: string,
+): string[] {
+  const { notes } = Chord.get(`${root}${type}`);
+  const chromas = notes
+    .map((n) => Note.chroma(n))
+    .filter((c): c is number => c !== undefined);
+  if (chromas.length === 0) return [];
+
+  // 一番低いピッチクラスを起点に回転
+  let index = 0;
+  for (let a = 1; a < chromas.length; a++) {
+    if (chromas[a] < chromas[index]) index = a;
+  }
+  const rotated = chromas
+    .concat(chromas)
+    .slice(index, chromas.length + index);
+
+  // C4付近から、直前の音以上で一番近い同名音へ積み直す
+  let prev = 60;
+  const midis = rotated.map((c) => (prev += (((c - prev) % 12) + 12) % 12));
+  const tones = midis
+    .map((m) => Note.fromMidi(m))
+    .filter((n): n is string => Boolean(n));
+
+  return bass ? [`${bass}2`, ...tones] : tones;
+}
+
 export function parseChord(s: string) {
   const str = s || "";
   const lastSlash = str.lastIndexOf("/");
@@ -213,4 +248,44 @@ export function parseChord(s: string) {
 
 export function serializeChord(root: string, type: string, bass: string) {
   return bass && bass !== root ? `${root}${type}/${bass}` : `${root}${type}`;
+}
+
+const SHARP_PITCH_CLASSES = [
+  "C",
+  "C#",
+  "D",
+  "D#",
+  "E",
+  "F",
+  "F#",
+  "G",
+  "G#",
+  "A",
+  "A#",
+  "B",
+];
+
+function transposeNote(
+  note: string,
+  semitones: number,
+  accidental: AccidentalDisplay,
+): string {
+  const chroma = Note.chroma(note);
+  if (chroma === undefined) return note;
+  const next = (((chroma + semitones) % 12) + 12) % 12;
+  return toAccidental(SHARP_PITCH_CLASSES[next], accidental);
+}
+
+/** コードのルート/ベースを半音単位で移調する。type はそのまま維持する。 */
+export function transposeChord(
+  chord: string,
+  semitones: number,
+  accidental: AccidentalDisplay,
+): string {
+  const { root, type, bass } = parseChord(chord);
+  return serializeChord(
+    transposeNote(root, semitones, accidental),
+    type,
+    transposeNote(bass, semitones, accidental),
+  );
 }

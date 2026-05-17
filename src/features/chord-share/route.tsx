@@ -1,7 +1,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import { Icon } from "@iconify/react";
-import { Chord, Note } from "tonal";
 import PlaybackBar from "../../components/PlaybackBar";
 import VolumeControl from "../../components/VolumeControl";
 import { useMetronome } from "../../contexts/MetronomeContext";
@@ -13,10 +12,12 @@ import { ChordShareProvider, useChordShare } from "./ChordShareContext";
 import ChordShareToolbar from "./ChordShareToolbar";
 import {
   INITIAL_CHORDS,
+  buildChordVoicing,
   convertChordToAccidental,
   isValidChordNotes,
   isValidNote,
   parseChord,
+  transposeChord,
 } from "./constants";
 
 const BEAT_SEC = 1;
@@ -25,12 +26,7 @@ function computeChordNotes(chords: string[]) {
   return chords.map((chord) => {
     const { root, type, bass } = parseChord(chord || "");
     if (!root) return [];
-    const baseRoot = `${root}3`;
-    const intervals = Chord.get(`${root}${type}`).intervals;
-    const tones = intervals
-      .map((iv) => Note.transpose(baseRoot, iv))
-      .filter((n): n is string => Boolean(n));
-    return [`${bass}2`, ...tones];
+    return buildChordVoicing(root, type, bass);
   });
 }
 
@@ -121,6 +117,15 @@ function ChordShareInner() {
     if (parsed.length === 0) return;
     setChords(parsed);
   }, []);
+
+  const handleTranspose = useCallback(
+    (semitones: number) => {
+      setChords((prev) =>
+        prev.map((c) => transposeChord(c, semitones, accidentalDisplay)),
+      );
+    },
+    [accidentalDisplay],
+  );
 
   const clearTimers = useCallback(() => {
     timeoutsRef.current.forEach((id) => window.clearTimeout(id));
@@ -247,8 +252,9 @@ function ChordShareInner() {
         chords={chords}
         onApplyChords={handleApplyChordsText}
       />
-      <div className="flex-1 min-h-0 flex flex-col w-full max-w-xl mx-auto">
-        <div className="flex-1 min-h-0 flex flex-col place-content-center place-items-center gap-6 overflow-y-auto p-4">
+      <div className="flex flex-row flex-wrap place-content-center place-items-center gap-3 px-4 pb-2">
+        <div className="flex flex-row place-items-center gap-2">
+          <span className="text-sm opacity-70">表記</span>
           <div className="join">
             <button
               type="button"
@@ -275,6 +281,33 @@ function ChordShareInner() {
               ♭
             </button>
           </div>
+        </div>
+        <div className="flex flex-row place-items-center gap-2">
+          <span className="text-sm opacity-70">移調</span>
+          <div className="join">
+            <button
+              type="button"
+              className="btn btn-sm join-item"
+              onClick={() => handleTranspose(-1)}
+              aria-label="半音下げる"
+              title="半音下げる"
+            >
+              <Icon icon="mdi:minus" className="size-4" />1
+            </button>
+            <button
+              type="button"
+              className="btn btn-sm join-item"
+              onClick={() => handleTranspose(1)}
+              aria-label="半音上げる"
+              title="半音上げる"
+            >
+              <Icon icon="mdi:plus" className="size-4" />1
+            </button>
+          </div>
+        </div>
+      </div>
+      <div className="flex-1 min-h-0 flex flex-col w-full max-w-xl mx-auto">
+        <div className="flex-1 min-h-0 flex flex-col place-content-center place-items-center gap-6 overflow-y-auto p-4">
           <div className="flex flex-row flex-wrap place-content-center place-items-center gap-2">
             {chords.map((chord, index) => (
               <Fragment key={index}>

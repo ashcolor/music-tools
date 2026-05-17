@@ -128,7 +128,7 @@ export default function ChordShareToolbar({
         title="コードを入力"
         onClick={openChordInput}
       >
-        <Icon icon="mdi:alphabetical" className="size-5" />
+        <Icon icon="mdi:alphabetical" className="size-6" />
       </button>
       <button
         type="button"
