@@ -1,5 +1,6 @@
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Note } from "tonal";
+import { useChordShare } from "./ChordShareContext";
 
 type Props = {
   startNote?: string;
@@ -35,6 +36,25 @@ export function PianoRoll({ startNote = "C2", endNote = "C5", activeNotes }: Pro
     return { whiteKeys: whites, blackKeysByLeftIndex: blackMap };
   }, [startNote, endNote]);
 
+  const { sampler } = useChordShare();
+  const [pressedMidiSet, setPressedMidiSet] = useState<Set<number>>(new Set());
+
+  const playNote = useCallback(
+    async (note: string, midi: number) => {
+      setPressedMidiSet((prev) => new Set(prev).add(midi));
+      window.setTimeout(() => {
+        setPressedMidiSet((prev) => {
+          const next = new Set(prev);
+          next.delete(midi);
+          return next;
+        });
+      }, 1000);
+      await sampler.resume();
+      sampler.triggerAttackRelease(note, 1, 0);
+    },
+    [sampler],
+  );
+
   const activeMidiSet = useMemo(() => {
     const set = new Set<number>();
     activeNotes.forEach((note) => {
@@ -50,17 +70,29 @@ export function PianoRoll({ startNote = "C2", endNote = "C5", activeNotes }: Pro
       style={{ aspectRatio: `${whiteKeys.length * 3} / 8` }}
     >
       {whiteKeys.map((white, i) => {
-        const whiteActive = activeMidiSet.has(white.midi);
+        const whiteActive =
+          activeMidiSet.has(white.midi) || pressedMidiSet.has(white.midi);
         const black = blackKeysByLeftIndex.get(i);
-        const blackActive = black ? activeMidiSet.has(black.midi) : false;
+        const blackActive = black
+          ? activeMidiSet.has(black.midi) || pressedMidiSet.has(black.midi)
+          : false;
         return (
           <div key={white.note} className="relative h-full flex-1 min-w-0">
-            <div
-              className={`h-full w-full border border-base-content/20 ${whiteActive ? "bg-primary" : "bg-white"}`}
+            <button
+              type="button"
+              aria-label={white.note}
+              onClick={() => void playNote(white.note, white.midi)}
+              className={`h-full w-full cursor-pointer border border-base-content/20 ${whiteActive ? "bg-primary" : "bg-white"}`}
             />
             {black && (
-              <div
-                className={`absolute top-0 right-0 translate-x-1/2 h-[63%] w-[37.5%] border border-base-content/20 z-10 ${blackActive ? "bg-primary" : "bg-black"}`}
+              <button
+                type="button"
+                aria-label={black.note}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void playNote(black.note, black.midi);
+                }}
+                className={`absolute top-0 right-0 translate-x-1/2 h-[63%] w-[37.5%] cursor-pointer border border-base-content/20 z-10 ${blackActive ? "bg-primary" : "bg-black"}`}
               />
             )}
           </div>
