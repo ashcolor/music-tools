@@ -220,7 +220,7 @@ export function Polyrhythm() {
   };
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col w-full max-w-xl mx-auto">
+    <div className="flex-1 min-h-0 flex flex-col">
       <MasterVolumeBridge volumeRef={masterVolumeRef} />
       <PolyrhythmToolbar
         wakeLock={wakeLock}
@@ -229,70 +229,72 @@ export function Polyrhythm() {
         onShowVisualizerChange={setShowVisualizer}
         onReset={handleReset}
       />
-      <div className="flex-1 min-h-0 flex flex-col items-center gap-8 p-4 md:p-8">
-        {showVisualizer ? (
-          <div className="relative shrink-0 w-[15rem] h-[15rem] md:w-[17rem] md:h-[17rem] flex items-center justify-center">
-            <div className="absolute inset-0 pointer-events-none">
-              <PolyrhythmVisualizer
+      <div className="flex-1 min-h-0 flex flex-col w-full max-w-xl mx-auto">
+        <div className="flex-1 min-h-0 flex flex-col items-center gap-8 p-4 md:p-8">
+          {showVisualizer ? (
+            <div className="relative shrink-0 w-[15rem] h-[15rem] md:w-[17rem] md:h-[17rem] flex items-center justify-center">
+              <div className="absolute inset-0 pointer-events-none">
+                <PolyrhythmVisualizer
+                  bpm={bpm}
+                  rhythms={rhythms}
+                  isPlaying={isPlaying}
+                  isPaused={isPaused}
+                  getPlayheadTime={audio.getPlayheadTime}
+                />
+              </div>
+              <BpmDisplay
                 bpm={bpm}
-                rhythms={rhythms}
-                isPlaying={isPlaying}
-                isPaused={isPaused}
-                getPlayheadTime={audio.getPlayheadTime}
+                onClick={() => bpmModalRef.current?.showModal()}
+                showBorder={false}
               />
             </div>
-            <BpmDisplay
-              bpm={bpm}
-              onClick={() => bpmModalRef.current?.showModal()}
-              showBorder={false}
-            />
-          </div>
-        ) : (
-          <BpmDisplay bpm={bpm} onClick={() => bpmModalRef.current?.showModal()} />
-        )}
+          ) : (
+            <BpmDisplay bpm={bpm} onClick={() => bpmModalRef.current?.showModal()} />
+          )}
 
-        <div className="flex-1 min-h-0 overflow-y-auto w-full">
-          <div className="grid grid-cols-2 gap-4 w-full">
-            {rhythms.map((rhythm, i) => (
-              <RhythmSettingsCard
-                key={i}
-                index={i}
-                value={rhythm}
-                onChange={updateRhythm}
-                onRemove={removeRhythm}
-              />
-            ))}
-            <button
-              type="button"
-              className="card bg-base-100 border-2 border-dashed border-base-300 hover:border-primary hover:bg-base-200 transition-colors flex items-center justify-center min-h-[8rem] text-primary"
-              onClick={addRhythm}
-              aria-label="リズムを追加"
-            >
-              <Icon icon="material-symbols:add-rounded" className="size-8" />
-            </button>
+          <div className="flex-1 min-h-0 overflow-y-auto w-full">
+            <div className="grid grid-cols-2 gap-4 w-full">
+              {rhythms.map((rhythm, i) => (
+                <RhythmSettingsCard
+                  key={i}
+                  index={i}
+                  value={rhythm}
+                  onChange={updateRhythm}
+                  onRemove={removeRhythm}
+                />
+              ))}
+              <button
+                type="button"
+                className="card bg-base-100 border-2 border-dashed border-base-300 hover:border-primary hover:bg-base-200 transition-colors flex items-center justify-center min-h-[8rem] text-primary"
+                onClick={addRhythm}
+                aria-label="リズムを追加"
+              >
+                <Icon icon="material-symbols:add-rounded" className="size-8" />
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      <PlaybackBar
-        isPlaying={isPlaying}
-        isPaused={isPaused}
-        onPlay={handlePlay}
-        onPause={handlePause}
-        onStop={handleStop}
-        leftSlot={<VolumeControl showSoundType={false} />}
-        rightSlot={
-          <button
-            type="button"
-            className="btn btn-circle btn-ghost"
-            onClick={() => bpmModalRef.current?.showModal()}
-            aria-label="テンポ設定"
-            title="テンポ設定"
-          >
-            <Icon icon="lucide:metronome" className="size-6" />
-          </button>
-        }
-      />
+        <PlaybackBar
+          isPlaying={isPlaying}
+          isPaused={isPaused}
+          onPlay={handlePlay}
+          onPause={handlePause}
+          onStop={handleStop}
+          leftSlot={<VolumeControl showSoundType={false} />}
+          rightSlot={
+            <button
+              type="button"
+              className="btn btn-circle btn-ghost"
+              onClick={() => bpmModalRef.current?.showModal()}
+              aria-label="テンポ設定"
+              title="テンポ設定"
+            >
+              <Icon icon="lucide:metronome" className="size-6" />
+            </button>
+          }
+        />
+      </div>
 
       <dialog ref={bpmModalRef} className="modal">
         <div className="modal-box">

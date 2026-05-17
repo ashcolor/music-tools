@@ -5,10 +5,12 @@ import { Chord, Note } from "tonal";
 import PlaybackBar from "../../components/PlaybackBar";
 import VolumeControl from "../../components/VolumeControl";
 import { useMetronome } from "../../contexts/MetronomeContext";
+import { useWakeLock } from "../../hooks/useWakeLock";
 import { ChordDisplay } from "./ChordDisplay";
 import { ChordSelectModal } from "./ChordSelectModal";
 import { PianoRoll } from "./PianoRoll";
 import { ChordShareProvider, useChordShare } from "./ChordShareContext";
+import ChordShareToolbar from "./ChordShareToolbar";
 import {
   INITIAL_CHORDS,
   convertChordToAccidental,
@@ -56,6 +58,7 @@ function ChordShareInner() {
   }, []);
   const [chords, setChords] = useState<string[]>(initial);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [wakeLock, setWakeLock] = useState(false);
 
   // URL ?accidental= があれば初回マウント時にローカル設定へ反映
   useEffect(() => {
@@ -160,6 +163,11 @@ function ChordShareInner() {
     pausedElapsedRef.current = 0;
   }, [clearTimers, sampler, setActiveChordIndex]);
 
+  const handleReset = useCallback(() => {
+    handleStop();
+    setChords(INITIAL_CHORDS);
+  }, [handleStop]);
+
   const handlePlay = useCallback(async () => {
     if (isPaused) {
       await sampler.resume();
@@ -198,64 +206,92 @@ function ChordShareInner() {
     };
   }, []);
 
-  return (
-    <div className="flex-1 min-h-0 flex flex-col w-full max-w-xl mx-auto">
-      <MasterVolumeBridge />
-      <div className="flex-1 min-h-0 flex flex-col place-content-center place-items-center gap-6 overflow-y-auto p-4">
-        <div className="flex flex-row flex-wrap place-content-center place-items-center gap-2">
-          {chords.map((chord, index) => (
-            <Fragment key={index}>
-              {index > 0 && (
-                <Icon
-                  icon="material-symbols:chevron-right-rounded"
-                  className="size-4 opacity-50"
-                  aria-hidden
-                />
-              )}
-              <div className="flex flex-col place-content-center place-items-center gap-2">
-                <ChordDisplay
-                  value={chord}
-                  onClick={() => setEditingIndex(index)}
-                  isActive={index === activeChordIndex}
-                />
-              </div>
-            </Fragment>
-          ))}
-        </div>
-        <div className="w-full">
-          <PianoRoll startNote="C2" endNote="C5" activeNotes={activeNotes} />
-        </div>
-      </div>
+  useWakeLock(wakeLock && isPlaying);
 
-      <PlaybackBar
-        isPlaying={isPlaying}
-        isPaused={isPaused}
-        onPlay={() => void handlePlay()}
-        onPause={() => void handlePause()}
-        onStop={handleStop}
-        leftSlot={<VolumeControl showSoundType={false} />}
-        rightSlot={
-          <div className="join">
-            <button
-              type="button"
-              className={`btn btn-sm join-item ${accidentalDisplay === "sharp" ? "btn-primary" : ""}`}
-              onClick={() => setAccidentalDisplay("sharp")}
-              aria-label="シャープ表記"
-            >
-              ♯
-            </button>
-            <button
-              type="button"
-              className={`btn btn-sm join-item ${accidentalDisplay === "flat" ? "btn-primary" : ""}`}
-              onClick={() => setAccidentalDisplay("flat")}
-              aria-label="フラット表記"
-            >
-              ♭
-            </button>
-          </div>
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.target instanceof HTMLElement && e.target.closest("[role='dialog']")) return;
+      if (e.code === "Space") {
+        e.preventDefault();
+        if (isPlaying && !isPaused) {
+          void handlePause();
+        } else {
+          void handlePlay();
         }
-        disabled={hasInvalidChord}
+      } else if (e.code === "KeyR") {
+        handleStop();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isPlaying, isPaused, handlePlay, handlePause, handleStop]);
+
+  return (
+    <div className="flex-1 min-h-0 flex flex-col">
+      <MasterVolumeBridge />
+      <ChordShareToolbar
+        wakeLock={wakeLock}
+        onWakeLockChange={setWakeLock}
+        onReset={handleReset}
       />
+      <div className="flex-1 min-h-0 flex flex-col w-full max-w-xl mx-auto">
+        <div className="flex-1 min-h-0 flex flex-col place-content-center place-items-center gap-6 overflow-y-auto p-4">
+          <div className="flex flex-row flex-wrap place-content-center place-items-center gap-2">
+            {chords.map((chord, index) => (
+              <Fragment key={index}>
+                {index > 0 && (
+                  <Icon
+                    icon="material-symbols:chevron-right-rounded"
+                    className="size-4 opacity-50"
+                    aria-hidden
+                  />
+                )}
+                <div className="flex flex-col place-content-center place-items-center gap-2">
+                  <ChordDisplay
+                    value={chord}
+                    onClick={() => setEditingIndex(index)}
+                    isActive={index === activeChordIndex}
+                  />
+                </div>
+              </Fragment>
+            ))}
+          </div>
+          <div className="w-full">
+            <PianoRoll startNote="C2" endNote="C5" activeNotes={activeNotes} />
+          </div>
+        </div>
+
+        <PlaybackBar
+          isPlaying={isPlaying}
+          isPaused={isPaused}
+          onPlay={() => void handlePlay()}
+          onPause={() => void handlePause()}
+          onStop={handleStop}
+          leftSlot={<VolumeControl showSoundType={false} />}
+          rightSlot={
+            <div className="join">
+              <button
+                type="button"
+                className={`btn btn-sm join-item ${accidentalDisplay === "sharp" ? "btn-primary" : ""}`}
+                onClick={() => setAccidentalDisplay("sharp")}
+                aria-label="シャープ表記"
+              >
+                ♯
+              </button>
+              <button
+                type="button"
+                className={`btn btn-sm join-item ${accidentalDisplay === "flat" ? "btn-primary" : ""}`}
+                onClick={() => setAccidentalDisplay("flat")}
+                aria-label="フラット表記"
+              >
+                ♭
+              </button>
+            </div>
+          }
+          disabled={hasInvalidChord}
+        />
+      </div>
 
       <ChordSelectModal
         chords={chords}
