@@ -7,6 +7,7 @@ import { useMetronome } from "../../contexts/MetronomeContext";
 import { useWakeLock } from "../../hooks/useWakeLock";
 import { ChordDisplay } from "./ChordDisplay";
 import { ChordSelectModal } from "./ChordSelectModal";
+import { MetronomeSettingsModal } from "./MetronomeSettingsModal";
 import { PianoRoll } from "./PianoRoll";
 import { ChordShareProvider, useChordShare } from "./ChordShareContext";
 import ChordShareToolbar from "./ChordShareToolbar";
@@ -56,6 +57,9 @@ function ChordShareInner() {
   const [chords, setChords] = useState<string[]>(initial);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [wakeLock, setWakeLock] = useState(false);
+  const [isLoop, setIsLoop] = useState(false);
+  const isLoopRef = useRef(false);
+  const [metronomeModalOpen, setMetronomeModalOpen] = useState(false);
 
   // URL ?accidental= があれば初回マウント時にローカル設定へ反映
   useEffect(() => {
@@ -158,14 +162,23 @@ function ChordShareInner() {
       const remainingMs = Math.max(0, (totalSec - fromElapsed) * 1000);
       timeoutsRef.current.push(
         window.setTimeout(() => {
-          setActiveChordIndex(-1);
-          setIsPlaying(false);
-          setIsPaused(false);
-          pausedElapsedRef.current = 0;
+          if (isLoopRef.current) {
+            sampler.stopAll();
+            void sampler.resume();
+            pausedElapsedRef.current = 0;
+            playStartWallRef.current = performance.now();
+            setActiveChordIndex(-1);
+            scheduleFrom(0);
+          } else {
+            setActiveChordIndex(-1);
+            setIsPlaying(false);
+            setIsPaused(false);
+            pausedElapsedRef.current = 0;
+          }
         }, remainingMs),
       );
     },
-    [sampler, setActiveChordIndex],
+    [sampler, setActiveChordIndex, isLoopRef],
   );
 
   const handleStop = useCallback(() => {
@@ -214,6 +227,10 @@ function ChordShareInner() {
     await sampler.suspend();
     setIsPaused(true);
   }, [clearTimers, sampler]);
+
+  useEffect(() => {
+    isLoopRef.current = isLoop;
+  }, [isLoop]);
 
   useEffect(() => {
     return () => {
@@ -339,7 +356,31 @@ function ChordShareInner() {
           onPlay={() => void handlePlay()}
           onPause={() => void handlePause()}
           onStop={handleStop}
-          leftSlot={<VolumeControl showSoundType={false} />}
+          leftSlot={
+            <div className="flex items-center gap-1">
+              <VolumeControl showSoundType={false} />
+              <button
+                type="button"
+                className={`btn btn-sm btn-circle ${isLoop ? "btn-primary" : "btn-ghost"}`}
+                onClick={() => setIsLoop((prev) => !prev)}
+                aria-label="ループ"
+                title="ループ"
+              >
+                <Icon icon="material-symbols:loop" className="size-5" />
+              </button>
+            </div>
+          }
+          rightSlot={
+            <button
+              type="button"
+              className="btn btn-sm btn-circle btn-ghost"
+              onClick={() => setMetronomeModalOpen(true)}
+              aria-label="メトロノーム設定"
+              title="メトロノーム設定"
+            >
+              <Icon icon="lucide:metronome" className="size-5" />
+            </button>
+          }
           disabled={hasInvalidChord}
         />
       </div>
@@ -350,6 +391,10 @@ function ChordShareInner() {
         onUpdate={updateChord}
         onChangeIndex={setEditingIndex}
         onClose={() => setEditingIndex(null)}
+      />
+      <MetronomeSettingsModal
+        open={metronomeModalOpen}
+        onClose={() => setMetronomeModalOpen(false)}
       />
     </div>
   );
