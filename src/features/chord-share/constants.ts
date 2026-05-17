@@ -226,7 +226,7 @@ export function buildChordVoicing(
     .map((m) => Note.fromMidi(m))
     .filter((n): n is string => Boolean(n));
 
-  return bass ? [`${bass}3`, ...tones] : tones;
+  return bass ? [`${bass}2`, ...tones] : tones;
 }
 
 /**
@@ -251,7 +251,7 @@ export function buildChordVoicingFromRoot(
     .map((m) => Note.fromMidi(m))
     .filter((n): n is string => Boolean(n));
 
-  return bass ? [`${bass}3`, ...tones] : tones;
+  return bass ? [`${bass}2`, ...tones] : tones;
 }
 
 export function parseChord(s: string) {

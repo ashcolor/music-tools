@@ -329,7 +329,7 @@ function ChordShareInner() {
             ))}
           </div>
           <div className="w-full">
-            <PianoRoll startNote="C3" endNote="C6" activeNotes={activeNotes} />
+            <PianoRoll startNote="C2" endNote="C6" activeNotes={activeNotes} />
           </div>
         </div>
 

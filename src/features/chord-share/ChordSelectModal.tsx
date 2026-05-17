@@ -209,7 +209,7 @@ export function ChordSelectModal({
 
         <div className="w-full">
           <PianoRoll
-            startNote={isOnChord ? "C3" : "C4"}
+            startNote={isOnChord ? "C2" : "C4"}
             endNote="C6"
             activeNotes={voicingNotes}
           />
