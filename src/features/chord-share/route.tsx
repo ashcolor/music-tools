@@ -7,7 +7,7 @@ import { useMetronome } from "../../contexts/MetronomeContext";
 import { useWakeLock } from "../../hooks/useWakeLock";
 import { ChordDisplay } from "./ChordDisplay";
 import { ChordSelectModal } from "./ChordSelectModal";
-import { MetronomeSettingsModal } from "./MetronomeSettingsModal";
+import { MetronomeSettingsModal, type NoteValue } from "./MetronomeSettingsModal";
 import { PianoRoll } from "./PianoRoll";
 import { ChordShareProvider, useChordShare } from "./ChordShareContext";
 import ChordShareToolbar from "./ChordShareToolbar";
@@ -20,8 +20,6 @@ import {
   parseChord,
   transposeChord,
 } from "./constants";
-
-const BEAT_SEC = 1;
 
 function computeChordNotes(chords: string[]) {
   return chords.map((chord) => {
@@ -59,6 +57,7 @@ function ChordShareInner() {
   const [wakeLock, setWakeLock] = useState(false);
   const [isLoop, setIsLoop] = useState(false);
   const isLoopRef = useRef(false);
+  const [noteValue, setNoteValue] = useState<NoteValue>(1);
   const [metronomeModalOpen, setMetronomeModalOpen] = useState(false);
 
   // URL ?accidental= があれば初回マウント時にローカル設定へ反映
@@ -74,10 +73,13 @@ function ChordShareInner() {
   useEffect(() => {
     setChords((prev) => prev.map((c) => convertChordToAccidental(c, accidentalDisplay)));
   }, [accidentalDisplay]);
+  const { state: metronomeState } = useMetronome();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const timeoutsRef = useRef<number[]>([]);
   const chordNotesRef = useRef<string[][]>([]);
+  const beatSecRef = useRef(60 / 120);
+  const measureSecRef = useRef(4 * (60 / 120));
   const pausedElapsedRef = useRef(0);
   const playStartWallRef = useRef(0);
 
@@ -138,27 +140,36 @@ function ChordShareInner() {
 
   const scheduleFrom = useCallback(
     (fromElapsed: number) => {
+      const noteSec = beatSecRef.current;
+      const measureSec = measureSecRef.current;
+      const repeatCount = Math.max(1, Math.round(measureSec / noteSec));
       const notesList = chordNotesRef.current;
-      notesList.forEach((notes, index) => {
-        const chordStart = index * BEAT_SEC;
-        const chordEnd = chordStart + BEAT_SEC;
-        if (chordEnd <= fromElapsed) return;
 
-        const startOffset = Math.max(0, chordStart - fromElapsed);
-        const delayMs = startOffset * 1000;
+      notesList.forEach((notes, index) => {
+        const groupStart = index * measureSec;
+        const groupEnd = groupStart + measureSec;
+        if (groupEnd <= fromElapsed) return;
+
+        const groupOffset = Math.max(0, groupStart - fromElapsed);
         timeoutsRef.current.push(
           window.setTimeout(() => {
             setActiveChordIndex(index);
-          }, delayMs),
+          }, groupOffset * 1000),
         );
 
-        const remaining = chordEnd - Math.max(chordStart, fromElapsed);
-        notes.forEach((note) => {
-          sampler.triggerAttackRelease(note, remaining, startOffset);
-        });
+        for (let r = 0; r < repeatCount; r++) {
+          const noteStart = groupStart + r * noteSec;
+          const noteEnd = noteStart + noteSec;
+          if (noteEnd <= fromElapsed) continue;
+
+          const startOffset = Math.max(0, noteStart - fromElapsed);
+          notes.forEach((note) => {
+            sampler.triggerAttackRelease(note, noteSec, startOffset);
+          });
+        }
       });
 
-      const totalSec = notesList.length * BEAT_SEC;
+      const totalSec = notesList.length * measureSec;
       const remainingMs = Math.max(0, (totalSec - fromElapsed) * 1000);
       timeoutsRef.current.push(
         window.setTimeout(() => {
@@ -199,8 +210,8 @@ function ChordShareInner() {
   const handlePlay = useCallback(async () => {
     if (isPaused) {
       await sampler.resume();
-      const nextBoundary =
-        Math.ceil(pausedElapsedRef.current / BEAT_SEC - 1e-6) * BEAT_SEC;
+      const mSec = measureSecRef.current;
+      const nextBoundary = Math.ceil(pausedElapsedRef.current / mSec - 1e-6) * mSec;
       pausedElapsedRef.current = nextBoundary;
       playStartWallRef.current = performance.now();
       setIsPaused(false);
@@ -211,15 +222,17 @@ function ChordShareInner() {
     clearTimers();
     sampler.stopAll();
     await sampler.resume();
+    beatSecRef.current = noteValue * (60 / metronomeState.bpm);
+    measureSecRef.current = metronomeState.beatsPerMeasure * (60 / metronomeState.bpm);
     pausedElapsedRef.current = 0;
     playStartWallRef.current = performance.now();
     setIsPlaying(true);
     setIsPaused(false);
     scheduleFrom(0);
-  }, [clearTimers, isPaused, sampler, scheduleFrom]);
+  }, [clearTimers, isPaused, metronomeState.bpm, noteValue, sampler, scheduleFrom]);
 
   const handlePause = useCallback(async () => {
-    const totalSec = chordNotesRef.current.length * BEAT_SEC;
+    const totalSec = chordNotesRef.current.length * measureSecRef.current;
     const segment = (performance.now() - playStartWallRef.current) / 1000;
     pausedElapsedRef.current = Math.min(totalSec, pausedElapsedRef.current + segment);
     clearTimers();
@@ -395,6 +408,8 @@ function ChordShareInner() {
       <MetronomeSettingsModal
         open={metronomeModalOpen}
         onClose={() => setMetronomeModalOpen(false)}
+        noteValue={noteValue}
+        onNoteValueChange={setNoteValue}
       />
     </div>
   );
