@@ -23,13 +23,14 @@ const BEAT_SEC = 1;
 
 function computeChordNotes(chords: string[]) {
   return chords.map((chord) => {
-    const { root, type } = parseChord(chord || "");
+    const { root, type, bass } = parseChord(chord || "");
     if (!root) return [];
     const baseRoot = `${root}3`;
     const intervals = Chord.get(`${root}${type}`).intervals;
-    return intervals
+    const tones = intervals
       .map((iv) => Note.transpose(baseRoot, iv))
       .filter((n): n is string => Boolean(n));
+    return [`${bass}2`, ...tones];
   });
 }
 
