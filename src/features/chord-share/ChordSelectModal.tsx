@@ -4,10 +4,12 @@ import { Note } from "tonal";
 import { ChordTypeSelect } from "./ChordTypeSelect";
 import { NoteSelect } from "./NoteSelect";
 import { ChordPlayer } from "./ChordPlayer";
+import { PianoRoll } from "./PianoRoll";
 import { useChordShare } from "./ChordShareContext";
 import {
   MAIN_TYPES,
   NATURAL_NOTES,
+  buildChordVoicingFromRoot,
   findMainTypeByType,
   getDerivedNotes,
   isValidMainType,
@@ -96,6 +98,11 @@ export function ChordSelectModal({
   }
 
   const { root, type, bass } = current;
+
+  const voicingNotes =
+    isValidNote(root) && isValidMainType(mainType)
+      ? buildChordVoicingFromRoot(root, type, bass)
+      : [];
 
   const setField = (overrides: Partial<{ root: string; type: string; bass: string }>) => {
     const r = overrides.root ?? root;
@@ -198,6 +205,14 @@ export function ChordSelectModal({
           ) : (
             <div className="flex-1" />
           )}
+        </div>
+
+        <div className="w-full">
+          <PianoRoll
+            startNote={isOnChord ? "C3" : "C4"}
+            endNote="C6"
+            activeNotes={voicingNotes}
+          />
         </div>
 
         <div className="flex w-full flex-col gap-3 md:hidden">

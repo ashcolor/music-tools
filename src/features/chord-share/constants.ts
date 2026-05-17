@@ -226,7 +226,32 @@ export function buildChordVoicing(
     .map((m) => Note.fromMidi(m))
     .filter((n): n is string => Boolean(n));
 
-  return bass ? [`${bass}2`, ...tones] : tones;
+  return bass ? [`${bass}3`, ...tones] : tones;
+}
+
+/**
+ * ルート音を起点に上へ堆積したボイシングを返す(コード設定画面の鍵盤表示用)。
+ * buildChordVoicing と違い最低ピッチクラスへの回転を行わない。
+ */
+export function buildChordVoicingFromRoot(
+  root: string,
+  type: string,
+  bass?: string,
+): string[] {
+  const { notes } = Chord.get(`${root}${type}`);
+  const chromas = notes
+    .map((n) => Note.chroma(n))
+    .filter((c): c is number => c !== undefined);
+  if (chromas.length === 0) return [];
+
+  // ルート(配列先頭)から、直前の音以上で一番近い同名音へ積み上げ
+  let prev = 60;
+  const midis = chromas.map((c) => (prev += (((c - prev) % 12) + 12) % 12));
+  const tones = midis
+    .map((m) => Note.fromMidi(m))
+    .filter((n): n is string => Boolean(n));
+
+  return bass ? [`${bass}3`, ...tones] : tones;
 }
 
 export function parseChord(s: string) {
