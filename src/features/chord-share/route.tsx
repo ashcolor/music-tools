@@ -48,8 +48,8 @@ function ChordShareInner() {
     setAccidentalDisplay,
   } = useChordShare();
   const initial = useMemo(() => {
-    const chordParam = searchParams.get("chord");
-    return chordParam ? chordParam.split(",") : INITIAL_CHORDS;
+    const textParam = searchParams.get("text");
+    return textParam ? textParam.split(",") : INITIAL_CHORDS;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const [chords, setChords] = useState<string[]>(initial);
@@ -87,7 +87,8 @@ function ChordShareInner() {
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
-        next.set("chord", chords.join(","));
+        next.set("text", chords.join(","));
+        next.delete("chord");
         next.set("accidental", accidentalDisplay);
         return next;
       },
