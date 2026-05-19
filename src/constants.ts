@@ -40,7 +40,14 @@ export const tools: Tool[] = [
   },
 ];
 
-export const experimentalTools: Tool[] = [];
+export const experimentalTools: Tool[] = [
+  {
+    path: "/chord-share",
+    title: "コードシェア",
+    description: "コード進行を選んで再生・共有できるツール",
+    sidebarIcon: "material-symbols:library-music-outline-rounded",
+  },
+];
 
 export const allTools: Tool[] = [...tools, ...experimentalTools];
 
@@ -49,7 +56,7 @@ export const externalTools: ExternalTool[] = [
     url: "https://chromewebstore.google.com/detail/chord-dictionary/lnefagbhokamcaedbeopnhdabkcemkcf",
     title: "Chord Dictionary",
     description: "コードの構成音や転回形を確認できるChrome拡張機能",
-    sidebarIcon: "material-symbols:library-music-outline-rounded",
+    sidebarIcon: "lucide:book-audio",
     category: "Chrome拡張機能",
   },
 ];

@@ -9,6 +9,7 @@ type PlaybackBarProps = {
   onStop: () => void;
   leftSlot?: ReactNode;
   rightSlot?: ReactNode;
+  disabled?: boolean;
 };
 
 export default function PlaybackBar({
@@ -19,6 +20,7 @@ export default function PlaybackBar({
   onStop,
   leftSlot,
   rightSlot,
+  disabled = false,
 }: PlaybackBarProps) {
   const isIdle = !isPlaying && !isPaused;
   const playPauseButton =
@@ -27,7 +29,11 @@ export default function PlaybackBar({
         <Icon icon="material-symbols:pause-rounded" width="48" height="48" />
       </button>
     ) : (
-      <button className="btn btn-circle btn-primary size-20" onClick={onPlay}>
+      <button
+        className="btn btn-circle btn-primary size-20"
+        onClick={onPlay}
+        disabled={disabled}
+      >
         <Icon icon="material-symbols:play-arrow-rounded" width="48" height="48" />
       </button>
     );
