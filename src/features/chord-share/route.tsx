@@ -340,10 +340,10 @@ function ChordShareInner() {
         </div>
         <div className="flex flex-row place-items-center gap-2">
           <span className="text-sm opacity-70">移調</span>
-          <div className="join">
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              className="btn btn-sm join-item"
+              className="btn btn-sm"
               onClick={() => handleTranspose(-1)}
               aria-label="半音下げる"
               title="半音下げる"
@@ -352,7 +352,7 @@ function ChordShareInner() {
             </button>
             <button
               type="button"
-              className="btn btn-sm join-item"
+              className="btn btn-sm"
               onClick={() => handleTranspose(1)}
               aria-label="半音上げる"
               title="半音上げる"
