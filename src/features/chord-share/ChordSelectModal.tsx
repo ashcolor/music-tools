@@ -7,7 +7,7 @@ import { PianoRoll } from "./PianoRoll";
 import {
   MAIN_TYPES,
   NATURAL_NOTES,
-  buildChordVoicingFromRoot,
+  buildChordVoicing,
   findMainTypeByType,
   isValidMainType,
   isValidNote,
@@ -86,7 +86,7 @@ export function ChordSelectModal({
 
   const voicingNotes =
     isValidNote(root) && isValidMainType(mainType)
-      ? buildChordVoicingFromRoot(root, type, bass)
+      ? buildChordVoicing(root, type, bass)
       : [];
 
   const setField = (overrides: Partial<{ root: string; type: string; bass: string }>) => {
