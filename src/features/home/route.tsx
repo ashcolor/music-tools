@@ -1,12 +1,7 @@
 import { Link } from "react-router";
 import { Icon } from "@iconify/react";
 import type { ExternalTool, Tool } from "../../constants";
-import {
-  experimentalTools,
-  externalTools,
-  groupExternalToolsByCategory,
-  tools,
-} from "../../constants";
+import { externalTools, groupExternalToolsByCategory, tools } from "../../constants";
 
 function ToolCard({ tool }: { tool: Tool }) {
   return (
@@ -72,16 +67,6 @@ export function Home() {
           </div>
         </div>
       ))}
-      {experimentalTools.length > 0 && (
-        <>
-          <h2 className="mt-8 mb-3 text-sm font-bold opacity-60">ベータ版</h2>
-          <div className="flex flex-col gap-3">
-            {experimentalTools.map((tool) => (
-              <ToolCard key={tool.path} tool={tool} />
-            ))}
-          </div>
-        </>
-      )}
     </div>
   );
 }

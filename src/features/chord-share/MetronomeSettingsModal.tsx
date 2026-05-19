@@ -18,9 +18,18 @@ type Props = {
   onClose: () => void;
   noteValue: NoteValue;
   onNoteValueChange: (v: NoteValue) => void;
+  isLoop: boolean;
+  onLoopChange: (v: boolean) => void;
 };
 
-export function MetronomeSettingsModal({ open, onClose, noteValue, onNoteValueChange }: Props) {
+export function MetronomeSettingsModal({
+  open,
+  onClose,
+  noteValue,
+  onNoteValueChange,
+  isLoop,
+  onLoopChange,
+}: Props) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const { state, actions } = useMetronome();
 
@@ -53,6 +62,16 @@ export function MetronomeSettingsModal({ open, onClose, noteValue, onNoteValueCh
             </button>
           ))}
         </div>
+        <label className="mt-6 flex items-center justify-between gap-4">
+          <span className="font-medium">ループ再生</span>
+          <input
+            type="checkbox"
+            className="toggle toggle-primary"
+            checked={isLoop}
+            onChange={(e) => onLoopChange(e.target.checked)}
+            aria-label="ループ再生"
+          />
+        </label>
         <div className="modal-action">
           <form method="dialog">
             <button className="btn">閉じる</button>

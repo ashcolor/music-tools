@@ -7,7 +7,11 @@ import { useMetronome } from "../../contexts/MetronomeContext";
 import { useWakeLock } from "../../hooks/useWakeLock";
 import { ChordDisplay } from "./ChordDisplay";
 import { ChordSelectModal } from "./ChordSelectModal";
-import { MetronomeSettingsModal, type NoteValue } from "./MetronomeSettingsModal";
+import {
+  MetronomeSettingsModal,
+  NOTE_VALUE_OPTIONS,
+  type NoteValue,
+} from "./MetronomeSettingsModal";
 import { PianoRoll } from "./PianoRoll";
 import { ChordShareProvider, useChordShare } from "./ChordShareContext";
 import ChordShareToolbar from "./ChordShareToolbar";
@@ -59,6 +63,8 @@ function ChordShareInner() {
   const isLoopRef = useRef(false);
   const [noteValue, setNoteValue] = useState<NoteValue>(1);
   const [metronomeModalOpen, setMetronomeModalOpen] = useState(false);
+  const noteValueOption = NOTE_VALUE_OPTIONS.find((option) => option.value === noteValue);
+  const noteValueLabel = noteValueOption?.label ?? `${noteValue}分音符`;
 
   // URL ?accidental= があれば初回マウント時にローカル設定へ反映
   useEffect(() => {
@@ -283,6 +289,25 @@ function ChordShareInner() {
         chords={chords}
         onApplyChords={handleApplyChordsText}
       />
+      <div className="px-4 pb-2 text-center">
+        <button
+          type="button"
+          className="inline-flex max-w-full items-center justify-center text-sm opacity-70 transition-opacity hover:opacity-100"
+          onClick={() => setMetronomeModalOpen(true)}
+          aria-label="テンポ・拍子・音符・ループ設定"
+          title="テンポ・拍子・音符・ループ設定"
+        >
+          <span className="inline-flex max-w-full items-center gap-4 truncate">
+            <span>{metronomeState.bpm} BPM</span>
+            <span>{metronomeState.beatsPerMeasure}拍子</span>
+            <span className="inline-flex items-center gap-1">
+              {noteValueOption ? <Icon icon={noteValueOption.icon} className="size-4" /> : null}
+              <span>{noteValueLabel}</span>
+            </span>
+            {isLoop ? <Icon icon="mdi:repeat" className="size-4" aria-label="ループ再生オン" /> : null}
+          </span>
+        </button>
+      </div>
       <div className="flex flex-row flex-wrap place-content-center place-items-center gap-3 px-4 pb-2">
         <div className="flex flex-row place-items-center gap-2">
           <span className="text-sm opacity-70">表記</span>
@@ -373,15 +398,6 @@ function ChordShareInner() {
           leftSlot={
             <div className="flex items-center gap-1">
               <VolumeControl showSoundType={false} />
-              <button
-                type="button"
-                className={`btn btn-sm btn-circle ${isLoop ? "btn-primary" : "btn-ghost"}`}
-                onClick={() => setIsLoop((prev) => !prev)}
-                aria-label="ループ"
-                title="ループ"
-              >
-                <Icon icon="material-symbols:loop" className="size-5" />
-              </button>
             </div>
           }
           rightSlot={
@@ -411,6 +427,8 @@ function ChordShareInner() {
         onClose={() => setMetronomeModalOpen(false)}
         noteValue={noteValue}
         onNoteValueChange={setNoteValue}
+        isLoop={isLoop}
+        onLoopChange={setIsLoop}
       />
     </div>
   );

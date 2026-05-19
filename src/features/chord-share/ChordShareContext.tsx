@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useMetronome } from "@/contexts/MetronomeContext";
 import { useSampler } from "./useSampler";
 import type { AccidentalDisplay } from "./constants";
 
@@ -37,7 +38,8 @@ function loadAccidentalDisplay(): AccidentalDisplay {
 }
 
 export function ChordShareProvider({ children }: { children: ReactNode }) {
-  const sampler = useSampler();
+  const { state } = useMetronome();
+  const sampler = useSampler(state.volume);
   const [isPlaying, setIsPlaying] = useState(false);
   const [activeChordIndex, setActiveChordIndex] = useState(-1);
   const [accidentalDisplay, setAccidentalDisplayState] =

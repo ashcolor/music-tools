@@ -28,7 +28,7 @@ function findNearestSample(samples: LoadedSample[], targetMidi: number) {
   return nearest;
 }
 
-export function useSampler(sampleMap: SampleMap = PIANO_SAMPLES) {
+export function useSampler(initialMasterVolume = 1, sampleMap: SampleMap = PIANO_SAMPLES) {
   const audioContextRef = useRef<AudioContext | null>(null);
   const masterGainRef = useRef<GainNode | null>(null);
   const samplesRef = useRef<LoadedSample[]>([]);
@@ -39,12 +39,12 @@ export function useSampler(sampleMap: SampleMap = PIANO_SAMPLES) {
     if (!audioContextRef.current) {
       audioContextRef.current = new AudioContext();
       const gain = audioContextRef.current.createGain();
-      gain.gain.value = 1;
+      gain.gain.value = Math.max(0, Math.min(1, initialMasterVolume));
       gain.connect(audioContextRef.current.destination);
       masterGainRef.current = gain;
     }
     return audioContextRef.current;
-  }, []);
+  }, [initialMasterVolume]);
 
   const loadSamples = useCallback(async () => {
     if (loadPromiseRef.current) return loadPromiseRef.current;
@@ -81,12 +81,15 @@ export function useSampler(sampleMap: SampleMap = PIANO_SAMPLES) {
       source.playbackRate.value = playbackRate;
 
       const gain = ctx.createGain();
-      gain.gain.value = 0.7;
+      const peakGain = 0.7;
+      const attackSec = 0.01;
 
       const startTime = ctx.currentTime + Math.max(0, when);
       const stopTime = startTime + durationSec;
 
-      gain.gain.setValueAtTime(0.7, stopTime - 0.05);
+      gain.gain.setValueAtTime(0, startTime);
+      gain.gain.linearRampToValueAtTime(peakGain, Math.min(stopTime, startTime + attackSec));
+      gain.gain.setValueAtTime(peakGain, Math.max(startTime, stopTime - 0.05));
       gain.gain.linearRampToValueAtTime(0, stopTime);
 
       source.connect(gain);
