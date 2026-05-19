@@ -1,5 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
+import { VOICING_TYPE_OPTIONS } from "./constants";
+import { useChordShare } from "./ChordShareContext";
 
 type SnsShare = {
   label: string;
@@ -59,6 +61,7 @@ export default function ChordShareToolbar({
   chords,
   onApplyChords,
 }: Props) {
+  const { voicingType, setVoicingType } = useChordShare();
   const helpRef = useRef<HTMLDialogElement>(null);
   const shortcutsRef = useRef<HTMLDialogElement>(null);
   const resetRef = useRef<HTMLDialogElement>(null);
@@ -358,7 +361,7 @@ export default function ChordShareToolbar({
       <dialog ref={settingsRef} className="modal">
         <div className="modal-box">
           <h3 className="font-bold text-lg mb-4">設定</h3>
-          <div className="flex flex-col gap-3 text-sm">
+          <div className="flex flex-col gap-4 text-sm">
             <label className="label cursor-pointer justify-start gap-3">
               <input
                 type="checkbox"
@@ -376,6 +379,24 @@ export default function ChordShareToolbar({
                 )}
               </div>
             </label>
+            <div className="flex flex-col gap-2">
+              <span className="label-text font-medium">ボイシング</span>
+              <div className="flex flex-col gap-1">
+                {VOICING_TYPE_OPTIONS.map((opt) => (
+                  <label key={opt.value} className="label cursor-pointer justify-start gap-3">
+                    <input
+                      type="radio"
+                      className="radio radio-primary radio-sm"
+                      name="voicingType"
+                      value={opt.value}
+                      checked={voicingType === opt.value}
+                      onChange={() => setVoicingType(opt.value)}
+                    />
+                    <span className="label-text">{opt.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
           </div>
           <div className="modal-action">
             <form method="dialog">

@@ -23,13 +23,14 @@ import {
   isValidNote,
   parseChord,
   transposeChord,
+  type VoicingType,
 } from "./constants";
 
-function computeChordNotes(chords: string[]) {
+function computeChordNotes(chords: string[], voicingType: VoicingType) {
   return chords.map((chord) => {
     const { root, type, bass } = parseChord(chord || "");
     if (!root) return [];
-    return buildChordVoicing(root, type, bass);
+    return buildChordVoicing(root, type, bass, voicingType);
   });
 }
 
@@ -50,6 +51,7 @@ function ChordShareInner() {
     setActiveChordIndex,
     accidentalDisplay,
     setAccidentalDisplay,
+    voicingType,
   } = useChordShare();
   const initial = useMemo(() => {
     const textParam = searchParams.get("text");
@@ -102,7 +104,7 @@ function ChordShareInner() {
     );
   }, [chords, accidentalDisplay, setSearchParams]);
 
-  const chordNotes = useMemo(() => computeChordNotes(chords), [chords]);
+  const chordNotes = useMemo(() => computeChordNotes(chords, voicingType), [chords, voicingType]);
   const hasInvalidChord = useMemo(
     () =>
       chords.some((chord) => {

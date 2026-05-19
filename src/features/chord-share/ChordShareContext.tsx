@@ -9,7 +9,7 @@ import {
 } from "react";
 import { useMetronome } from "@/contexts/MetronomeContext";
 import { useSampler } from "./useSampler";
-import type { AccidentalDisplay } from "./constants";
+import type { AccidentalDisplay, VoicingType } from "./constants";
 
 type Sampler = ReturnType<typeof useSampler>;
 
@@ -21,11 +21,14 @@ type ChordShareContextValue = {
   setActiveChordIndex: (i: number) => void;
   accidentalDisplay: AccidentalDisplay;
   setAccidentalDisplay: (v: AccidentalDisplay) => void;
+  voicingType: VoicingType;
+  setVoicingType: (v: VoicingType) => void;
 };
 
 const ChordShareContext = createContext<ChordShareContextValue | null>(null);
 
 const ACCIDENTAL_STORAGE_KEY = "chord-share:accidentalDisplay";
+const VOICING_TYPE_STORAGE_KEY = "chord-share:voicingType";
 
 function loadAccidentalDisplay(): AccidentalDisplay {
   if (typeof window === "undefined") return "sharp";
@@ -37,6 +40,16 @@ function loadAccidentalDisplay(): AccidentalDisplay {
   }
 }
 
+function loadVoicingType(): VoicingType {
+  if (typeof window === "undefined") return "stackFromRoot";
+  try {
+    const raw = window.localStorage.getItem(VOICING_TYPE_STORAGE_KEY);
+    return raw === "compact" ? "compact" : "stackFromRoot";
+  } catch {
+    return "stackFromRoot";
+  }
+}
+
 export function ChordShareProvider({ children }: { children: ReactNode }) {
   const { state } = useMetronome();
   const sampler = useSampler(state.volume);
@@ -44,6 +57,8 @@ export function ChordShareProvider({ children }: { children: ReactNode }) {
   const [activeChordIndex, setActiveChordIndex] = useState(-1);
   const [accidentalDisplay, setAccidentalDisplayState] =
     useState<AccidentalDisplay>(loadAccidentalDisplay);
+  const [voicingType, setVoicingTypeState] =
+    useState<VoicingType>(loadVoicingType);
 
   useEffect(() => {
     try {
@@ -53,8 +68,20 @@ export function ChordShareProvider({ children }: { children: ReactNode }) {
     }
   }, [accidentalDisplay]);
 
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(VOICING_TYPE_STORAGE_KEY, voicingType);
+    } catch {
+      // ignore
+    }
+  }, [voicingType]);
+
   const setAccidentalDisplay = useCallback((v: AccidentalDisplay) => {
     setAccidentalDisplayState(v);
+  }, []);
+
+  const setVoicingType = useCallback((v: VoicingType) => {
+    setVoicingTypeState(v);
   }, []);
 
   const value = useMemo(
@@ -66,8 +93,10 @@ export function ChordShareProvider({ children }: { children: ReactNode }) {
       setActiveChordIndex,
       accidentalDisplay,
       setAccidentalDisplay,
+      voicingType,
+      setVoicingType,
     }),
-    [sampler, isPlaying, activeChordIndex, accidentalDisplay, setAccidentalDisplay],
+    [sampler, isPlaying, activeChordIndex, accidentalDisplay, setAccidentalDisplay, voicingType, setVoicingType],
   );
 
   return (
