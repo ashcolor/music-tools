@@ -49,15 +49,16 @@ export function ChordTypeSelect({
       </span>
       <div className="flex flex-row flex-wrap place-content-center gap-2">
         {MAIN_TYPES.map((type) => (
-          <span
+          <button
             key={type.value || "major"}
-            className={`btn btn-sm cursor-pointer ${
+            type="button"
+            className={`btn btn-sm ${
               type.value === activeMainValue ? "btn-primary" : ""
             }`}
             onClick={() => handleMainClick(type.value)}
           >
             {type.label}
-          </span>
+          </button>
         ))}
       </div>
       <span className="flex items-center gap-2">
@@ -72,15 +73,16 @@ export function ChordTypeSelect({
       </span>
       <div className="flex flex-row flex-wrap place-content-center gap-2">
         {tensions.map((t) => (
-          <span
+          <button
             key={t.type || "none"}
-            className={`btn btn-sm cursor-pointer ${
+            type="button"
+            className={`btn btn-sm ${
               t.type === activeTensionType ? "btn-primary" : ""
             }`}
             onClick={() => onChange(t.type)}
           >
             {t.label}
-          </span>
+          </button>
         ))}
       </div>
     </>
