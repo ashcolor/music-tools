@@ -89,9 +89,11 @@ export default function ChordShareToolbar({
   };
 
   const openShare = () => {
-    const { origin, pathname, search } = window.location;
+    const { origin, pathname } = window.location;
     setShareBaseUrl(`${origin}${pathname}`);
-    setShareSearch(search);
+    const params = new URLSearchParams();
+    params.set("text", chords.join(","));
+    setShareSearch(`?${params.toString()}`);
     setIncludeSettings(true);
     setCopied(false);
     shareRef.current?.showModal();
