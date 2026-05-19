@@ -55,7 +55,7 @@ function ChordShareInner() {
   } = useChordShare();
   const initial = useMemo(() => {
     const textParam = searchParams.get("text");
-    return textParam ? textParam.split(",") : INITIAL_CHORDS;
+    return textParam ? textParam.split(/[,→→>|\s]+/).filter(Boolean) : INITIAL_CHORDS;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const [chords, setChords] = useState<string[]>(initial);
