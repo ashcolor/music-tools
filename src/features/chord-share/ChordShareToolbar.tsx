@@ -414,7 +414,14 @@ export default function ChordShareToolbar({
       <dialog ref={chordInputRef} className="modal">
         <div className="modal-box">
           <h3 className="font-bold text-lg mb-4">コードを入力</h3>
-          <p className="text-sm mb-3">コードをカンマ区切りで入力してください</p>
+          <p className="text-sm mb-3 flex items-center gap-1 flex-wrap">
+            区切り文字:
+            <kbd className="kbd kbd-sm">,</kbd>
+            <kbd className="kbd kbd-sm">&nbsp;</kbd>
+            <kbd className="kbd kbd-sm">→</kbd>
+            <kbd className="kbd kbd-sm">&gt;</kbd>
+            <kbd className="kbd kbd-sm">|</kbd>
+          </p>
           <textarea
             className="textarea textarea-bordered w-full font-mono text-sm"
             rows={3}
