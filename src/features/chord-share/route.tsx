@@ -124,6 +124,11 @@ function ChordShareInner() {
     setChords((prev) => prev.map((c, i) => (i === index ? next : c)));
   }, []);
 
+  const deleteChord = useCallback((index: number) => {
+    setChords((prev) => prev.filter((_, i) => i !== index));
+    setEditingIndex(null);
+  }, []);
+
   const handleApplyChordsText = useCallback((text: string) => {
     const parsed = text
       .split(/[,→→>|\s]+/)
@@ -421,6 +426,7 @@ function ChordShareInner() {
         chords={chords}
         editingIndex={editingIndex}
         onUpdate={updateChord}
+        onDelete={deleteChord}
         onChangeIndex={setEditingIndex}
         onClose={() => setEditingIndex(null)}
       />
