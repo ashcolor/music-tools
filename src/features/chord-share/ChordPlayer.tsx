@@ -7,9 +7,9 @@ type Props = {
 };
 
 export function ChordPlayer({ chord }: Props) {
-  const { sampler, isPlaying, setIsPlaying } = useChordShare();
+  const { sampler, isPlaying, setIsPlaying, voicingType } = useChordShare();
   const { root, type, bass } = parseChord(chord || "");
-  const notes = root ? buildChordVoicing(root, type, bass) : [];
+  const notes = root ? buildChordVoicing(root, type, bass, voicingType) : [];
 
   const onClick = async () => {
     if (isPlaying) {

@@ -23,13 +23,14 @@ import {
   isValidNote,
   parseChord,
   transposeChord,
+  type VoicingType,
 } from "./constants";
 
-function computeChordNotes(chords: string[]) {
+function computeChordNotes(chords: string[], voicingType: VoicingType) {
   return chords.map((chord) => {
     const { root, type, bass } = parseChord(chord || "");
     if (!root) return [];
-    return buildChordVoicing(root, type, bass);
+    return buildChordVoicing(root, type, bass, voicingType);
   });
 }
 
@@ -50,10 +51,11 @@ function ChordShareInner() {
     setActiveChordIndex,
     accidentalDisplay,
     setAccidentalDisplay,
+    voicingType,
   } = useChordShare();
   const initial = useMemo(() => {
     const textParam = searchParams.get("text");
-    return textParam ? textParam.split(",") : INITIAL_CHORDS;
+    return textParam ? textParam.split(/[,→→>|\s]+/).filter(Boolean) : INITIAL_CHORDS;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const [chords, setChords] = useState<string[]>(initial);
@@ -102,7 +104,7 @@ function ChordShareInner() {
     );
   }, [chords, accidentalDisplay, setSearchParams]);
 
-  const chordNotes = useMemo(() => computeChordNotes(chords), [chords]);
+  const chordNotes = useMemo(() => computeChordNotes(chords, voicingType), [chords, voicingType]);
   const hasInvalidChord = useMemo(
     () =>
       chords.some((chord) => {
@@ -122,9 +124,14 @@ function ChordShareInner() {
     setChords((prev) => prev.map((c, i) => (i === index ? next : c)));
   }, []);
 
+  const deleteChord = useCallback((index: number) => {
+    setChords((prev) => prev.filter((_, i) => i !== index));
+    setEditingIndex(null);
+  }, []);
+
   const handleApplyChordsText = useCallback((text: string) => {
     const parsed = text
-      .split(",")
+      .split(/[,→→>|\s]+/)
       .map((c) => c.trim())
       .filter(Boolean);
     if (parsed.length === 0) return;
@@ -419,6 +426,7 @@ function ChordShareInner() {
         chords={chords}
         editingIndex={editingIndex}
         onUpdate={updateChord}
+        onDelete={deleteChord}
         onChangeIndex={setEditingIndex}
         onClose={() => setEditingIndex(null)}
       />

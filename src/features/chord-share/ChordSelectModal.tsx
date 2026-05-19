@@ -7,7 +7,7 @@ import { PianoRoll } from "./PianoRoll";
 import {
   MAIN_TYPES,
   NATURAL_NOTES,
-  buildChordVoicingFromRoot,
+  buildChordVoicing,
   findMainTypeByType,
   isValidMainType,
   isValidNote,
@@ -36,6 +36,7 @@ type Props = {
   chords: string[];
   editingIndex: number | null;
   onUpdate: (index: number, next: string) => void;
+  onDelete: (index: number) => void;
   onChangeIndex: (next: number) => void;
   onClose: () => void;
 };
@@ -44,6 +45,7 @@ export function ChordSelectModal({
   chords,
   editingIndex,
   onUpdate,
+  onDelete,
   onChangeIndex,
   onClose,
 }: Props) {
@@ -84,7 +86,7 @@ export function ChordSelectModal({
 
   const voicingNotes =
     isValidNote(root) && isValidMainType(mainType)
-      ? buildChordVoicingFromRoot(root, type, bass)
+      ? buildChordVoicing(root, type, bass)
       : [];
 
   const setField = (overrides: Partial<{ root: string; type: string; bass: string }>) => {
@@ -282,7 +284,15 @@ export function ChordSelectModal({
           )}
         </div>
 
-        <div className="modal-action justify-center">
+        <div className="modal-action relative w-full justify-center">
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm text-error absolute left-0"
+            onClick={() => onDelete(editingIndex)}
+            aria-label="削除"
+          >
+            <Icon icon="material-symbols:delete-outline-rounded" className="size-5" />
+          </button>
           <ChordPlayer chord={`${root}${type}`} />
         </div>
       </div>

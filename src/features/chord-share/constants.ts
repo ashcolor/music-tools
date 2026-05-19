@@ -194,57 +194,20 @@ export function isValidChordNotes(root: string, type: string) {
   }
 }
 
-/**
- * コード構成音をピッチクラスに潰し、C4(MIDI 60)付近のクローズドボイシングに
- * 再配置する。テンションが入っても上に伸びず、間延びしない響きになる。
- * bass を指定すると低音ベースとして先頭に追加する(スラッシュコード対応)。
- */
-export function buildChordVoicing(
-  root: string,
-  type: string,
-  bass?: string,
-): string[] {
+export type VoicingType = "stackFromRoot" | "compact";
+
+export const VOICING_TYPE_OPTIONS: { label: string; value: VoicingType }[] = [
+  { label: "スタック", value: "stackFromRoot" },
+  { label: "C4〜B4", value: "compact" },
+];
+
+function buildStackFromRootVoicing(root: string, type: string, bass?: string): string[] {
   const { notes } = Chord.get(`${root}${type}`);
   const chromas = notes
     .map((n) => Note.chroma(n))
     .filter((c): c is number => c !== undefined);
   if (chromas.length === 0) return [];
 
-  // 一番低いピッチクラスを起点に回転
-  let index = 0;
-  for (let a = 1; a < chromas.length; a++) {
-    if (chromas[a] < chromas[index]) index = a;
-  }
-  const rotated = chromas
-    .concat(chromas)
-    .slice(index, chromas.length + index);
-
-  // C4付近から、直前の音以上で一番近い同名音へ積み直す
-  let prev = 60;
-  const midis = rotated.map((c) => (prev += (((c - prev) % 12) + 12) % 12));
-  const tones = midis
-    .map((m) => Note.fromMidi(m))
-    .filter((n): n is string => Boolean(n));
-
-  return bass ? [`${bass}2`, ...tones] : tones;
-}
-
-/**
- * ルート音を起点に上へ堆積したボイシングを返す(コード設定画面の鍵盤表示用)。
- * buildChordVoicing と違い最低ピッチクラスへの回転を行わない。
- */
-export function buildChordVoicingFromRoot(
-  root: string,
-  type: string,
-  bass?: string,
-): string[] {
-  const { notes } = Chord.get(`${root}${type}`);
-  const chromas = notes
-    .map((n) => Note.chroma(n))
-    .filter((c): c is number => c !== undefined);
-  if (chromas.length === 0) return [];
-
-  // ルート(配列先頭)から、直前の音以上で一番近い同名音へ積み上げ
   let prev = 60;
   const midis = chromas.map((c) => (prev += (((c - prev) % 12) + 12) % 12));
   const tones = midis
@@ -252,6 +215,41 @@ export function buildChordVoicingFromRoot(
     .filter((n): n is string => Boolean(n));
 
   return bass ? [`${bass}2`, ...tones] : tones;
+}
+
+function buildCompactVoicing(root: string, type: string, bass?: string): string[] {
+  const { notes } = Chord.get(`${root}${type}`);
+  const chromas = notes
+    .map((n) => Note.chroma(n))
+    .filter((c): c is number => c !== undefined);
+  if (chromas.length === 0) return [];
+
+  const midis = chromas.map((c) => 60 + c).sort((a, b) => a - b);
+  const tones = midis
+    .map((m) => Note.fromMidi(m))
+    .filter((n): n is string => Boolean(n));
+
+  return bass ? [`${bass}2`, ...tones] : tones;
+}
+
+export function buildChordVoicing(
+  root: string,
+  type: string,
+  bass?: string,
+  voicingType: VoicingType = "stackFromRoot",
+): string[] {
+  return voicingType === "compact"
+    ? buildCompactVoicing(root, type, bass)
+    : buildStackFromRootVoicing(root, type, bass);
+}
+
+/** @deprecated buildChordVoicing を voicingType 付きで使うこと */
+export function buildChordVoicingFromRoot(
+  root: string,
+  type: string,
+  bass?: string,
+): string[] {
+  return buildStackFromRootVoicing(root, type, bass);
 }
 
 export function parseChord(s: string) {
