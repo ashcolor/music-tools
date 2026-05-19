@@ -126,7 +126,7 @@ function ChordShareInner() {
 
   const handleApplyChordsText = useCallback((text: string) => {
     const parsed = text
-      .split(",")
+      .split(/[,→→>|\s]+/)
       .map((c) => c.trim())
       .filter(Boolean);
     if (parsed.length === 0) return;
