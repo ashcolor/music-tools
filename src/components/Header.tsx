@@ -31,13 +31,31 @@ function isIosBrowser() {
 
 const BRAND_TEXT = "音楽ツール";
 
-export default function Header() {
-  const [open, setOpen] = useState(false);
+function ThemeToggleButton() {
   const { state, actions } = useMetronome();
   const isDark = state.theme === "dark";
+  return (
+    <button
+      type="button"
+      className="btn btn-square btn-ghost btn-sm ml-auto"
+      onClick={() => actions.setTheme(isDark ? "light" : "dark")}
+      aria-label={isDark ? "ライトモードに切り替え" : "ダークモードに切り替え"}
+    >
+      {isDark ? (
+        <Icon icon="bi:moon" className="size-5" />
+      ) : (
+        <Icon icon="bi:sun" className="size-5" />
+      )}
+    </button>
+  );
+}
+
+export default function Header() {
+  const [open, setOpen] = useState(false);
   const location = useLocation();
   const isHome = location.pathname === "/";
   const currentTool = allTools.find((tool) => tool.path === location.pathname);
+  const isExperimentalTool = experimentalTools.some((tool) => tool.path === location.pathname);
   const externalGroups = groupExternalToolsByCategory(externalTools);
   const [isMobile, setIsMobile] = useState(() => isMobileDevice());
   const isIos = isIosBrowser();
@@ -93,7 +111,14 @@ export default function Header() {
               <span>{BRAND_TEXT}</span>
               <Icon icon="fa-solid:plus" className="size-4" aria-hidden />
             </span>
-            {currentTool ? <span>{currentTool.title}</span> : null}
+            {currentTool ? (
+              <span className="inline-flex items-center gap-2">
+                <span>{currentTool.title}</span>
+                {isExperimentalTool ? (
+                  <span className="badge badge-warning badge-sm text-[10px] font-bold">BETA</span>
+                ) : null}
+              </span>
+            ) : null}
           </Link>
         </div>
       </header>
@@ -109,18 +134,7 @@ export default function Header() {
             <span>{BRAND_TEXT}</span>
             <Icon icon="fa-solid:plus" className="size-4" aria-hidden />
           </span>
-          <button
-            type="button"
-            className="btn btn-square btn-ghost btn-sm ml-auto"
-            onClick={() => actions.setTheme(isDark ? "light" : "dark")}
-            aria-label={isDark ? "ライトモードに切り替え" : "ダークモードに切り替え"}
-          >
-            {isDark ? (
-              <Icon icon="bi:moon" className="size-5" />
-            ) : (
-              <Icon icon="bi:sun" className="size-5" />
-            )}
-          </button>
+          <ThemeToggleButton />
         </div>
 
         <div>
@@ -170,19 +184,6 @@ export default function Header() {
                   </li>
                 ))}
               </Fragment>
-            ))}
-            <li className="menu-title text-xs opacity-60">ベータ版</li>
-            {experimentalTools.map((tool) => (
-              <li key={tool.path}>
-                <Link
-                  to={tool.path}
-                  onClick={() => setOpen(false)}
-                  className={`flex items-center gap-4 py-4 ${location.pathname === tool.path ? "bg-base-200" : ""}`}
-                >
-                  <Icon icon={tool.sidebarIcon} className="size-5 shrink-0" />
-                  <span>{tool.title}</span>
-                </Link>
-              </li>
             ))}
           </ul>
         </div>

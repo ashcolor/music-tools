@@ -3,6 +3,8 @@ import { Icon } from "@iconify/react";
 import BpmDisplay from "../../components/BpmDisplay";
 import BpmEditor from "../../components/BpmEditor";
 import PlaybackBar from "../../components/PlaybackBar";
+import VolumeControl from "../../components/VolumeControl";
+import { useMetronome } from "../../contexts/MetronomeContext";
 import { useWakeLock } from "../../hooks/useWakeLock";
 import RhythmSettingsCard, {
   SOUNDS,
@@ -105,6 +107,14 @@ function isEditableTarget(target: EventTarget | null): boolean {
   return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable;
 }
 
+function MasterVolumeBridge({ volumeRef }: { volumeRef: React.RefObject<number> }) {
+  const { state } = useMetronome();
+  useEffect(() => {
+    volumeRef.current = state.volume;
+  }, [state.volume, volumeRef]);
+  return null;
+}
+
 export function Polyrhythm() {
   const [persisted] = useState(loadPersisted);
   const [bpm, setBpm] = useState(persisted.bpm);
@@ -115,7 +125,8 @@ export function Polyrhythm() {
   const [isPaused, setIsPaused] = useState(false);
   const bpmModalRef = useRef<HTMLDialogElement>(null);
 
-  const audio = usePolyrhythmAudio({ bpm, rhythms });
+  const masterVolumeRef = useRef(0);
+  const audio = usePolyrhythmAudio({ bpm, rhythms, masterVolumeRef });
 
   const setBpmClamped = useCallback((n: number) => {
     setBpm(clamp(Math.round(n), 10, 999));
@@ -190,15 +201,15 @@ export function Polyrhythm() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [bpm, isPaused, isPlaying, handlePlay, handlePause, handleStop, setBpmClamped]);
 
-  const updateRhythm = (index: number, next: RhythmSettings) => {
+  const updateRhythm = useCallback((index: number, next: RhythmSettings) => {
     setRhythms((prev) => prev.map((r, i) => (i === index ? next : r)));
-  };
-  const removeRhythm = (index: number) => {
+  }, []);
+  const removeRhythm = useCallback((index: number) => {
     setRhythms((prev) => prev.filter((_, i) => i !== index));
-  };
-  const addRhythm = () => {
+  }, []);
+  const addRhythm = useCallback(() => {
     setRhythms((prev) => [...prev, { ...NEW_RHYTHM }]);
-  };
+  }, []);
 
   const handleReset = () => {
     handleStop();
@@ -209,7 +220,8 @@ export function Polyrhythm() {
   };
 
   return (
-    <div className="flex-1 flex flex-col w-full max-w-xl mx-auto">
+    <div className="flex-1 min-h-0 flex flex-col">
+      <MasterVolumeBridge volumeRef={masterVolumeRef} />
       <PolyrhythmToolbar
         wakeLock={wakeLock}
         onWakeLockChange={setWakeLock}
@@ -217,59 +229,72 @@ export function Polyrhythm() {
         onShowVisualizerChange={setShowVisualizer}
         onReset={handleReset}
       />
-      <div className="flex-1 flex flex-col items-center justify-center gap-8 p-4 md:p-8">
-        {showVisualizer ? (
-          <div className="relative w-[15rem] h-[15rem] md:w-[17rem] md:h-[17rem] flex items-center justify-center">
-            <div className="absolute inset-0 pointer-events-none">
-              <PolyrhythmVisualizer
+      <div className="flex-1 min-h-0 flex flex-col w-full max-w-xl mx-auto">
+        <div className="flex-1 min-h-0 flex flex-col items-center gap-8 p-4 md:p-8">
+          {showVisualizer ? (
+            <div className="relative shrink-0 w-[15rem] h-[15rem] md:w-[17rem] md:h-[17rem] flex items-center justify-center">
+              <div className="absolute inset-0 pointer-events-none">
+                <PolyrhythmVisualizer
+                  bpm={bpm}
+                  rhythms={rhythms}
+                  isPlaying={isPlaying}
+                  isPaused={isPaused}
+                  getPlayheadTime={audio.getPlayheadTime}
+                />
+              </div>
+              <BpmDisplay
                 bpm={bpm}
-                rhythms={rhythms}
-                isPlaying={isPlaying}
-                isPaused={isPaused}
-                getPlayheadTime={audio.getPlayheadTime}
+                onClick={() => bpmModalRef.current?.showModal()}
+                showBorder={false}
               />
             </div>
-            <BpmDisplay
-              bpm={bpm}
-              onClick={() => bpmModalRef.current?.showModal()}
-              showBorder={false}
-            />
-          </div>
-        ) : (
-          <BpmDisplay bpm={bpm} onClick={() => bpmModalRef.current?.showModal()} />
-        )}
+          ) : (
+            <BpmDisplay bpm={bpm} onClick={() => bpmModalRef.current?.showModal()} />
+          )}
 
-        <div className="flex flex-col gap-4 w-full">
-          <div className="grid grid-cols-2 gap-4 w-full">
-            {rhythms.map((rhythm, i) => (
-              <RhythmSettingsCard
-                key={i}
-                value={rhythm}
-                onChange={(next) => updateRhythm(i, next)}
-                onRemove={() => removeRhythm(i)}
-              />
-            ))}
-          </div>
-          <div className="flex justify-center">
-            <button
-              type="button"
-              className="btn btn-circle btn-primary btn-soft"
-              onClick={addRhythm}
-              aria-label="リズムを追加"
-            >
-              <Icon icon="material-symbols:add-rounded" className="size-6" />
-            </button>
+          <div className="flex-1 min-h-0 overflow-y-auto w-full">
+            <div className="grid grid-cols-2 gap-4 w-full">
+              {rhythms.map((rhythm, i) => (
+                <RhythmSettingsCard
+                  key={i}
+                  index={i}
+                  value={rhythm}
+                  onChange={updateRhythm}
+                  onRemove={removeRhythm}
+                />
+              ))}
+              <button
+                type="button"
+                className="card bg-base-100 border-2 border-dashed border-base-300 hover:border-primary hover:bg-base-200 transition-colors flex items-center justify-center min-h-[8rem] text-primary"
+                onClick={addRhythm}
+                aria-label="リズムを追加"
+              >
+                <Icon icon="material-symbols:add-rounded" className="size-8" />
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      <PlaybackBar
-        isPlaying={isPlaying}
-        isPaused={isPaused}
-        onPlay={handlePlay}
-        onPause={handlePause}
-        onStop={handleStop}
-      />
+        <PlaybackBar
+          isPlaying={isPlaying}
+          isPaused={isPaused}
+          onPlay={handlePlay}
+          onPause={handlePause}
+          onStop={handleStop}
+          leftSlot={<VolumeControl showSoundType={false} />}
+          rightSlot={
+            <button
+              type="button"
+              className="btn btn-circle btn-ghost"
+              onClick={() => bpmModalRef.current?.showModal()}
+              aria-label="テンポ設定"
+              title="テンポ設定"
+            >
+              <Icon icon="lucide:metronome" className="size-6" />
+            </button>
+          }
+        />
+      </div>
 
       <dialog ref={bpmModalRef} className="modal">
         <div className="modal-box">

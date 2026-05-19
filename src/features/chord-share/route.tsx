@@ -1,0 +1,443 @@
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router";
+import { Icon } from "@iconify/react";
+import PlaybackBar from "../../components/PlaybackBar";
+import VolumeControl from "../../components/VolumeControl";
+import { useMetronome } from "../../contexts/MetronomeContext";
+import { useWakeLock } from "../../hooks/useWakeLock";
+import { ChordDisplay } from "./ChordDisplay";
+import { ChordSelectModal } from "./ChordSelectModal";
+import {
+  MetronomeSettingsModal,
+  NOTE_VALUE_OPTIONS,
+  type NoteValue,
+} from "./MetronomeSettingsModal";
+import { PianoRoll } from "./PianoRoll";
+import { ChordShareProvider, useChordShare } from "./ChordShareContext";
+import ChordShareToolbar from "./ChordShareToolbar";
+import {
+  INITIAL_CHORDS,
+  buildChordVoicing,
+  convertChordToAccidental,
+  isValidChordNotes,
+  isValidNote,
+  parseChord,
+  transposeChord,
+} from "./constants";
+
+function computeChordNotes(chords: string[]) {
+  return chords.map((chord) => {
+    const { root, type, bass } = parseChord(chord || "");
+    if (!root) return [];
+    return buildChordVoicing(root, type, bass);
+  });
+}
+
+function MasterVolumeBridge() {
+  const { state } = useMetronome();
+  const { sampler } = useChordShare();
+  useEffect(() => {
+    sampler.setMasterVolume(state.volume);
+  }, [state.volume, sampler]);
+  return null;
+}
+
+function ChordShareInner() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const {
+    sampler,
+    activeChordIndex,
+    setActiveChordIndex,
+    accidentalDisplay,
+    setAccidentalDisplay,
+  } = useChordShare();
+  const initial = useMemo(() => {
+    const textParam = searchParams.get("text");
+    return textParam ? textParam.split(",") : INITIAL_CHORDS;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const [chords, setChords] = useState<string[]>(initial);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [wakeLock, setWakeLock] = useState(false);
+  const [isLoop, setIsLoop] = useState(false);
+  const isLoopRef = useRef(false);
+  const [noteValue, setNoteValue] = useState<NoteValue>(1);
+  const [metronomeModalOpen, setMetronomeModalOpen] = useState(false);
+  const noteValueOption = NOTE_VALUE_OPTIONS.find((option) => option.value === noteValue);
+  const noteValueLabel = noteValueOption?.label ?? `${noteValue}分音符`;
+
+  // URL ?accidental= があれば初回マウント時にローカル設定へ反映
+  useEffect(() => {
+    const param = searchParams.get("accidental");
+    if (param === "sharp" || param === "flat" || param === "auto") {
+      setAccidentalDisplay(param);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 表示設定変化に合わせて既存コード列も異名変換
+  useEffect(() => {
+    setChords((prev) => prev.map((c) => convertChordToAccidental(c, accidentalDisplay)));
+  }, [accidentalDisplay]);
+  const { state: metronomeState } = useMetronome();
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const timeoutsRef = useRef<number[]>([]);
+  const chordNotesRef = useRef<string[][]>([]);
+  const beatSecRef = useRef(60 / 120);
+  const measureSecRef = useRef(4 * (60 / 120));
+  const pausedElapsedRef = useRef(0);
+  const playStartWallRef = useRef(0);
+
+  useEffect(() => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("text", chords.join(","));
+        next.delete("chord");
+        next.set("accidental", accidentalDisplay);
+        return next;
+      },
+      { replace: true },
+    );
+  }, [chords, accidentalDisplay, setSearchParams]);
+
+  const chordNotes = useMemo(() => computeChordNotes(chords), [chords]);
+  const hasInvalidChord = useMemo(
+    () =>
+      chords.some((chord) => {
+        const { root, type, bass } = parseChord(chord);
+        return (
+          !isValidNote(root) || !isValidNote(bass) || !isValidChordNotes(root, type)
+        );
+      }),
+    [chords],
+  );
+  useEffect(() => {
+    chordNotesRef.current = chordNotes;
+  }, [chordNotes]);
+  const activeNotes = activeChordIndex >= 0 ? (chordNotes[activeChordIndex] ?? []) : [];
+
+  const updateChord = useCallback((index: number, next: string) => {
+    setChords((prev) => prev.map((c, i) => (i === index ? next : c)));
+  }, []);
+
+  const handleApplyChordsText = useCallback((text: string) => {
+    const parsed = text
+      .split(",")
+      .map((c) => c.trim())
+      .filter(Boolean);
+    if (parsed.length === 0) return;
+    setChords(parsed);
+  }, []);
+
+  const handleTranspose = useCallback(
+    (semitones: number) => {
+      setChords((prev) =>
+        prev.map((c) => transposeChord(c, semitones, accidentalDisplay)),
+      );
+    },
+    [accidentalDisplay],
+  );
+
+  const clearTimers = useCallback(() => {
+    timeoutsRef.current.forEach((id) => window.clearTimeout(id));
+    timeoutsRef.current = [];
+  }, []);
+
+  const scheduleFrom = useCallback(
+    (fromElapsed: number) => {
+      const noteSec = beatSecRef.current;
+      const measureSec = measureSecRef.current;
+      const repeatCount = Math.max(1, Math.round(measureSec / noteSec));
+      const notesList = chordNotesRef.current;
+
+      notesList.forEach((notes, index) => {
+        const groupStart = index * measureSec;
+        const groupEnd = groupStart + measureSec;
+        if (groupEnd <= fromElapsed) return;
+
+        const groupOffset = Math.max(0, groupStart - fromElapsed);
+        timeoutsRef.current.push(
+          window.setTimeout(() => {
+            setActiveChordIndex(index);
+          }, groupOffset * 1000),
+        );
+
+        for (let r = 0; r < repeatCount; r++) {
+          const noteStart = groupStart + r * noteSec;
+          const noteEnd = noteStart + noteSec;
+          if (noteEnd <= fromElapsed) continue;
+
+          const startOffset = Math.max(0, noteStart - fromElapsed);
+          notes.forEach((note) => {
+            sampler.triggerAttackRelease(note, noteSec, startOffset);
+          });
+        }
+      });
+
+      const totalSec = notesList.length * measureSec;
+      const remainingMs = Math.max(0, (totalSec - fromElapsed) * 1000);
+      timeoutsRef.current.push(
+        window.setTimeout(() => {
+          if (isLoopRef.current) {
+            sampler.stopAll();
+            void sampler.resume();
+            pausedElapsedRef.current = 0;
+            playStartWallRef.current = performance.now();
+            setActiveChordIndex(-1);
+            scheduleFrom(0);
+          } else {
+            setActiveChordIndex(-1);
+            setIsPlaying(false);
+            setIsPaused(false);
+            pausedElapsedRef.current = 0;
+          }
+        }, remainingMs),
+      );
+    },
+    [sampler, setActiveChordIndex, isLoopRef],
+  );
+
+  const handleStop = useCallback(() => {
+    clearTimers();
+    sampler.stopAll();
+    void sampler.resume();
+    setActiveChordIndex(-1);
+    setIsPlaying(false);
+    setIsPaused(false);
+    pausedElapsedRef.current = 0;
+  }, [clearTimers, sampler, setActiveChordIndex]);
+
+  const handleReset = useCallback(() => {
+    handleStop();
+    setChords(INITIAL_CHORDS);
+  }, [handleStop]);
+
+  const handlePlay = useCallback(async () => {
+    if (isPaused) {
+      await sampler.resume();
+      const mSec = measureSecRef.current;
+      const nextBoundary = Math.ceil(pausedElapsedRef.current / mSec - 1e-6) * mSec;
+      pausedElapsedRef.current = nextBoundary;
+      playStartWallRef.current = performance.now();
+      setIsPaused(false);
+      setIsPlaying(true);
+      scheduleFrom(nextBoundary);
+      return;
+    }
+    clearTimers();
+    sampler.stopAll();
+    await sampler.resume();
+    beatSecRef.current = noteValue * (60 / metronomeState.bpm);
+    measureSecRef.current = metronomeState.beatsPerMeasure * (60 / metronomeState.bpm);
+    pausedElapsedRef.current = 0;
+    playStartWallRef.current = performance.now();
+    setIsPlaying(true);
+    setIsPaused(false);
+    scheduleFrom(0);
+  }, [clearTimers, isPaused, metronomeState.bpm, noteValue, sampler, scheduleFrom]);
+
+  const handlePause = useCallback(async () => {
+    const totalSec = chordNotesRef.current.length * measureSecRef.current;
+    const segment = (performance.now() - playStartWallRef.current) / 1000;
+    pausedElapsedRef.current = Math.min(totalSec, pausedElapsedRef.current + segment);
+    clearTimers();
+    sampler.stopAll();
+    await sampler.suspend();
+    setIsPaused(true);
+  }, [clearTimers, sampler]);
+
+  useEffect(() => {
+    isLoopRef.current = isLoop;
+  }, [isLoop]);
+
+  useEffect(() => {
+    return () => {
+      timeoutsRef.current.forEach((id) => window.clearTimeout(id));
+    };
+  }, []);
+
+  useWakeLock(wakeLock && isPlaying);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.target instanceof HTMLElement && e.target.closest("[role='dialog']")) return;
+      if (e.code === "Space") {
+        e.preventDefault();
+        if (isPlaying && !isPaused) {
+          void handlePause();
+        } else {
+          void handlePlay();
+        }
+      } else if (e.code === "KeyR") {
+        handleStop();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isPlaying, isPaused, handlePlay, handlePause, handleStop]);
+
+  return (
+    <div className="flex-1 min-h-0 flex flex-col">
+      <MasterVolumeBridge />
+      <ChordShareToolbar
+        wakeLock={wakeLock}
+        onWakeLockChange={setWakeLock}
+        onReset={handleReset}
+        chords={chords}
+        onApplyChords={handleApplyChordsText}
+      />
+      <div className="px-4 pb-2 text-center">
+        <button
+          type="button"
+          className="inline-flex max-w-full items-center justify-center text-sm opacity-70 transition-opacity hover:opacity-100"
+          onClick={() => setMetronomeModalOpen(true)}
+          aria-label="テンポ・拍子・音符・ループ設定"
+          title="テンポ・拍子・音符・ループ設定"
+        >
+          <span className="inline-flex max-w-full items-center gap-4 truncate">
+            <span>{metronomeState.bpm} BPM</span>
+            <span>{metronomeState.beatsPerMeasure}拍子</span>
+            <span className="inline-flex items-center gap-1">
+              {noteValueOption ? <Icon icon={noteValueOption.icon} className="size-4" /> : null}
+              <span>{noteValueLabel}</span>
+            </span>
+            {isLoop ? <Icon icon="mdi:repeat" className="size-4" aria-label="ループ再生オン" /> : null}
+          </span>
+        </button>
+      </div>
+      <div className="flex flex-row flex-wrap place-content-center place-items-center gap-3 px-4 pb-2">
+        <div className="flex flex-row place-items-center gap-2">
+          <span className="text-sm opacity-70">表記</span>
+          <div className="join">
+            <button
+              type="button"
+              className={`btn btn-sm join-item ${accidentalDisplay === "sharp" ? "btn-primary" : ""}`}
+              onClick={() => setAccidentalDisplay("sharp")}
+              aria-label="シャープ表記"
+            >
+              ♯
+            </button>
+            <button
+              type="button"
+              className={`btn btn-sm join-item ${accidentalDisplay === "auto" ? "btn-primary" : ""}`}
+              onClick={() => setAccidentalDisplay("auto")}
+              aria-label="自動表記（入力のまま）"
+            >
+              自動
+            </button>
+            <button
+              type="button"
+              className={`btn btn-sm join-item ${accidentalDisplay === "flat" ? "btn-primary" : ""}`}
+              onClick={() => setAccidentalDisplay("flat")}
+              aria-label="フラット表記"
+            >
+              ♭
+            </button>
+          </div>
+        </div>
+        <div className="flex flex-row place-items-center gap-2">
+          <span className="text-sm opacity-70">移調</span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="btn btn-sm"
+              onClick={() => handleTranspose(-1)}
+              aria-label="半音下げる"
+              title="半音下げる"
+            >
+              <Icon icon="mdi:minus" className="size-4" />1
+            </button>
+            <button
+              type="button"
+              className="btn btn-sm"
+              onClick={() => handleTranspose(1)}
+              aria-label="半音上げる"
+              title="半音上げる"
+            >
+              <Icon icon="mdi:plus" className="size-4" />1
+            </button>
+          </div>
+        </div>
+      </div>
+      <div className="flex-1 min-h-0 flex flex-col w-full max-w-xl mx-auto">
+        <div className="flex-1 min-h-0 flex flex-col place-content-center place-items-center gap-6 overflow-y-auto p-4">
+          <div className="flex flex-row flex-wrap place-content-center place-items-center gap-2">
+            {chords.map((chord, index) => (
+              <Fragment key={index}>
+                {index > 0 && (
+                  <Icon
+                    icon="material-symbols:chevron-right-rounded"
+                    className="size-4 opacity-50"
+                    aria-hidden
+                  />
+                )}
+                <div className="flex flex-col place-content-center place-items-center gap-2">
+                  <ChordDisplay
+                    value={chord}
+                    onClick={() => setEditingIndex(index)}
+                    isActive={index === activeChordIndex}
+                  />
+                </div>
+              </Fragment>
+            ))}
+          </div>
+          <div className="w-full">
+            <PianoRoll startNote="C2" endNote="C6" activeNotes={activeNotes} />
+          </div>
+        </div>
+
+        <PlaybackBar
+          isPlaying={isPlaying}
+          isPaused={isPaused}
+          onPlay={() => void handlePlay()}
+          onPause={() => void handlePause()}
+          onStop={handleStop}
+          leftSlot={
+            <div className="flex items-center gap-1">
+              <VolumeControl showSoundType={false} />
+            </div>
+          }
+          rightSlot={
+            <button
+              type="button"
+              className="btn btn-sm btn-circle btn-ghost"
+              onClick={() => setMetronomeModalOpen(true)}
+              aria-label="メトロノーム設定"
+              title="メトロノーム設定"
+            >
+              <Icon icon="lucide:metronome" className="size-5" />
+            </button>
+          }
+          disabled={hasInvalidChord}
+        />
+      </div>
+
+      <ChordSelectModal
+        chords={chords}
+        editingIndex={editingIndex}
+        onUpdate={updateChord}
+        onChangeIndex={setEditingIndex}
+        onClose={() => setEditingIndex(null)}
+      />
+      <MetronomeSettingsModal
+        open={metronomeModalOpen}
+        onClose={() => setMetronomeModalOpen(false)}
+        noteValue={noteValue}
+        onNoteValueChange={setNoteValue}
+        isLoop={isLoop}
+        onLoopChange={setIsLoop}
+      />
+    </div>
+  );
+}
+
+export function ChordShare() {
+  return (
+    <ChordShareProvider>
+      <ChordShareInner />
+    </ChordShareProvider>
+  );
+}

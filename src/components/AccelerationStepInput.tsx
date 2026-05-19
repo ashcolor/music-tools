@@ -27,7 +27,7 @@ export default function AccelerationStepInput({ value, onChange }: Props) {
       step={STEP}
       placeholder={String(DEFAULT_STEP)}
       {...inputProps}
-      className="input input-bordered max-w-20 text-center text-xl font-mono"
+      className="input input-bordered max-w-20 text-center text-lg font-mono"
     />
   );
 }

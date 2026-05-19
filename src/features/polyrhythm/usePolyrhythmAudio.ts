@@ -13,13 +13,14 @@ const ELECTRONIC_FREQ: Record<"electronicLow" | "electronicMid" | "electronicHig
 type Args = {
   bpm: number;
   rhythms: RhythmSettings[];
+  masterVolumeRef: React.RefObject<number>;
 };
 
-export function usePolyrhythmAudio({ bpm, rhythms }: Args) {
-  const stateRef = useRef({ bpm, rhythms });
+export function usePolyrhythmAudio({ bpm, rhythms, masterVolumeRef }: Args) {
+  const stateRef = useRef({ bpm, rhythms, masterVolumeRef });
   useEffect(() => {
-    stateRef.current = { bpm, rhythms };
-  }, [bpm, rhythms]);
+    stateRef.current = { bpm, rhythms, masterVolumeRef };
+  }, [bpm, rhythms, masterVolumeRef]);
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const noiseBufferRef = useRef<AudioBuffer | null>(null);
@@ -161,7 +162,8 @@ export function usePolyrhythmAudio({ bpm, rhythms }: Args) {
     const ctx = audioContextRef.current;
     if (!ctx) return;
     const horizon = ctx.currentTime + SCHEDULE_AHEAD_TIME;
-    const { bpm: curBpm, rhythms: curRhythms } = stateRef.current;
+    const { bpm: curBpm, rhythms: curRhythms, masterVolumeRef: curMasterRef } = stateRef.current;
+    const curMaster = curMasterRef.current;
     const startTime = startTimeRef.current;
 
     if (nextTimesRef.current.length < curRhythms.length) {
@@ -186,7 +188,7 @@ export function usePolyrhythmAudio({ bpm, rhythms }: Args) {
         lastBeatsRef.current[i] = rhythm.beats;
       }
       while (nextTimesRef.current[i] < horizon) {
-        playSound(nextTimesRef.current[i], rhythm.sound, rhythm.volume, rhythm.pan);
+        playSound(nextTimesRef.current[i], rhythm.sound, rhythm.volume * curMaster, rhythm.pan);
         nextTimesRef.current[i] += interval;
       }
     });

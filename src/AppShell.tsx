@@ -12,6 +12,7 @@ import { Home } from "./features/home/route";
 import { OperatorInfo } from "./features/operator-info/route";
 import { Polyrhythm } from "./features/polyrhythm/route";
 import { PrivacyPolicy } from "./features/privacy-policy/route";
+import { ChordShare } from "./features/chord-share/route";
 
 const CANONICAL_ORIGIN = "https://music-tools.ashcolor.jp";
 
@@ -125,6 +126,7 @@ export function AppShell() {
             <Route path="/" element={<Home />} />
             <Route path="/metronome" element={<MetronomeRoute />} />
             <Route path="/polyrhythm" element={<Polyrhythm />} />
+            <Route path="/chord-share" element={<ChordShare />} />
             <Route path="/operator" element={<OperatorInfo />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />

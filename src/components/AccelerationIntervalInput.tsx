@@ -27,7 +27,7 @@ export default function AccelerationIntervalInput({ value, onChange }: Props) {
       step={STEP}
       placeholder={String(DEFAULT_INTERVAL)}
       {...inputProps}
-      className="input input-bordered max-w-16 text-center text-xl font-mono"
+      className="input input-bordered max-w-16 text-center text-lg font-mono"
     />
   );
 }

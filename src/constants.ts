@@ -30,16 +30,22 @@ export const tools: Tool[] = [
     path: "/metronome",
     title: "メトロノーム",
     description: "BPM、拍子、加速・減速、ショートカットに対応したメトロノーム",
-    sidebarIcon: "material-symbols:timer-outline-rounded",
+    sidebarIcon: "lucide:metronome",
+  },
+  {
+    path: "/polyrhythm",
+    title: "ポリリズム",
+    description: "複数のリズムを同時に鳴らしてポリリズムを練習できるツール",
+    sidebarIcon: "lucide:pentagon",
   },
 ];
 
 export const experimentalTools: Tool[] = [
   {
-    path: "/polyrhythm",
-    title: "ポリリズム",
-    description: "複数のリズムを同時に鳴らしてポリリズムを練習できるツール",
-    sidebarIcon: "material-symbols:graphic-eq-rounded",
+    path: "/chord-share",
+    title: "コードシェア",
+    description: "コード進行を選んで再生・共有できるツール",
+    sidebarIcon: "material-symbols:library-music-outline-rounded",
   },
 ];
 
@@ -50,7 +56,7 @@ export const externalTools: ExternalTool[] = [
     url: "https://chromewebstore.google.com/detail/chord-dictionary/lnefagbhokamcaedbeopnhdabkcemkcf",
     title: "Chord Dictionary",
     description: "コードの構成音や転回形を確認できるChrome拡張機能",
-    sidebarIcon: "material-symbols:library-music-outline-rounded",
+    sidebarIcon: "lucide:book-audio",
     category: "Chrome拡張機能",
   },
 ];
