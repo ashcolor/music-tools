@@ -13,6 +13,7 @@ import {
   type NoteValue,
 } from "./MetronomeSettingsModal";
 import { PianoRoll } from "./PianoRoll";
+import { SheetMusic } from "./SheetMusic";
 import { ChordShareProvider, useChordShare } from "./ChordShareContext";
 import ChordShareToolbar from "./ChordShareToolbar";
 import {
@@ -370,8 +371,16 @@ function ChordShareInner() {
         </div>
       </div>
       <div className="flex-1 min-h-0 flex flex-col w-full max-w-xl mx-auto">
-        <div className="flex-1 min-h-0 flex flex-col place-content-center place-items-center gap-6 overflow-y-auto p-4">
-          <div className="flex flex-row flex-wrap place-content-center place-items-center gap-2">
+        <div className="flex-1 min-h-0 flex flex-col items-center gap-6 overflow-y-auto p-4">
+          <div className="rounded-xl p-3 w-full flex flex-col items-center gap-3 border border-base-300">
+            <div className="w-40">
+              <SheetMusic notes={activeNotes} accidentalDisplay={accidentalDisplay} />
+            </div>
+            <div className="w-full pb-8">
+              <PianoRoll startNote="C2" endNote="C6" activeNotes={activeNotes} />
+            </div>
+          </div>
+          <div className="flex-1 flex flex-row flex-wrap content-center justify-center items-center gap-2 w-full">
             {chords.map((chord, index) => (
               <Fragment key={index}>
                 {index > 0 && (
@@ -390,9 +399,6 @@ function ChordShareInner() {
                 </div>
               </Fragment>
             ))}
-          </div>
-          <div className="w-full">
-            <PianoRoll startNote="C2" endNote="C6" activeNotes={activeNotes} />
           </div>
         </div>
 

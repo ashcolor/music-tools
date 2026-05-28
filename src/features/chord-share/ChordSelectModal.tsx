@@ -4,6 +4,8 @@ import { ChordTypeSelect } from "./ChordTypeSelect";
 import { NoteSelect } from "./NoteSelect";
 import { ChordPlayer } from "./ChordPlayer";
 import { PianoRoll } from "./PianoRoll";
+import { SheetMusic } from "./SheetMusic";
+import { useChordShare } from "./ChordShareContext";
 import {
   MAIN_TYPES,
   NATURAL_NOTES,
@@ -77,6 +79,8 @@ export function ChordSelectModal({
     () => MAIN_TYPES.find((m) => m.value === mainType)?.tensionOptions ?? [],
     [mainType],
   );
+
+  const { accidentalDisplay } = useChordShare();
 
   if (!current || editingIndex === null) {
     return <dialog ref={dialogRef} className="modal" onClose={onClose} />;
@@ -186,7 +190,10 @@ export function ChordSelectModal({
           )}
         </div>
 
-        <div className="w-full">
+        <div className="flex w-full flex-col items-center gap-4">
+          <div className="w-40">
+            <SheetMusic notes={voicingNotes} accidentalDisplay={accidentalDisplay} />
+          </div>
           <PianoRoll
             startNote={isOnChord ? "C2" : "C4"}
             endNote="C6"
@@ -202,7 +209,10 @@ export function ChordSelectModal({
           <NoteSelect value={root} onChange={onRootChange} />
           <div className="flex items-start gap-2">
             <label className="flex min-w-0 flex-1 flex-col gap-1">
-              <span className="text-sm">タイプ</span>
+              <span className="flex items-center gap-1 text-sm">
+                タイプ
+                {!isValidMainType(mainType) && <WarningIcon />}
+              </span>
               <select
                 className="select select-bordered w-full"
                 value={mainType}
@@ -218,8 +228,11 @@ export function ChordSelectModal({
                 ))}
               </select>
             </label>
-            {!isValidMainType(mainType) && <WarningIcon />}
-            <div className="flex min-w-0 flex-1 items-end gap-2">
+            <label className="flex min-w-0 flex-1 flex-col gap-1">
+              <span className="flex items-center gap-1 text-sm">
+                テンション
+                {!isValidTension(mainType, type) && <WarningIcon />}
+              </span>
               <select
                 className="select select-bordered w-full"
                 value={type}
@@ -235,8 +248,7 @@ export function ChordSelectModal({
                   </option>
                 ))}
               </select>
-              {!isValidTension(mainType, type) && <WarningIcon />}
-            </div>
+            </label>
           </div>
           <label className="flex items-center gap-3">
             <span className="text-base">オンコード</span>
