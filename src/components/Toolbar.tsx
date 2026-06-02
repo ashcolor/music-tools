@@ -313,17 +313,17 @@ export default function Toolbar() {
             />
             <span className="label-text">設定を共有</span>
           </label>
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2">
             <textarea
               readOnly
               value={shareUrl}
               onFocus={(e) => e.currentTarget.select()}
               rows={3}
-              className="textarea textarea-bordered flex-1 font-mono text-xs break-all resize-none"
+              className="textarea textarea-bordered w-full font-mono text-xs break-all resize-none"
             />
             <button
               type="button"
-              className="btn btn-primary"
+              className="btn btn-primary self-center"
               onClick={handleCopyShareUrl}
               aria-label={copied ? "コピーしました" : "URLをコピー"}
             >

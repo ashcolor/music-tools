@@ -452,29 +452,29 @@ export default function ChordShareToolbar({
       <dialog ref={shareRef} className="modal">
         <div className="modal-box">
           <h3 className="font-bold text-lg mb-4">URL共有</h3>
-          <label className="label cursor-pointer justify-start gap-3 mb-3">
-            <input
-              type="checkbox"
-              className="toggle toggle-primary"
-              checked={includeSettings}
-              onChange={(e) => {
-                setIncludeSettings(e.target.checked);
-                setCopied(false);
-              }}
-            />
-            <span className="label-text">コード進行を含める</span>
-          </label>
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2">
             <textarea
               readOnly
               value={shareUrl}
               onFocus={(e) => e.currentTarget.select()}
               rows={3}
-              className="textarea textarea-bordered flex-1 font-mono text-xs break-all resize-none"
+              className="textarea textarea-bordered w-full font-mono text-xs break-all resize-none"
             />
+            <label className="label cursor-pointer justify-start gap-3">
+              <input
+                type="checkbox"
+                className="toggle toggle-primary"
+                checked={includeSettings}
+                onChange={(e) => {
+                  setIncludeSettings(e.target.checked);
+                  setCopied(false);
+                }}
+              />
+              <span className="label-text">コード進行を含める</span>
+            </label>
             <button
               type="button"
-              className="btn btn-primary"
+              className="btn btn-primary self-center"
               onClick={handleCopyShareUrl}
               aria-label={copied ? "コピーしました" : "URLをコピー"}
             >
