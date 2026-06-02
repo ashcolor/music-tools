@@ -331,7 +331,7 @@ function ChordShareInner() {
           <div className="flex flex-row flex-wrap place-content-center place-items-center gap-3 w-full">
             <div className="flex flex-row place-items-center gap-2">
               <span className="text-sm opacity-70">表記</span>
-              <div className="join">
+              <div className="join join-vertical">
                 <button
                   type="button"
                   className={`btn btn-sm join-item ${accidentalDisplay === "sharp" ? "btn-primary" : ""}`}
@@ -360,16 +360,7 @@ function ChordShareInner() {
             </div>
             <div className="flex flex-row place-items-center gap-2">
               <span className="text-sm opacity-70">移調</span>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  className="btn btn-sm"
-                  onClick={() => handleTranspose(-1)}
-                  aria-label="半音下げる"
-                  title="半音下げる"
-                >
-                  <Icon icon="mdi:minus" className="size-4" />1
-                </button>
+              <div className="flex flex-col gap-1">
                 <button
                   type="button"
                   className="btn btn-sm"
@@ -378,6 +369,15 @@ function ChordShareInner() {
                   title="半音上げる"
                 >
                   <Icon icon="mdi:plus" className="size-4" />1
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  onClick={() => handleTranspose(-1)}
+                  aria-label="半音下げる"
+                  title="半音下げる"
+                >
+                  <Icon icon="mdi:minus" className="size-4" />1
                 </button>
               </div>
             </div>
