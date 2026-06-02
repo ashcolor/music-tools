@@ -95,78 +95,80 @@ export default function MetronomeApp() {
     <div className="flex-1 flex flex-col w-full max-w-xl mx-auto">
       <div className="flex-1 flex flex-col items-center justify-center gap-8 p-4 md:p-8">
         <div className="flex flex-col items-center gap-6">
-        <div className="flex flex-col items-center gap-2">
-          {state.accelerationMode !== "off" && (
-            <div className="flex flex-col items-center">
-              <button
-                type="button"
-                className="flex items-baseline gap-2 px-2 py-1 rounded hover:bg-base-200 transition-colors"
-                onClick={() => settingsModalRef.current?.showModal()}
-              >
-                <span className="text-sm text-base-content/70">スタート</span>
-                <span className="text-2xl md:text-3xl font-mono text-primary">
-                  {state.accelerationStartBpm}
-                </span>
-              </button>
-              <button
-                type="button"
-                className="flex items-baseline gap-1 text-sm text-base-content/70 px-2 py-1 rounded hover:bg-base-200 transition-colors"
-                onClick={() => settingsModalRef.current?.showModal()}
-              >
+          <div className="flex flex-col items-center gap-2">
+            {state.accelerationMode !== "off" && (
+              <div className="flex flex-col items-center">
+                <button
+                  type="button"
+                  className="flex items-baseline gap-2 px-2 py-1 rounded hover:bg-base-200 transition-colors"
+                  onClick={() => settingsModalRef.current?.showModal()}
+                >
+                  <span className="text-sm text-base-content/70">スタート</span>
+                  <span className="text-2xl md:text-3xl font-mono text-primary">
+                    {state.accelerationStartBpm}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className="flex items-baseline gap-1 text-sm text-base-content/70 px-2 py-1 rounded hover:bg-base-200 transition-colors"
+                  onClick={() => settingsModalRef.current?.showModal()}
+                >
+                  <Icon
+                    icon={
+                      state.accelerationMode === "accel"
+                        ? "material-symbols:trending-up-rounded"
+                        : "material-symbols:trending-down-rounded"
+                    }
+                    width="16"
+                    height="16"
+                  />
+                  <span className="font-bold text-lg md:text-xl">{state.accelerationStep}</span> BPM
+                  /{" "}
+                  <span className="font-bold text-lg md:text-xl">{state.accelerationInterval}</span>{" "}
+                  小節
+                </button>
                 <Icon
-                  icon={
-                    state.accelerationMode === "accel"
-                      ? "material-symbols:trending-up-rounded"
-                      : "material-symbols:trending-down-rounded"
-                  }
-                  width="16"
-                  height="16"
-                />
-                <span className="font-bold text-lg md:text-xl">{state.accelerationStep}</span> BPM /{" "}
-                <span className="font-bold text-lg md:text-xl">{state.accelerationInterval}</span> 小節
-              </button>
-              <Icon
-                icon="material-symbols:keyboard-double-arrow-down-rounded"
-                width="24"
-                height="24"
-                className="text-base-content/50"
-              />
-            </div>
-          )}
-          {state.showVisualizer ? (
-            <div className="relative w-[15.5rem] h-[15.5rem] md:w-[17.5rem] md:h-[17.5rem] flex items-center justify-center">
-              <div className="absolute inset-0 pointer-events-none">
-                <MetronomeVisualizer
-                  beatsPerMeasure={state.beatsPerMeasure}
-                  accentBeats={state.accentBeats}
-                  isPlaying={state.isPlaying}
-                  isPaused={state.isPaused}
-                  getMeasurePhase={getMeasurePhase}
+                  icon="material-symbols:keyboard-double-arrow-down-rounded"
+                  width="24"
+                  height="24"
+                  className="text-base-content/50"
                 />
               </div>
+            )}
+            {state.showVisualizer ? (
+              <div className="relative w-[15.5rem] h-[15.5rem] md:w-[17.5rem] md:h-[17.5rem] flex items-center justify-center">
+                <div className="absolute inset-0 pointer-events-none">
+                  <MetronomeVisualizer
+                    beatsPerMeasure={state.beatsPerMeasure}
+                    accentBeats={state.accentBeats}
+                    isPlaying={state.isPlaying}
+                    isPaused={state.isPaused}
+                    getMeasurePhase={getMeasurePhase}
+                  />
+                </div>
+                <BpmDisplay
+                  bpm={state.bpm}
+                  flashTick={bpmFlashTick}
+                  onClick={() => settingsModalRef.current?.showModal()}
+                  showBorder={false}
+                />
+              </div>
+            ) : (
               <BpmDisplay
                 bpm={state.bpm}
                 flashTick={bpmFlashTick}
                 onClick={() => settingsModalRef.current?.showModal()}
-                showBorder={false}
               />
-            </div>
-          ) : (
-            <BpmDisplay
-              bpm={state.bpm}
-              flashTick={bpmFlashTick}
-              onClick={() => settingsModalRef.current?.showModal()}
-            />
-          )}
-        </div>
-        {state.showPendulum && <Pendulum />}
-        <BeatsDots
-          isPlaying={state.isPlaying}
-          currentBeat={state.currentBeat}
-          beatsPerMeasure={state.beatsPerMeasure}
-          accentBeats={state.accentBeats}
-          onClick={() => settingsModalRef.current?.showModal()}
-        />
+            )}
+          </div>
+          {state.showPendulum && <Pendulum />}
+          <BeatsDots
+            isPlaying={state.isPlaying}
+            currentBeat={state.currentBeat}
+            beatsPerMeasure={state.beatsPerMeasure}
+            accentBeats={state.accentBeats}
+            onClick={() => settingsModalRef.current?.showModal()}
+          />
         </div>
       </div>
 

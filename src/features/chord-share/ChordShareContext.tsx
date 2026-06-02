@@ -57,8 +57,7 @@ export function ChordShareProvider({ children }: { children: ReactNode }) {
   const [activeChordIndex, setActiveChordIndex] = useState(-1);
   const [accidentalDisplay, setAccidentalDisplayState] =
     useState<AccidentalDisplay>(loadAccidentalDisplay);
-  const [voicingType, setVoicingTypeState] =
-    useState<VoicingType>(loadVoicingType);
+  const [voicingType, setVoicingTypeState] = useState<VoicingType>(loadVoicingType);
 
   useEffect(() => {
     try {
@@ -96,12 +95,18 @@ export function ChordShareProvider({ children }: { children: ReactNode }) {
       voicingType,
       setVoicingType,
     }),
-    [sampler, isPlaying, activeChordIndex, accidentalDisplay, setAccidentalDisplay, voicingType, setVoicingType],
+    [
+      sampler,
+      isPlaying,
+      activeChordIndex,
+      accidentalDisplay,
+      setAccidentalDisplay,
+      voicingType,
+      setVoicingType,
+    ],
   );
 
-  return (
-    <ChordShareContext.Provider value={value}>{children}</ChordShareContext.Provider>
-  );
+  return <ChordShareContext.Provider value={value}>{children}</ChordShareContext.Provider>;
 }
 
 export function useChordShare() {

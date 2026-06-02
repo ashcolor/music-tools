@@ -71,9 +71,9 @@ export default function PolyrhythmVisualizer({
       const radius = Math.min(w, h) / 2 - padding;
 
       const active = s.isPlaying && !s.isPaused;
-      const t = active ? s.getPlayheadTime() ?? 0 : 0;
+      const t = active ? (s.getPlayheadTime() ?? 0) : 0;
       const cycle = 60 / s.bpm;
-      const phase = active ? (t / cycle) - Math.floor(t / cycle) : 0;
+      const phase = active ? t / cycle - Math.floor(t / cycle) : 0;
 
       ctx.beginPath();
       ctx.arc(cx, cy, radius, 0, Math.PI * 2);
@@ -82,8 +82,7 @@ export default function PolyrhythmVisualizer({
       ctx.stroke();
 
       s.rhythms.forEach((rhythm) => {
-        const size =
-          sizeMax - ((sizeMax - sizeMin) * (rhythm.beats - 1)) / 11;
+        const size = sizeMax - ((sizeMax - sizeMin) * (rhythm.beats - 1)) / 11;
         const color = SOUND_COLOR[rhythm.sound];
         const dim = rhythm.volume <= 0 ? 0.25 : 1;
 
@@ -96,8 +95,7 @@ export default function PolyrhythmVisualizer({
           const x = cx + Math.cos(angle) * radius;
           const y = cy + Math.sin(angle) * radius;
 
-          const pulse =
-            active && b === currentBeat ? Math.max(0, 1 - sinceTrigger * 5) : 0;
+          const pulse = active && b === currentBeat ? Math.max(0, 1 - sinceTrigger * 5) : 0;
           const drawSize = size + size * 0.6 * pulse;
 
           ctx.beginPath();

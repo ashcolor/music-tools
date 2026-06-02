@@ -24,10 +24,7 @@ function parseSound(v: string): Sound | null {
 
 function serializeRhythms(rhythms: RhythmSettings[]): string {
   return rhythms
-    .map(
-      (r) =>
-        `${r.sound}_${r.beats}_${Math.round(r.volume * 100)}_${Math.round(r.pan * 100)}`,
-    )
+    .map((r) => `${r.sound}_${r.beats}_${Math.round(r.volume * 100)}_${Math.round(r.pan * 100)}`)
     .join(",");
 }
 

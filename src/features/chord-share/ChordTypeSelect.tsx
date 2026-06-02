@@ -9,20 +9,14 @@ type Props = {
   tensionInvalid?: boolean;
 };
 
-export function ChordTypeSelect({
-  value,
-  onChange,
-  mainTypeInvalid,
-  tensionInvalid,
-}: Props) {
+export function ChordTypeSelect({ value, onChange, mainTypeInvalid, tensionInvalid }: Props) {
   const current = useMemo(() => findMainTypeByType(value), [value]);
   const activeMainValue = current?.main.value ?? "";
   const activeTensionType = current?.tension.type ?? value;
   const activeTensionLabel = current?.tension.label ?? "";
 
   const tensions = useMemo(
-    () =>
-      MAIN_TYPES.find((m) => m.value === activeMainValue)?.tensionOptions ?? [],
+    () => MAIN_TYPES.find((m) => m.value === activeMainValue)?.tensionOptions ?? [],
     [activeMainValue],
   );
 
@@ -30,8 +24,7 @@ export function ChordTypeSelect({
     const next = MAIN_TYPES.find((m) => m.value === nextMainValue);
     if (!next) return;
     const nextOpt =
-      next.tensionOptions.find((t) => t.label === activeTensionLabel) ??
-      next.tensionOptions[0];
+      next.tensionOptions.find((t) => t.label === activeTensionLabel) ?? next.tensionOptions[0];
     onChange(nextOpt.type);
   };
 
@@ -52,9 +45,7 @@ export function ChordTypeSelect({
           <button
             key={type.value || "major"}
             type="button"
-            className={`btn btn-sm ${
-              type.value === activeMainValue ? "btn-primary" : ""
-            }`}
+            className={`btn btn-sm ${type.value === activeMainValue ? "btn-primary" : ""}`}
             onClick={() => handleMainClick(type.value)}
           >
             {type.label}
@@ -76,9 +67,7 @@ export function ChordTypeSelect({
           <button
             key={t.type || "none"}
             type="button"
-            className={`btn btn-sm ${
-              t.type === activeTensionType ? "btn-primary" : ""
-            }`}
+            className={`btn btn-sm ${t.type === activeTensionType ? "btn-primary" : ""}`}
             onClick={() => onChange(t.type)}
           >
             {t.label}

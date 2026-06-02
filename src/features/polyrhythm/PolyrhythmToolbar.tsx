@@ -64,8 +64,7 @@ export default function PolyrhythmToolbar({
   const resetRef = useRef<HTMLDialogElement>(null);
   const shareRef = useRef<HTMLDialogElement>(null);
   const settingsRef = useRef<HTMLDialogElement>(null);
-  const isWakeLockSupported =
-    typeof navigator !== "undefined" && "wakeLock" in navigator;
+  const isWakeLockSupported = typeof navigator !== "undefined" && "wakeLock" in navigator;
   const [shareBaseUrl, setShareBaseUrl] = useState("");
   const [shareSearch, setShareSearch] = useState("");
   const [includeSettings, setIncludeSettings] = useState(true);
@@ -73,8 +72,7 @@ export default function PolyrhythmToolbar({
 
   const shareUrl = includeSettings ? `${shareBaseUrl}${shareSearch}` : shareBaseUrl;
   const snsLinks = useMemo(
-    () =>
-      SNS_SHARES.map((s) => ({ ...s, href: s.buildHref(shareUrl, document.title) })),
+    () => SNS_SHARES.map((s) => ({ ...s, href: s.buildHref(shareUrl, document.title) })),
     [shareUrl],
   );
 
@@ -192,7 +190,9 @@ export default function PolyrhythmToolbar({
                 </span>
                 <span>をクリックでテンポ設定</span>
               </p>
-              <p className="mt-1">各リズムのカードで連符数・ステレオ・音の高さ・音量を調整できます</p>
+              <p className="mt-1">
+                各リズムのカードで連符数・ステレオ・音の高さ・音量を調整できます
+              </p>
               <p className="flex items-center gap-2 mt-1">
                 <span className="inline-flex items-center justify-center rounded-full bg-primary/20 text-primary size-6 shrink-0">
                   <Icon icon="material-symbols:add-rounded" className="size-4" />
@@ -313,17 +313,17 @@ export default function PolyrhythmToolbar({
             />
             <span className="label-text">設定を共有</span>
           </label>
-          <div className="flex gap-2">
-            <input
-              type="text"
+          <div className="flex flex-col gap-2">
+            <textarea
               readOnly
               value={shareUrl}
               onFocus={(e) => e.currentTarget.select()}
-              className="input input-bordered flex-1 font-mono text-xs"
+              rows={3}
+              className="textarea textarea-bordered w-full font-mono text-xs break-all resize-none"
             />
             <button
               type="button"
-              className="btn btn-primary"
+              className="btn btn-primary self-center"
               onClick={handleCopyShareUrl}
               aria-label={copied ? "コピーしました" : "URLをコピー"}
             >
@@ -384,9 +384,7 @@ export default function PolyrhythmToolbar({
               <div className="flex flex-col items-start">
                 <span className="label-text">再生中の画面消灯を抑制</span>
                 {!isWakeLockSupported && (
-                  <span className="text-xs text-base-content/60">
-                    お使いのブラウザは未対応です
-                  </span>
+                  <span className="text-xs text-base-content/60">お使いのブラウザは未対応です</span>
                 )}
               </div>
             </label>

@@ -4,6 +4,8 @@ import { ChordTypeSelect } from "./ChordTypeSelect";
 import { NoteSelect } from "./NoteSelect";
 import { ChordPlayer } from "./ChordPlayer";
 import { PianoRoll } from "./PianoRoll";
+import { SheetMusic } from "./SheetMusic";
+import { useChordShare } from "./ChordShareContext";
 import {
   MAIN_TYPES,
   NATURAL_NOTES,
@@ -61,9 +63,7 @@ export function ChordSelectModal({
 
   const current = editingIndex !== null ? parseChord(chords[editingIndex] ?? "") : null;
   const prev =
-    editingIndex !== null && editingIndex > 0
-      ? parseChord(chords[editingIndex - 1] ?? "")
-      : null;
+    editingIndex !== null && editingIndex > 0 ? parseChord(chords[editingIndex - 1] ?? "") : null;
   const next =
     editingIndex !== null && editingIndex < chords.length - 1
       ? parseChord(chords[editingIndex + 1] ?? "")
@@ -78,6 +78,8 @@ export function ChordSelectModal({
     [mainType],
   );
 
+  const { accidentalDisplay } = useChordShare();
+
   if (!current || editingIndex === null) {
     return <dialog ref={dialogRef} className="modal" onClose={onClose} />;
   }
@@ -85,9 +87,7 @@ export function ChordSelectModal({
   const { root, type, bass } = current;
 
   const voicingNotes =
-    isValidNote(root) && isValidMainType(mainType)
-      ? buildChordVoicing(root, type, bass)
-      : [];
+    isValidNote(root) && isValidMainType(mainType) ? buildChordVoicing(root, type, bass) : [];
 
   const setField = (overrides: Partial<{ root: string; type: string; bass: string }>) => {
     const r = overrides.root ?? root;
@@ -186,12 +186,11 @@ export function ChordSelectModal({
           )}
         </div>
 
-        <div className="w-full">
-          <PianoRoll
-            startNote={isOnChord ? "C2" : "C4"}
-            endNote="C6"
-            activeNotes={voicingNotes}
-          />
+        <div className="flex w-full flex-col items-center gap-4">
+          <div className="w-40">
+            <SheetMusic notes={voicingNotes} accidentalDisplay={accidentalDisplay} />
+          </div>
+          <PianoRoll startNote={isOnChord ? "C2" : "C4"} endNote="C6" activeNotes={voicingNotes} />
         </div>
 
         <div className="flex w-full flex-col gap-4 md:hidden">
@@ -202,7 +201,10 @@ export function ChordSelectModal({
           <NoteSelect value={root} onChange={onRootChange} />
           <div className="flex items-start gap-2">
             <label className="flex min-w-0 flex-1 flex-col gap-1">
-              <span className="text-sm">タイプ</span>
+              <span className="flex items-center gap-1 text-sm">
+                タイプ
+                {!isValidMainType(mainType) && <WarningIcon />}
+              </span>
               <select
                 className="select select-bordered w-full"
                 value={mainType}
@@ -218,8 +220,11 @@ export function ChordSelectModal({
                 ))}
               </select>
             </label>
-            {!isValidMainType(mainType) && <WarningIcon />}
-            <div className="flex min-w-0 flex-1 items-end gap-2">
+            <label className="flex min-w-0 flex-1 flex-col gap-1">
+              <span className="flex items-center gap-1 text-sm">
+                テンション
+                {!isValidTension(mainType, type) && <WarningIcon />}
+              </span>
               <select
                 className="select select-bordered w-full"
                 value={type}
@@ -235,8 +240,7 @@ export function ChordSelectModal({
                   </option>
                 ))}
               </select>
-              {!isValidTension(mainType, type) && <WarningIcon />}
-            </div>
+            </label>
           </div>
           <label className="flex items-center gap-3">
             <span className="text-base">オンコード</span>

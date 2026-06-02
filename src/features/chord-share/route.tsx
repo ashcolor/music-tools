@@ -1,18 +1,34 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import { Icon } from "@iconify/react";
+import {
+  DndContext,
+  PointerSensor,
+  KeyboardSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  rectSortingStrategy,
+  sortableKeyboardCoordinates,
+} from "@dnd-kit/sortable";
 import PlaybackBar from "../../components/PlaybackBar";
 import VolumeControl from "../../components/VolumeControl";
 import { useMetronome } from "../../contexts/MetronomeContext";
 import { useWakeLock } from "../../hooks/useWakeLock";
-import { ChordDisplay } from "./ChordDisplay";
 import { ChordSelectModal } from "./ChordSelectModal";
+import { SortableChord } from "./SortableChord";
 import {
   MetronomeSettingsModal,
   NOTE_VALUE_OPTIONS,
   type NoteValue,
 } from "./MetronomeSettingsModal";
 import { PianoRoll } from "./PianoRoll";
+import { SheetMusic } from "./SheetMusic";
 import { ChordShareProvider, useChordShare } from "./ChordShareContext";
 import ChordShareToolbar from "./ChordShareToolbar";
 import {
@@ -25,6 +41,10 @@ import {
   transposeChord,
   type VoicingType,
 } from "./constants";
+
+function makeChordId(): string {
+  return `chord-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
 
 function computeChordNotes(chords: string[], voicingType: VoicingType) {
   return chords.map((chord) => {
@@ -59,6 +79,7 @@ function ChordShareInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const [chords, setChords] = useState<string[]>(initial);
+  const [chordIds, setChordIds] = useState<string[]>(() => initial.map(() => makeChordId()));
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [wakeLock, setWakeLock] = useState(false);
   const [isLoop, setIsLoop] = useState(false);
@@ -109,9 +130,7 @@ function ChordShareInner() {
     () =>
       chords.some((chord) => {
         const { root, type, bass } = parseChord(chord);
-        return (
-          !isValidNote(root) || !isValidNote(bass) || !isValidChordNotes(root, type)
-        );
+        return !isValidNote(root) || !isValidNote(bass) || !isValidChordNotes(root, type);
       }),
     [chords],
   );
@@ -126,7 +145,13 @@ function ChordShareInner() {
 
   const deleteChord = useCallback((index: number) => {
     setChords((prev) => prev.filter((_, i) => i !== index));
+    setChordIds((prev) => prev.filter((_, i) => i !== index));
     setEditingIndex(null);
+  }, []);
+
+  const addChord = useCallback(() => {
+    setChords((prev) => [...prev, prev[prev.length - 1] ?? "C"]);
+    setChordIds((prev) => [...prev, makeChordId()]);
   }, []);
 
   const handleApplyChordsText = useCallback((text: string) => {
@@ -136,13 +161,12 @@ function ChordShareInner() {
       .filter(Boolean);
     if (parsed.length === 0) return;
     setChords(parsed);
+    setChordIds(parsed.map(() => makeChordId()));
   }, []);
 
   const handleTranspose = useCallback(
     (semitones: number) => {
-      setChords((prev) =>
-        prev.map((c) => transposeChord(c, semitones, accidentalDisplay)),
-      );
+      setChords((prev) => prev.map((c) => transposeChord(c, semitones, accidentalDisplay)));
     },
     [accidentalDisplay],
   );
@@ -219,7 +243,25 @@ function ChordShareInner() {
   const handleReset = useCallback(() => {
     handleStop();
     setChords(INITIAL_CHORDS);
+    setChordIds(INITIAL_CHORDS.map(() => makeChordId()));
   }, [handleStop]);
+
+  const chordSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleChordsDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setChordIds((prevIds) => {
+      const oldIdx = prevIds.findIndex((id) => id === active.id);
+      const newIdx = prevIds.findIndex((id) => id === over.id);
+      if (oldIdx === -1 || newIdx === -1) return prevIds;
+      setChords((prevChords) => arrayMove(prevChords, oldIdx, newIdx));
+      return arrayMove(prevIds, oldIdx, newIdx);
+    });
+  }, []);
 
   const handlePlay = useCallback(async () => {
     if (isPaused) {
@@ -311,90 +353,114 @@ function ChordShareInner() {
               {noteValueOption ? <Icon icon={noteValueOption.icon} className="size-4" /> : null}
               <span>{noteValueLabel}</span>
             </span>
-            {isLoop ? <Icon icon="mdi:repeat" className="size-4" aria-label="ループ再生オン" /> : null}
+            {isLoop ? (
+              <Icon icon="mdi:repeat" className="size-4" aria-label="ループ再生オン" />
+            ) : null}
           </span>
         </button>
       </div>
-      <div className="flex flex-row flex-wrap place-content-center place-items-center gap-3 px-4 pb-2">
-        <div className="flex flex-row place-items-center gap-2">
-          <span className="text-sm opacity-70">表記</span>
-          <div className="join">
-            <button
-              type="button"
-              className={`btn btn-sm join-item ${accidentalDisplay === "sharp" ? "btn-primary" : ""}`}
-              onClick={() => setAccidentalDisplay("sharp")}
-              aria-label="シャープ表記"
+      <div className="flex-1 min-h-0 flex flex-col w-full max-w-xl mx-auto relative">
+        <div className="flex-1 min-h-0 flex flex-col items-center gap-6 overflow-y-auto p-4">
+          <div className="rounded-xl p-3 w-full flex flex-col items-center gap-3 border border-base-300">
+            <div className="w-40">
+              <SheetMusic notes={activeNotes} accidentalDisplay={accidentalDisplay} />
+            </div>
+            <div className="w-full pb-8">
+              <PianoRoll startNote="C2" endNote="C6" activeNotes={activeNotes} />
+            </div>
+          </div>
+          <div className="flex flex-row flex-wrap place-content-center place-items-center gap-3 w-full">
+            <div className="flex flex-row place-items-center gap-2">
+              <span className="text-sm opacity-70">表記</span>
+              <div className="join join-vertical">
+                <button
+                  type="button"
+                  className={`btn btn-sm join-item ${accidentalDisplay === "sharp" ? "btn-primary" : ""}`}
+                  onClick={() => setAccidentalDisplay("sharp")}
+                  aria-label="シャープ表記"
+                >
+                  ♯
+                </button>
+                <button
+                  type="button"
+                  className={`btn btn-sm join-item ${accidentalDisplay === "auto" ? "btn-primary" : ""}`}
+                  onClick={() => setAccidentalDisplay("auto")}
+                  aria-label="自動表記（入力のまま）"
+                >
+                  自動
+                </button>
+                <button
+                  type="button"
+                  className={`btn btn-sm join-item ${accidentalDisplay === "flat" ? "btn-primary" : ""}`}
+                  onClick={() => setAccidentalDisplay("flat")}
+                  aria-label="フラット表記"
+                >
+                  ♭
+                </button>
+              </div>
+            </div>
+            <div className="flex flex-row place-items-center gap-2">
+              <span className="text-sm opacity-70">移調</span>
+              <div className="flex flex-col gap-1">
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  onClick={() => handleTranspose(1)}
+                  aria-label="半音上げる"
+                  title="半音上げる"
+                >
+                  <Icon icon="mdi:plus" className="size-4" />1
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  onClick={() => handleTranspose(-1)}
+                  aria-label="半音下げる"
+                  title="半音下げる"
+                >
+                  <Icon icon="mdi:minus" className="size-4" />1
+                </button>
+              </div>
+            </div>
+          </div>
+          <div className="flex-1 flex flex-row flex-wrap content-center justify-center items-center gap-2 w-full">
+            <DndContext
+              sensors={chordSensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleChordsDragEnd}
             >
-              ♯
-            </button>
-            <button
-              type="button"
-              className={`btn btn-sm join-item ${accidentalDisplay === "auto" ? "btn-primary" : ""}`}
-              onClick={() => setAccidentalDisplay("auto")}
-              aria-label="自動表記（入力のまま）"
-            >
-              自動
-            </button>
-            <button
-              type="button"
-              className={`btn btn-sm join-item ${accidentalDisplay === "flat" ? "btn-primary" : ""}`}
-              onClick={() => setAccidentalDisplay("flat")}
-              aria-label="フラット表記"
-            >
-              ♭
-            </button>
+              <SortableContext items={chordIds} strategy={rectSortingStrategy}>
+                {chords.map((chord, index) => (
+                  <Fragment key={chordIds[index]}>
+                    {index > 0 && (
+                      <Icon
+                        icon="material-symbols:chevron-right-rounded"
+                        className="size-5 sm:size-6 md:size-8 opacity-50"
+                        aria-hidden
+                      />
+                    )}
+                    <SortableChord
+                      id={chordIds[index]}
+                      value={chord}
+                      isActive={index === activeChordIndex}
+                      onClick={() => setEditingIndex(index)}
+                    />
+                  </Fragment>
+                ))}
+              </SortableContext>
+            </DndContext>
           </div>
         </div>
-        <div className="flex flex-row place-items-center gap-2">
-          <span className="text-sm opacity-70">移調</span>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              className="btn btn-sm"
-              onClick={() => handleTranspose(-1)}
-              aria-label="半音下げる"
-              title="半音下げる"
-            >
-              <Icon icon="mdi:minus" className="size-4" />1
-            </button>
-            <button
-              type="button"
-              className="btn btn-sm"
-              onClick={() => handleTranspose(1)}
-              aria-label="半音上げる"
-              title="半音上げる"
-            >
-              <Icon icon="mdi:plus" className="size-4" />1
-            </button>
-          </div>
-        </div>
-      </div>
-      <div className="flex-1 min-h-0 flex flex-col w-full max-w-xl mx-auto">
-        <div className="flex-1 min-h-0 flex flex-col place-content-center place-items-center gap-6 overflow-y-auto p-4">
-          <div className="flex flex-row flex-wrap place-content-center place-items-center gap-2">
-            {chords.map((chord, index) => (
-              <Fragment key={index}>
-                {index > 0 && (
-                  <Icon
-                    icon="material-symbols:chevron-right-rounded"
-                    className="size-4 opacity-50"
-                    aria-hidden
-                  />
-                )}
-                <div className="flex flex-col place-content-center place-items-center gap-2">
-                  <ChordDisplay
-                    value={chord}
-                    onClick={() => setEditingIndex(index)}
-                    isActive={index === activeChordIndex}
-                  />
-                </div>
-              </Fragment>
-            ))}
-          </div>
-          <div className="w-full">
-            <PianoRoll startNote="C2" endNote="C6" activeNotes={activeNotes} />
-          </div>
-        </div>
+
+        <button
+          type="button"
+          className="btn btn-circle btn-primary btn-soft shadow-lg absolute right-4 bottom-32 z-20"
+          onClick={addChord}
+          aria-label="コードを追加"
+          title="コードを追加"
+        >
+          <Icon icon="mdi:plus" className="size-6" />
+        </button>
 
         <PlaybackBar
           isPlaying={isPlaying}

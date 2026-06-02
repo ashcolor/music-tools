@@ -6,11 +6,7 @@ import PlaybackBar from "../../components/PlaybackBar";
 import VolumeControl from "../../components/VolumeControl";
 import { useMetronome } from "../../contexts/MetronomeContext";
 import { useWakeLock } from "../../hooks/useWakeLock";
-import RhythmSettingsCard, {
-  SOUNDS,
-  type RhythmSettings,
-  type Sound,
-} from "./RhythmSettings";
+import RhythmSettingsCard, { SOUNDS, type RhythmSettings, type Sound } from "./RhythmSettings";
 import PolyrhythmToolbar from "./PolyrhythmToolbar";
 import PolyrhythmVisualizer from "./PolyrhythmVisualizer";
 import { usePolyrhythmAudio } from "./usePolyrhythmAudio";
@@ -91,8 +87,7 @@ function loadPersisted(): Persisted {
     const rhythms = Array.isArray(c.rhythms)
       ? c.rhythms.map(sanitizeRhythm).filter((r): r is RhythmSettings => r !== null)
       : fallback.rhythms;
-    const wakeLock =
-      typeof c.wakeLock === "boolean" ? c.wakeLock : fallback.wakeLock;
+    const wakeLock = typeof c.wakeLock === "boolean" ? c.wakeLock : fallback.wakeLock;
     const showVisualizer =
       typeof c.showVisualizer === "boolean" ? c.showVisualizer : fallback.showVisualizer;
     return { bpm, rhythms, wakeLock, showVisualizer };
