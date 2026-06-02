@@ -17,18 +17,18 @@ export function ChordDisplay({ value, onClick, isActive }: Props) {
       }`}
       onClick={onClick}
     >
-      <span className="text-xl font-bold leading-none">{root}</span>
-      <span className="text-base leading-none">{type}</span>
+      <span className="text-2xl sm:text-3xl md:text-4xl font-bold leading-none">{root}</span>
+      <span className="text-lg sm:text-xl md:text-2xl leading-none">{type}</span>
       {root !== bass && (
         <>
-          <span className="text-base leading-none">/</span>
-          <span className="text-xl font-bold leading-none">{bass}</span>
+          <span className="text-lg sm:text-xl md:text-2xl leading-none">/</span>
+          <span className="text-2xl sm:text-3xl md:text-4xl font-bold leading-none">{bass}</span>
         </>
       )}
       {isInvalid && (
         <Icon
           icon="material-symbols:warning-outline-rounded"
-          className="size-5 text-warning self-center"
+          className="size-5 sm:size-6 md:size-7 text-warning self-center"
           aria-label="無効なコード"
         />
       )}

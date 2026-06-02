@@ -435,7 +435,7 @@ function ChordShareInner() {
                     {index > 0 && (
                       <Icon
                         icon="material-symbols:chevron-right-rounded"
-                        className="size-4 opacity-50"
+                        className="size-5 sm:size-6 md:size-8 opacity-50"
                         aria-hidden
                       />
                     )}
