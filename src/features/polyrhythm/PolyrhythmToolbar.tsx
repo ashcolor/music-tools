@@ -314,12 +314,12 @@ export default function PolyrhythmToolbar({
             <span className="label-text">設定を共有</span>
           </label>
           <div className="flex gap-2">
-            <input
-              type="text"
+            <textarea
               readOnly
               value={shareUrl}
               onFocus={(e) => e.currentTarget.select()}
-              className="input input-bordered flex-1 font-mono text-xs"
+              rows={3}
+              className="textarea textarea-bordered flex-1 font-mono text-xs break-all resize-none"
             />
             <button
               type="button"

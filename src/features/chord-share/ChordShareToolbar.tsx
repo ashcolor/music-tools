@@ -465,12 +465,12 @@ export default function ChordShareToolbar({
             <span className="label-text">コード進行を含める</span>
           </label>
           <div className="flex gap-2">
-            <input
-              type="text"
+            <textarea
               readOnly
               value={shareUrl}
               onFocus={(e) => e.currentTarget.select()}
-              className="input input-bordered flex-1 font-mono text-xs"
+              rows={3}
+              className="textarea textarea-bordered flex-1 font-mono text-xs break-all resize-none"
             />
             <button
               type="button"
