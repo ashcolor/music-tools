@@ -58,11 +58,7 @@ export function toAccidental(note: string, accidental: AccidentalDisplay): strin
 
 export function convertChordToAccidental(chord: string, accidental: AccidentalDisplay): string {
   const { root, type, bass } = parseChord(chord);
-  return serializeChord(
-    toAccidental(root, accidental),
-    type,
-    toAccidental(bass, accidental),
-  );
+  return serializeChord(toAccidental(root, accidental), type, toAccidental(bass, accidental));
 }
 
 export type TensionOption = {
@@ -203,31 +199,23 @@ export const VOICING_TYPE_OPTIONS: { label: string; value: VoicingType }[] = [
 
 function buildStackFromRootVoicing(root: string, type: string, bass?: string): string[] {
   const { notes } = Chord.get(`${root}${type}`);
-  const chromas = notes
-    .map((n) => Note.chroma(n))
-    .filter((c): c is number => c !== undefined);
+  const chromas = notes.map((n) => Note.chroma(n)).filter((c): c is number => c !== undefined);
   if (chromas.length === 0) return [];
 
   let prev = 60;
   const midis = chromas.map((c) => (prev += (((c - prev) % 12) + 12) % 12));
-  const tones = midis
-    .map((m) => Note.fromMidi(m))
-    .filter((n): n is string => Boolean(n));
+  const tones = midis.map((m) => Note.fromMidi(m)).filter((n): n is string => Boolean(n));
 
   return bass ? [`${bass}2`, ...tones] : tones;
 }
 
 function buildCompactVoicing(root: string, type: string, bass?: string): string[] {
   const { notes } = Chord.get(`${root}${type}`);
-  const chromas = notes
-    .map((n) => Note.chroma(n))
-    .filter((c): c is number => c !== undefined);
+  const chromas = notes.map((n) => Note.chroma(n)).filter((c): c is number => c !== undefined);
   if (chromas.length === 0) return [];
 
   const midis = chromas.map((c) => 60 + c).sort((a, b) => a - b);
-  const tones = midis
-    .map((m) => Note.fromMidi(m))
-    .filter((n): n is string => Boolean(n));
+  const tones = midis.map((m) => Note.fromMidi(m)).filter((n): n is string => Boolean(n));
 
   return bass ? [`${bass}2`, ...tones] : tones;
 }
@@ -244,11 +232,7 @@ export function buildChordVoicing(
 }
 
 /** @deprecated buildChordVoicing を voicingType 付きで使うこと */
-export function buildChordVoicingFromRoot(
-  root: string,
-  type: string,
-  bass?: string,
-): string[] {
+export function buildChordVoicingFromRoot(root: string, type: string, bass?: string): string[] {
   return buildStackFromRootVoicing(root, type, bass);
 }
 
@@ -273,26 +257,9 @@ export function serializeChord(root: string, type: string, bass: string) {
   return bass && bass !== root ? `${root}${type}/${bass}` : `${root}${type}`;
 }
 
-const SHARP_PITCH_CLASSES = [
-  "C",
-  "C#",
-  "D",
-  "D#",
-  "E",
-  "F",
-  "F#",
-  "G",
-  "G#",
-  "A",
-  "A#",
-  "B",
-];
+const SHARP_PITCH_CLASSES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
-function transposeNote(
-  note: string,
-  semitones: number,
-  accidental: AccidentalDisplay,
-): string {
+function transposeNote(note: string, semitones: number, accidental: AccidentalDisplay): string {
   const chroma = Note.chroma(note);
   if (chroma === undefined) return note;
   const next = (((chroma + semitones) % 12) + 12) % 12;

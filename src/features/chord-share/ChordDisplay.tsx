@@ -9,8 +9,7 @@ type Props = {
 
 export function ChordDisplay({ value, onClick, isActive }: Props) {
   const { root, type, bass } = parseChord(value);
-  const isInvalid =
-    !isValidNote(root) || !isValidNote(bass) || !isValidChordNotes(root, type);
+  const isInvalid = !isValidNote(root) || !isValidNote(bass) || !isValidChordNotes(root, type);
   return (
     <div
       className={`flex flex-row items-end leading-none cursor-pointer rounded px-2 py-1 transition-colors gap-0.5 ${

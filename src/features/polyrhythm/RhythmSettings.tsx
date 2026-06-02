@@ -71,9 +71,7 @@ function RhythmSettingsCard({ index, value, onChange, onRemove }: Props) {
                     className={`justify-center text-base ${value.beats === b ? "menu-active" : ""}`}
                     onClick={(e) => {
                       onChange(index, { ...value, beats: b });
-                      e.currentTarget
-                        .closest("details")
-                        ?.removeAttribute("open");
+                      e.currentTarget.closest("details")?.removeAttribute("open");
                     }}
                   >
                     {b}

@@ -5,10 +5,7 @@ import { externalTools, groupExternalToolsByCategory, tools } from "../../consta
 
 function ToolCard({ tool }: { tool: Tool }) {
   return (
-    <Link
-      to={tool.path}
-      className="card bg-base-100 shadow-sm transition-shadow hover:shadow-md"
-    >
+    <Link to={tool.path} className="card bg-base-100 shadow-sm transition-shadow hover:shadow-md">
       <div className="card-body flex-row items-center gap-3 p-4">
         <Icon icon={tool.sidebarIcon} className="size-8 shrink-0 text-primary" />
         <div className="text-left">

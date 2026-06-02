@@ -204,8 +204,7 @@ function sanitizePersistedSettings(value: unknown): PersistedSettings | null {
     ),
     soundType: isSoundType(candidate.soundType) ? candidate.soundType : initialState.soundType,
     theme: isThemeMode(candidate.theme) ? candidate.theme : initialState.theme,
-    wakeLock:
-      typeof candidate.wakeLock === "boolean" ? candidate.wakeLock : initialState.wakeLock,
+    wakeLock: typeof candidate.wakeLock === "boolean" ? candidate.wakeLock : initialState.wakeLock,
     showPendulum:
       typeof candidate.showPendulum === "boolean"
         ? candidate.showPendulum
@@ -681,21 +680,24 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
     return (s.currentBeat - 1 + beatProgress) / s.beatsPerMeasure;
   }, []);
 
-  const persistedSettings = useMemo(() => toPersistedSettings(state), [
-    state.bpm,
-    state.beatsPerMeasure,
-    state.accentBeats,
-    state.accelerationMode,
-    state.accelerationStartBpm,
-    state.accelerationInterval,
-    state.accelerationStep,
-    state.volume,
-    state.soundType,
-    state.theme,
-    state.wakeLock,
-    state.showPendulum,
-    state.showVisualizer,
-  ]);
+  const persistedSettings = useMemo(
+    () => toPersistedSettings(state),
+    [
+      state.bpm,
+      state.beatsPerMeasure,
+      state.accentBeats,
+      state.accelerationMode,
+      state.accelerationStartBpm,
+      state.accelerationInterval,
+      state.accelerationStep,
+      state.volume,
+      state.soundType,
+      state.theme,
+      state.wakeLock,
+      state.showPendulum,
+      state.showVisualizer,
+    ],
+  );
 
   useEffect(() => {
     const themeName = state.theme === "dark" ? "dark" : "light";

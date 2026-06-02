@@ -63,9 +63,7 @@ export function ChordSelectModal({
 
   const current = editingIndex !== null ? parseChord(chords[editingIndex] ?? "") : null;
   const prev =
-    editingIndex !== null && editingIndex > 0
-      ? parseChord(chords[editingIndex - 1] ?? "")
-      : null;
+    editingIndex !== null && editingIndex > 0 ? parseChord(chords[editingIndex - 1] ?? "") : null;
   const next =
     editingIndex !== null && editingIndex < chords.length - 1
       ? parseChord(chords[editingIndex + 1] ?? "")
@@ -89,9 +87,7 @@ export function ChordSelectModal({
   const { root, type, bass } = current;
 
   const voicingNotes =
-    isValidNote(root) && isValidMainType(mainType)
-      ? buildChordVoicing(root, type, bass)
-      : [];
+    isValidNote(root) && isValidMainType(mainType) ? buildChordVoicing(root, type, bass) : [];
 
   const setField = (overrides: Partial<{ root: string; type: string; bass: string }>) => {
     const r = overrides.root ?? root;
@@ -194,11 +190,7 @@ export function ChordSelectModal({
           <div className="w-40">
             <SheetMusic notes={voicingNotes} accidentalDisplay={accidentalDisplay} />
           </div>
-          <PianoRoll
-            startNote={isOnChord ? "C2" : "C4"}
-            endNote="C6"
-            activeNotes={voicingNotes}
-          />
+          <PianoRoll startNote={isOnChord ? "C2" : "C4"} endNote="C6" activeNotes={voicingNotes} />
         </div>
 
         <div className="flex w-full flex-col gap-4 md:hidden">

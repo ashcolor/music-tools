@@ -52,8 +52,7 @@ export default function Toolbar() {
   const resetRef = useRef<HTMLDialogElement>(null);
   const shareRef = useRef<HTMLDialogElement>(null);
   const settingsRef = useRef<HTMLDialogElement>(null);
-  const isWakeLockSupported =
-    typeof navigator !== "undefined" && "wakeLock" in navigator;
+  const isWakeLockSupported = typeof navigator !== "undefined" && "wakeLock" in navigator;
   const [shareBaseUrl, setShareBaseUrl] = useState("");
   const [shareSearch, setShareSearch] = useState("");
   const [includeSettings, setIncludeSettings] = useState(true);
@@ -61,8 +60,7 @@ export default function Toolbar() {
 
   const shareUrl = includeSettings ? `${shareBaseUrl}${shareSearch}` : shareBaseUrl;
   const snsLinks = useMemo(
-    () =>
-      SNS_SHARES.map((s) => ({ ...s, href: s.buildHref(shareUrl, document.title) })),
+    () => SNS_SHARES.map((s) => ({ ...s, href: s.buildHref(shareUrl, document.title) })),
     [shareUrl],
   );
 
@@ -397,9 +395,7 @@ export default function Toolbar() {
               <div className="flex flex-col items-start">
                 <span className="label-text">再生中の画面消灯を抑制</span>
                 {!isWakeLockSupported && (
-                  <span className="text-xs text-base-content/60">
-                    お使いのブラウザは未対応です
-                  </span>
+                  <span className="text-xs text-base-content/60">お使いのブラウザは未対応です</span>
                 )}
               </div>
             </label>

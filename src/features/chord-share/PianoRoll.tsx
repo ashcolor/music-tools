@@ -70,8 +70,7 @@ export function PianoRoll({ startNote = "C2", endNote = "C5", activeNotes }: Pro
       style={{ aspectRatio: `${whiteKeys.length * 3} / 8` }}
     >
       {whiteKeys.map((white, i) => {
-        const whiteActive =
-          activeMidiSet.has(white.midi) || pressedMidiSet.has(white.midi);
+        const whiteActive = activeMidiSet.has(white.midi) || pressedMidiSet.has(white.midi);
         const black = blackKeysByLeftIndex.get(i);
         const blackActive = black
           ? activeMidiSet.has(black.midi) || pressedMidiSet.has(black.midi)

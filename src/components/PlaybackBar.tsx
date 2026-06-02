@@ -29,11 +29,7 @@ export default function PlaybackBar({
         <Icon icon="material-symbols:pause-rounded" width="48" height="48" />
       </button>
     ) : (
-      <button
-        className="btn btn-circle btn-primary size-20"
-        onClick={onPlay}
-        disabled={disabled}
-      >
+      <button className="btn btn-circle btn-primary size-20" onClick={onPlay} disabled={disabled}>
         <Icon icon="material-symbols:play-arrow-rounded" width="48" height="48" />
       </button>
     );

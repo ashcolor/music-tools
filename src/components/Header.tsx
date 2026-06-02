@@ -217,7 +217,9 @@ export default function Header() {
                 </Link>
               ))}
             </div>
-            <div className="mt-3 opacity-60">© {new Date().getFullYear()} {SITE_NAME}</div>
+            <div className="mt-3 opacity-60">
+              © {new Date().getFullYear()} {SITE_NAME}
+            </div>
           </div>
         </div>
       </div>

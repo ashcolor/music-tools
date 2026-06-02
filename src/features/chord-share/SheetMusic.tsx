@@ -50,7 +50,8 @@ export function SheetMusic({ notes, accidentalDisplay = "auto" }: Props) {
     if (!el) return;
     el.innerHTML = "";
 
-    const effective = accidentalDisplay === "auto" ? inferAccidentalDisplay(notes) : accidentalDisplay;
+    const effective =
+      accidentalDisplay === "auto" ? inferAccidentalDisplay(notes) : accidentalDisplay;
     const converted = notes.map((n) => convertNoteAccidental(n, effective));
 
     // C3(48)〜B6(95) の範囲のみ treble で表示

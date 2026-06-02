@@ -92,8 +92,7 @@ export default function MetronomeVisualizer({
         const y = cy + Math.sin(angle) * radius;
         const isAccent = s.accentBeats.includes(b + 1);
 
-        const pulse =
-          active && b === currentBeat ? Math.max(0, 1 - sinceTrigger * 5) : 0;
+        const pulse = active && b === currentBeat ? Math.max(0, 1 - sinceTrigger * 5) : 0;
         const drawSize = sizeMax + sizeMax * 0.6 * pulse;
 
         ctx.strokeStyle = COLOR;

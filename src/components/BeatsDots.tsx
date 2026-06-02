@@ -7,13 +7,7 @@ type Props = {
   onToggleAccent?: (beat: number) => void;
 };
 
-function BeatDot({
-  isCurrent,
-  isAccent,
-}: {
-  isCurrent: boolean;
-  isAccent: boolean;
-}) {
+function BeatDot({ isCurrent, isAccent }: { isCurrent: boolean; isAccent: boolean }) {
   const baseClass = "size-4 rounded-full transition-all duration-100";
   if (isAccent) {
     const borderColor = isCurrent ? "border-accent" : "border-accent/70";
@@ -42,9 +36,7 @@ export default function BeatsDots({
 }: Props) {
   const beats = Array.from({ length: beatsPerMeasure }, (_, i) => i + 1);
   const dots = beats.map((beat) => {
-    const dot = (
-      <BeatDot isCurrent={currentBeat === beat} isAccent={accentBeats.includes(beat)} />
-    );
+    const dot = <BeatDot isCurrent={currentBeat === beat} isAccent={accentBeats.includes(beat)} />;
     if (onToggleAccent) {
       return (
         <button
