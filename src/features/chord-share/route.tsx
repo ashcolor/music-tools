@@ -1,12 +1,27 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import { Icon } from "@iconify/react";
+import {
+  DndContext,
+  PointerSensor,
+  KeyboardSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  rectSortingStrategy,
+  sortableKeyboardCoordinates,
+} from "@dnd-kit/sortable";
 import PlaybackBar from "../../components/PlaybackBar";
 import VolumeControl from "../../components/VolumeControl";
 import { useMetronome } from "../../contexts/MetronomeContext";
 import { useWakeLock } from "../../hooks/useWakeLock";
-import { ChordDisplay } from "./ChordDisplay";
 import { ChordSelectModal } from "./ChordSelectModal";
+import { SortableChord } from "./SortableChord";
 import {
   MetronomeSettingsModal,
   NOTE_VALUE_OPTIONS,
@@ -26,6 +41,10 @@ import {
   transposeChord,
   type VoicingType,
 } from "./constants";
+
+function makeChordId(): string {
+  return `chord-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
 
 function computeChordNotes(chords: string[], voicingType: VoicingType) {
   return chords.map((chord) => {
@@ -60,6 +79,7 @@ function ChordShareInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const [chords, setChords] = useState<string[]>(initial);
+  const [chordIds, setChordIds] = useState<string[]>(() => initial.map(() => makeChordId()));
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [wakeLock, setWakeLock] = useState(false);
   const [isLoop, setIsLoop] = useState(false);
@@ -125,11 +145,13 @@ function ChordShareInner() {
 
   const deleteChord = useCallback((index: number) => {
     setChords((prev) => prev.filter((_, i) => i !== index));
+    setChordIds((prev) => prev.filter((_, i) => i !== index));
     setEditingIndex(null);
   }, []);
 
   const addChord = useCallback(() => {
     setChords((prev) => [...prev, prev[prev.length - 1] ?? "C"]);
+    setChordIds((prev) => [...prev, makeChordId()]);
   }, []);
 
   const handleApplyChordsText = useCallback((text: string) => {
@@ -139,6 +161,7 @@ function ChordShareInner() {
       .filter(Boolean);
     if (parsed.length === 0) return;
     setChords(parsed);
+    setChordIds(parsed.map(() => makeChordId()));
   }, []);
 
   const handleTranspose = useCallback(
@@ -220,7 +243,25 @@ function ChordShareInner() {
   const handleReset = useCallback(() => {
     handleStop();
     setChords(INITIAL_CHORDS);
+    setChordIds(INITIAL_CHORDS.map(() => makeChordId()));
   }, [handleStop]);
+
+  const chordSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleChordsDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setChordIds((prevIds) => {
+      const oldIdx = prevIds.findIndex((id) => id === active.id);
+      const newIdx = prevIds.findIndex((id) => id === over.id);
+      if (oldIdx === -1 || newIdx === -1) return prevIds;
+      setChords((prevChords) => arrayMove(prevChords, oldIdx, newIdx));
+      return arrayMove(prevIds, oldIdx, newIdx);
+    });
+  }, []);
 
   const handlePlay = useCallback(async () => {
     if (isPaused) {
@@ -383,24 +424,31 @@ function ChordShareInner() {
             </div>
           </div>
           <div className="flex-1 flex flex-row flex-wrap content-center justify-center items-center gap-2 w-full">
-            {chords.map((chord, index) => (
-              <Fragment key={index}>
-                {index > 0 && (
-                  <Icon
-                    icon="material-symbols:chevron-right-rounded"
-                    className="size-4 opacity-50"
-                    aria-hidden
-                  />
-                )}
-                <div className="flex flex-col place-content-center place-items-center gap-2">
-                  <ChordDisplay
-                    value={chord}
-                    onClick={() => setEditingIndex(index)}
-                    isActive={index === activeChordIndex}
-                  />
-                </div>
-              </Fragment>
-            ))}
+            <DndContext
+              sensors={chordSensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleChordsDragEnd}
+            >
+              <SortableContext items={chordIds} strategy={rectSortingStrategy}>
+                {chords.map((chord, index) => (
+                  <Fragment key={chordIds[index]}>
+                    {index > 0 && (
+                      <Icon
+                        icon="material-symbols:chevron-right-rounded"
+                        className="size-4 opacity-50"
+                        aria-hidden
+                      />
+                    )}
+                    <SortableChord
+                      id={chordIds[index]}
+                      value={chord}
+                      isActive={index === activeChordIndex}
+                      onClick={() => setEditingIndex(index)}
+                    />
+                  </Fragment>
+                ))}
+              </SortableContext>
+            </DndContext>
           </div>
         </div>
 
