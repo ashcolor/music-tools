@@ -162,7 +162,7 @@ export default function Toolbar() {
                 </p>
                 <p className="flex items-center gap-2">
                   <Icon icon="lucide:share-2" className="size-4 shrink-0" />
-                  <span>URLをコピー</span>
+                  <span>URL共有</span>
                 </p>
                 <p className="flex items-center gap-2">
                   <Icon icon="mdi:cog" className="size-4 shrink-0" />
@@ -255,7 +255,7 @@ export default function Toolbar() {
                   </tr>
                   <tr>
                     <td>
-                      <kbd className="kbd">R</kbd>
+                      <kbd className="kbd">S</kbd>
                     </td>
                     <td>停止</td>
                   </tr>

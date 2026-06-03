@@ -102,7 +102,7 @@ function ChordShareInner() {
   useEffect(() => {
     setChords((prev) => prev.map((c) => convertChordToAccidental(c, accidentalDisplay)));
   }, [accidentalDisplay]);
-  const { state: metronomeState } = useMetronome();
+  const { state: metronomeState, actions: metronomeActions } = useMetronome();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const timeoutsRef = useRef<number[]>([]);
@@ -111,6 +111,13 @@ function ChordShareInner() {
   const measureSecRef = useRef(4 * (60 / 120));
   const pausedElapsedRef = useRef(0);
   const playStartWallRef = useRef(0);
+  const lastNonZeroVolumeRef = useRef(metronomeState.volume > 0 ? metronomeState.volume : 0.3);
+
+  useEffect(() => {
+    if (metronomeState.volume > 0) {
+      lastNonZeroVolumeRef.current = metronomeState.volume;
+    }
+  }, [metronomeState.volume]);
 
   useEffect(() => {
     setSearchParams(
@@ -164,13 +171,6 @@ function ChordShareInner() {
     setChordIds(parsed.map(() => makeChordId()));
   }, []);
 
-  const handleTranspose = useCallback(
-    (semitones: number) => {
-      setChords((prev) => prev.map((c) => transposeChord(c, semitones, accidentalDisplay)));
-    },
-    [accidentalDisplay],
-  );
-
   const clearTimers = useCallback(() => {
     timeoutsRef.current.forEach((id) => window.clearTimeout(id));
     timeoutsRef.current = [];
@@ -183,7 +183,7 @@ function ChordShareInner() {
       const repeatCount = Math.max(1, Math.round(measureSec / noteSec));
       const notesList = chordNotesRef.current;
 
-      notesList.forEach((notes, index) => {
+      notesList.forEach((_, index) => {
         const groupStart = index * measureSec;
         const groupEnd = groupStart + measureSec;
         if (groupEnd <= fromElapsed) return;
@@ -201,9 +201,15 @@ function ChordShareInner() {
           if (noteEnd <= fromElapsed) continue;
 
           const startOffset = Math.max(0, noteStart - fromElapsed);
-          notes.forEach((note) => {
-            sampler.triggerAttackRelease(note, noteSec, startOffset);
-          });
+          // 発音タイミングで chordNotesRef を読むことで、再生中の移調を反映
+          timeoutsRef.current.push(
+            window.setTimeout(() => {
+              const liveNotes = chordNotesRef.current[index] ?? [];
+              liveNotes.forEach((note) => {
+                sampler.triggerAttackRelease(note, noteSec, 0);
+              });
+            }, startOffset * 1000),
+          );
         }
       });
 
@@ -245,6 +251,20 @@ function ChordShareInner() {
     setChords(INITIAL_CHORDS);
     setChordIds(INITIAL_CHORDS.map(() => makeChordId()));
   }, [handleStop]);
+
+  const handleTranspose = useCallback(
+    (semitones: number) => {
+      setChords((prev) => {
+        const next = prev.map((c) => transposeChord(c, semitones, accidentalDisplay));
+        // 再生中も次のコードから即反映されるよう、chordNotesRef を先回りで更新
+        if (isPlaying && !isPaused) {
+          chordNotesRef.current = computeChordNotes(next, voicingType);
+        }
+        return next;
+      });
+    },
+    [accidentalDisplay, isPlaying, isPaused, voicingType],
+  );
 
   const chordSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -311,22 +331,87 @@ function ChordShareInner() {
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      if (e.target instanceof HTMLElement && e.target.closest("[role='dialog']")) return;
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLSelectElement
+      )
+        return;
+      const inDialog = e.target instanceof HTMLElement && !!e.target.closest("[role='dialog']");
       if (e.code === "Space") {
+        if (inDialog) return;
         e.preventDefault();
         if (isPlaying && !isPaused) {
           void handlePause();
         } else {
           void handlePlay();
         }
-      } else if (e.code === "KeyR") {
+      } else if (e.code === "KeyS") {
+        if (inDialog) return;
         handleStop();
+      } else if (e.code === "KeyM") {
+        if (inDialog) return;
+        e.preventDefault();
+        if (metronomeState.volume > 0) {
+          metronomeActions.setVolume(0);
+        } else {
+          metronomeActions.setVolume(lastNonZeroVolumeRef.current);
+        }
+      } else if (e.code === "ArrowUp") {
+        if (editingIndex !== null) return;
+        e.preventDefault();
+        handleTranspose(1);
+      } else if (e.code === "ArrowDown") {
+        if (editingIndex !== null) return;
+        e.preventDefault();
+        handleTranspose(-1);
+      } else if (e.code === "ArrowLeft" || e.code === "ArrowRight") {
+        if (editingIndex !== null) return;
+        if (chords.length === 0) return;
+        e.preventDefault();
+        const dir = e.code === "ArrowRight" ? 1 : -1;
+        const cur = activeChordIndex < 0 ? (dir > 0 ? -1 : 0) : activeChordIndex;
+        const nextIdx = Math.max(0, Math.min(chords.length - 1, cur + dir));
+        if (isPlaying && !isPaused) {
+          // 再生中: 移動先からスケジューラを再構築
+          clearTimers();
+          sampler.stopAll();
+          void sampler.resume();
+          const newElapsed = nextIdx * measureSecRef.current;
+          pausedElapsedRef.current = newElapsed;
+          playStartWallRef.current = performance.now();
+          setActiveChordIndex(nextIdx);
+          scheduleFrom(newElapsed);
+        } else {
+          // 停止中・一時停止中: 試聴のみ
+          setActiveChordIndex(nextIdx);
+          const notes = chordNotesRef.current[nextIdx] ?? [];
+          void sampler.resume();
+          notes.forEach((note) => {
+            sampler.triggerAttackRelease(note, beatSecRef.current, 0);
+          });
+        }
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [isPlaying, isPaused, handlePlay, handlePause, handleStop]);
+  }, [
+    isPlaying,
+    isPaused,
+    handlePlay,
+    handlePause,
+    handleStop,
+    handleTranspose,
+    editingIndex,
+    chords.length,
+    activeChordIndex,
+    setActiveChordIndex,
+    sampler,
+    clearTimers,
+    scheduleFrom,
+    metronomeState.volume,
+    metronomeActions,
+  ]);
 
   return (
     <div className="flex-1 min-h-0 flex flex-col">

@@ -389,7 +389,7 @@ export default function ChordShareToolbar({
                 </p>
                 <p className="flex items-center gap-2">
                   <Icon icon="lucide:share-2" className="size-4 shrink-0" />
-                  <span>URLをコピー（コード進行を共有）</span>
+                  <span>URL共有</span>
                 </p>
                 <p className="flex items-center gap-2">
                   <Icon icon="mdi:cog" className="size-4 shrink-0" />
@@ -430,9 +430,27 @@ export default function ChordShareToolbar({
                   </tr>
                   <tr>
                     <td>
-                      <kbd className="kbd">R</kbd>
+                      <kbd className="kbd">S</kbd>
                     </td>
                     <td>停止</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <kbd className="kbd">M</kbd>
+                    </td>
+                    <td>ミュート切り替え</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <kbd className="kbd">↑</kbd> / <kbd className="kbd">↓</kbd>
+                    </td>
+                    <td>半音上げ / 下げ（移調）</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <kbd className="kbd">←</kbd> / <kbd className="kbd">→</kbd>
+                    </td>
+                    <td>再生位置を前 / 次のコードへ移動</td>
                   </tr>
                 </tbody>
               </table>
