@@ -49,12 +49,12 @@ export function SortableTemplateItem({ template, onLoad, onDelete }: Props) {
       </div>
       <button
         type="button"
-        className="btn btn-sm btn-primary btn-square"
+        className="btn btn-sm btn-primary"
         onClick={() => onLoad(template)}
-        aria-label={`${template.name}を読み込む`}
-        title="読み込み"
+        aria-label={`${template.name}を適用`}
+        title="適用"
       >
-        <Icon icon="mdi:download" className="size-4" />
+        適用
       </button>
       <button
         type="button"

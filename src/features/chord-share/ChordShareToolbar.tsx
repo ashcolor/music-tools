@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { Icon } from "@iconify/react";
 import {
   DndContext,
@@ -100,13 +100,36 @@ export default function ChordShareToolbar({
   const templatesRef = useRef<HTMLDialogElement>(null);
   const templatesResetRef = useRef<HTMLDialogElement>(null);
   const deleteConfirmRef = useRef<HTMLDialogElement>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
   const [chordText, setChordText] = useState("");
   const [userTemplates, setUserTemplates] = useState<ChordTemplate[]>([]);
   const [hiddenBuiltinIds, setHiddenBuiltinIds] = useState<string[]>([]);
   const [templateOrder, setTemplateOrder] = useState<string[]>([]);
   const [newTemplateName, setNewTemplateName] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<ChordTemplate | null>(null);
-  const { show: showToast, ToastContainer } = useToast();
+  const [warningDismissed, setWarningDismissed] = useState(false);
+  const { show: showToast, toastElement } = useToast();
+
+  const WARNING_DISMISSED_KEY = "chord-share:templates-warning-dismissed";
+
+  useEffect(() => {
+    try {
+      if (window.localStorage.getItem(WARNING_DISMISSED_KEY) === "1") {
+        setWarningDismissed(true);
+      }
+    } catch {
+      // noop
+    }
+  }, []);
+
+  const dismissWarning = () => {
+    setWarningDismissed(true);
+    try {
+      window.localStorage.setItem(WARNING_DISMISSED_KEY, "1");
+    } catch {
+      // noop
+    }
+  };
 
   useEffect(() => {
     setUserTemplates(loadUserTemplates());
@@ -245,6 +268,67 @@ export default function ChordShareToolbar({
     showToast("ブックマークをリセットしました", "mdi:restore");
   };
 
+  const handleExportTemplates = () => {
+    const data = {
+      version: 1,
+      userTemplates,
+      hiddenBuiltinIds,
+      templateOrder,
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `chord-bookmarks-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportClick = () => {
+    importInputRef.current?.click();
+  };
+
+  const handleImportFile = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if (!data || typeof data !== "object") throw new Error("Invalid format");
+      const importedUser: ChordTemplate[] = Array.isArray(data.userTemplates)
+        ? data.userTemplates
+            .filter(
+              (t: unknown): t is ChordTemplate =>
+                !!t &&
+                typeof t === "object" &&
+                typeof (t as ChordTemplate).id === "string" &&
+                typeof (t as ChordTemplate).name === "string" &&
+                typeof (t as ChordTemplate).chords === "string",
+            )
+            .map((t: ChordTemplate) => ({ ...t, builtin: false }))
+        : [];
+      const importedHidden: string[] = Array.isArray(data.hiddenBuiltinIds)
+        ? data.hiddenBuiltinIds.filter((v: unknown): v is string => typeof v === "string")
+        : [];
+      const importedOrder: string[] = Array.isArray(data.templateOrder)
+        ? data.templateOrder.filter((v: unknown): v is string => typeof v === "string")
+        : [];
+      setUserTemplates(importedUser);
+      saveUserTemplates(importedUser);
+      setHiddenBuiltinIds(importedHidden);
+      saveHiddenBuiltinIds(importedHidden);
+      setTemplateOrder(importedOrder);
+      saveTemplateOrder(importedOrder);
+      showToast("ブックマークをインポートしました", "mdi:upload");
+    } catch {
+      showToast("インポートに失敗しました", "mdi:alert-outline");
+    } finally {
+      if (importInputRef.current) importInputRef.current.value = "";
+    }
+  };
+
   const handleSaveCurrentAsTemplate = () => {
     const name = newTemplateName.trim();
     if (!name) return;
@@ -265,7 +349,7 @@ export default function ChordShareToolbar({
 
   return (
     <div className="flex w-full items-center justify-end gap-1 px-4 py-2">
-      <ToastContainer />
+      {toastElement}
       <button
         type="button"
         className="btn btn-ghost btn-sm btn-square"
@@ -389,7 +473,7 @@ export default function ChordShareToolbar({
                 </p>
                 <p className="flex items-center gap-2">
                   <Icon icon="lucide:share-2" className="size-4 shrink-0" />
-                  <span>URLをコピー（コード進行を共有）</span>
+                  <span>URL共有</span>
                 </p>
                 <p className="flex items-center gap-2">
                   <Icon icon="mdi:cog" className="size-4 shrink-0" />
@@ -430,9 +514,33 @@ export default function ChordShareToolbar({
                   </tr>
                   <tr>
                     <td>
-                      <kbd className="kbd">R</kbd>
+                      <kbd className="kbd">S</kbd>
                     </td>
                     <td>停止</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <kbd className="kbd">M</kbd>
+                    </td>
+                    <td>ミュート切り替え</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <kbd className="kbd">↑</kbd> / <kbd className="kbd">↓</kbd>
+                    </td>
+                    <td>半音上げ / 下げ（移調）</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <kbd className="kbd">←</kbd> / <kbd className="kbd">→</kbd>
+                    </td>
+                    <td>再生位置を前 / 次のコードへ移動</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <kbd className="kbd">Enter</kbd>
+                    </td>
+                    <td>選択中のコードを編集</td>
                   </tr>
                 </tbody>
               </table>
@@ -594,28 +702,67 @@ export default function ChordShareToolbar({
         <div className="modal-box">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-bold text-lg">ブックマーク</h3>
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm btn-square"
-              aria-label="ブックマークをリセット"
-              title="ブックマークをリセット"
-              onClick={() => templatesResetRef.current?.showModal()}
-            >
-              <Icon icon="mdi:restore" className="size-5" />
-            </button>
-          </div>
-
-          <div role="alert" className="alert alert-warning mb-4 text-xs text-warning-content">
-            <Icon icon="mdi:alert-outline" className="size-5 shrink-0" />
-            <div>
-              <p className="font-medium">保存したブックマークは消えることがあります</p>
-              <p className="opacity-80 mt-1">
-                {isSafariLike
-                  ? "お使いのブラウザ(Safari/iOS)では、7日間アクセスがないと自動的に削除されます。"
-                  : "ブラウザのキャッシュ削除やシークレットモードなどで消える場合があります。"}
-              </p>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm btn-square"
+                aria-label="ブックマークをエクスポート"
+                title="ブックマークをエクスポート"
+                onClick={handleExportTemplates}
+              >
+                <Icon icon="mdi:download" className="size-5" />
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm btn-square"
+                aria-label="ブックマークをインポート"
+                title="ブックマークをインポート"
+                onClick={handleImportClick}
+              >
+                <Icon icon="mdi:upload" className="size-5" />
+              </button>
+              <input
+                ref={importInputRef}
+                type="file"
+                accept="application/json,.json"
+                className="hidden"
+                onChange={handleImportFile}
+              />
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm btn-square"
+                aria-label="ブックマークをリセット"
+                title="ブックマークをリセット"
+                onClick={() => templatesResetRef.current?.showModal()}
+              >
+                <Icon icon="mdi:restore" className="size-5" />
+              </button>
             </div>
           </div>
+
+          {!warningDismissed && (
+            <div role="alert" className="alert alert-warning mb-4 text-xs text-warning-content">
+              <Icon icon="mdi:alert-outline" className="size-5 shrink-0" />
+              <div className="flex-1">
+                <p className="font-medium">保存したブックマークは消えることがあります</p>
+                <p className="opacity-80 mt-1">
+                  {isSafariLike
+                    ? "お使いのブラウザ(Safari/iOS)では、7日間アクセスがないと自動的に削除されます。"
+                    : "ブラウザのキャッシュ削除やシークレットモードなどで消える場合があります。"}
+                </p>
+                <p className="opacity-80 mt-1">定期的なエクスポートをオススメします</p>
+              </div>
+              <button
+                type="button"
+                className="btn btn-ghost btn-xs btn-square self-start"
+                aria-label="警告を閉じる"
+                title="警告を閉じる"
+                onClick={dismissWarning}
+              >
+                <Icon icon="mdi:close" className="size-4" />
+              </button>
+            </div>
+          )}
 
           <div className="flex flex-col gap-2 max-h-96 overflow-y-auto">
             <DndContext
@@ -668,7 +815,7 @@ export default function ChordShareToolbar({
             </form>
           </div>
         </div>
-        <ToastContainer />
+        {toastElement}
         <form method="dialog" className="modal-backdrop">
           <button>close</button>
         </form>

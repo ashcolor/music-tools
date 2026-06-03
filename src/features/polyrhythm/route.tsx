@@ -111,6 +111,7 @@ function MasterVolumeBridge({ volumeRef }: { volumeRef: React.RefObject<number> 
 }
 
 export function Polyrhythm() {
+  const { state: metronomeState, actions: metronomeActions } = useMetronome();
   const [persisted] = useState(loadPersisted);
   const [bpm, setBpm] = useState(persisted.bpm);
   const [rhythms, setRhythms] = useState<RhythmSettings[]>(persisted.rhythms);
@@ -119,9 +120,16 @@ export function Polyrhythm() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const bpmModalRef = useRef<HTMLDialogElement>(null);
+  const lastNonZeroVolumeRef = useRef(metronomeState.volume > 0 ? metronomeState.volume : 0.3);
 
   const masterVolumeRef = useRef(0);
   const audio = usePolyrhythmAudio({ bpm, rhythms, masterVolumeRef });
+
+  useEffect(() => {
+    if (metronomeState.volume > 0) {
+      lastNonZeroVolumeRef.current = metronomeState.volume;
+    }
+  }, [metronomeState.volume]);
 
   const setBpmClamped = useCallback((n: number) => {
     setBpm(clamp(Math.round(n), 10, 999));
@@ -174,9 +182,19 @@ export function Polyrhythm() {
 
       const key = event.key.toLowerCase();
 
-      if (key === "r") {
+      if (key === "s") {
         event.preventDefault();
         handleStop();
+        return;
+      }
+
+      if (key === "m") {
+        event.preventDefault();
+        if (metronomeState.volume > 0) {
+          metronomeActions.setVolume(0);
+        } else {
+          metronomeActions.setVolume(lastNonZeroVolumeRef.current);
+        }
         return;
       }
 
@@ -194,7 +212,17 @@ export function Polyrhythm() {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [bpm, isPaused, isPlaying, handlePlay, handlePause, handleStop, setBpmClamped]);
+  }, [
+    bpm,
+    isPaused,
+    isPlaying,
+    handlePlay,
+    handlePause,
+    handleStop,
+    setBpmClamped,
+    metronomeState.volume,
+    metronomeActions,
+  ]);
 
   const updateRhythm = useCallback((index: number, next: RhythmSettings) => {
     setRhythms((prev) => prev.map((r, i) => (i === index ? next : r)));

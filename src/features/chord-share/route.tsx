@@ -102,7 +102,7 @@ function ChordShareInner() {
   useEffect(() => {
     setChords((prev) => prev.map((c) => convertChordToAccidental(c, accidentalDisplay)));
   }, [accidentalDisplay]);
-  const { state: metronomeState } = useMetronome();
+  const { state: metronomeState, actions: metronomeActions } = useMetronome();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const timeoutsRef = useRef<number[]>([]);
@@ -111,6 +111,13 @@ function ChordShareInner() {
   const measureSecRef = useRef(4 * (60 / 120));
   const pausedElapsedRef = useRef(0);
   const playStartWallRef = useRef(0);
+  const lastNonZeroVolumeRef = useRef(metronomeState.volume > 0 ? metronomeState.volume : 0.3);
+
+  useEffect(() => {
+    if (metronomeState.volume > 0) {
+      lastNonZeroVolumeRef.current = metronomeState.volume;
+    }
+  }, [metronomeState.volume]);
 
   useEffect(() => {
     setSearchParams(
@@ -154,6 +161,11 @@ function ChordShareInner() {
     setChordIds((prev) => [...prev, makeChordId()]);
   }, []);
 
+  const removeLastChord = useCallback(() => {
+    setChords((prev) => (prev.length > 0 ? prev.slice(0, -1) : prev));
+    setChordIds((prev) => (prev.length > 0 ? prev.slice(0, -1) : prev));
+  }, []);
+
   const handleApplyChordsText = useCallback((text: string) => {
     const parsed = text
       .split(/[,→→>|\s]+/)
@@ -163,13 +175,6 @@ function ChordShareInner() {
     setChords(parsed);
     setChordIds(parsed.map(() => makeChordId()));
   }, []);
-
-  const handleTranspose = useCallback(
-    (semitones: number) => {
-      setChords((prev) => prev.map((c) => transposeChord(c, semitones, accidentalDisplay)));
-    },
-    [accidentalDisplay],
-  );
 
   const clearTimers = useCallback(() => {
     timeoutsRef.current.forEach((id) => window.clearTimeout(id));
@@ -183,7 +188,7 @@ function ChordShareInner() {
       const repeatCount = Math.max(1, Math.round(measureSec / noteSec));
       const notesList = chordNotesRef.current;
 
-      notesList.forEach((notes, index) => {
+      notesList.forEach((_, index) => {
         const groupStart = index * measureSec;
         const groupEnd = groupStart + measureSec;
         if (groupEnd <= fromElapsed) return;
@@ -201,9 +206,15 @@ function ChordShareInner() {
           if (noteEnd <= fromElapsed) continue;
 
           const startOffset = Math.max(0, noteStart - fromElapsed);
-          notes.forEach((note) => {
-            sampler.triggerAttackRelease(note, noteSec, startOffset);
-          });
+          // 発音タイミングで chordNotesRef を読むことで、再生中の移調を反映
+          timeoutsRef.current.push(
+            window.setTimeout(() => {
+              const liveNotes = chordNotesRef.current[index] ?? [];
+              liveNotes.forEach((note) => {
+                sampler.triggerAttackRelease(note, noteSec, 0);
+              });
+            }, startOffset * 1000),
+          );
         }
       });
 
@@ -245,6 +256,20 @@ function ChordShareInner() {
     setChords(INITIAL_CHORDS);
     setChordIds(INITIAL_CHORDS.map(() => makeChordId()));
   }, [handleStop]);
+
+  const handleTranspose = useCallback(
+    (semitones: number) => {
+      setChords((prev) => {
+        const next = prev.map((c) => transposeChord(c, semitones, accidentalDisplay));
+        // 再生中も次のコードから即反映されるよう、chordNotesRef を先回りで更新
+        if (isPlaying && !isPaused) {
+          chordNotesRef.current = computeChordNotes(next, voicingType);
+        }
+        return next;
+      });
+    },
+    [accidentalDisplay, isPlaying, isPaused, voicingType],
+  );
 
   const chordSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -311,22 +336,92 @@ function ChordShareInner() {
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      if (e.target instanceof HTMLElement && e.target.closest("[role='dialog']")) return;
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLSelectElement
+      )
+        return;
+      const inDialog = e.target instanceof HTMLElement && !!e.target.closest("[role='dialog']");
       if (e.code === "Space") {
+        if (inDialog) return;
         e.preventDefault();
         if (isPlaying && !isPaused) {
           void handlePause();
         } else {
           void handlePlay();
         }
-      } else if (e.code === "KeyR") {
+      } else if (e.code === "KeyS") {
+        if (inDialog) return;
         handleStop();
+      } else if (e.code === "KeyM") {
+        if (inDialog) return;
+        e.preventDefault();
+        if (metronomeState.volume > 0) {
+          metronomeActions.setVolume(0);
+        } else {
+          metronomeActions.setVolume(lastNonZeroVolumeRef.current);
+        }
+      } else if (e.code === "Enter") {
+        if (inDialog) return;
+        if (activeChordIndex < 0) return;
+        e.preventDefault();
+        setEditingIndex(activeChordIndex);
+      } else if (e.code === "ArrowUp") {
+        if (editingIndex !== null) return;
+        e.preventDefault();
+        handleTranspose(1);
+      } else if (e.code === "ArrowDown") {
+        if (editingIndex !== null) return;
+        e.preventDefault();
+        handleTranspose(-1);
+      } else if (e.code === "ArrowLeft" || e.code === "ArrowRight") {
+        if (editingIndex !== null) return;
+        if (chords.length === 0) return;
+        e.preventDefault();
+        const dir = e.code === "ArrowRight" ? 1 : -1;
+        const cur = activeChordIndex < 0 ? (dir > 0 ? -1 : 0) : activeChordIndex;
+        const nextIdx = Math.max(0, Math.min(chords.length - 1, cur + dir));
+        if (isPlaying && !isPaused) {
+          // 再生中: 移動先からスケジューラを再構築
+          clearTimers();
+          sampler.stopAll();
+          void sampler.resume();
+          const newElapsed = nextIdx * measureSecRef.current;
+          pausedElapsedRef.current = newElapsed;
+          playStartWallRef.current = performance.now();
+          setActiveChordIndex(nextIdx);
+          scheduleFrom(newElapsed);
+        } else {
+          // 停止中・一時停止中: 試聴のみ
+          setActiveChordIndex(nextIdx);
+          const notes = chordNotesRef.current[nextIdx] ?? [];
+          void sampler.resume();
+          notes.forEach((note) => {
+            sampler.triggerAttackRelease(note, beatSecRef.current, 0);
+          });
+        }
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [isPlaying, isPaused, handlePlay, handlePause, handleStop]);
+  }, [
+    isPlaying,
+    isPaused,
+    handlePlay,
+    handlePause,
+    handleStop,
+    handleTranspose,
+    editingIndex,
+    chords.length,
+    activeChordIndex,
+    setActiveChordIndex,
+    sampler,
+    clearTimers,
+    scheduleFrom,
+    metronomeState.volume,
+    metronomeActions,
+  ]);
 
   return (
     <div className="flex-1 min-h-0 flex flex-col">
@@ -371,40 +466,42 @@ function ChordShareInner() {
           </div>
           <div className="flex flex-row flex-wrap place-content-center place-items-center gap-3 w-full">
             <div className="flex flex-row place-items-center gap-2">
-              <span className="text-sm opacity-70">表記</span>
-              <div className="join join-vertical">
+              <span className="text-sm opacity-70">臨時記号</span>
+              <div className="join">
                 <button
                   type="button"
-                  className={`btn btn-sm join-item ${accidentalDisplay === "sharp" ? "btn-primary" : ""}`}
-                  onClick={() => setAccidentalDisplay("sharp")}
-                  aria-label="シャープ表記"
-                >
-                  ♯
-                </button>
-                <button
-                  type="button"
-                  className={`btn btn-sm join-item ${accidentalDisplay === "auto" ? "btn-primary" : ""}`}
+                  className={`btn join-item h-auto ${accidentalDisplay === "auto" ? "btn-primary" : ""}`}
                   onClick={() => setAccidentalDisplay("auto")}
                   aria-label="自動表記（入力のまま）"
                 >
                   自動
                 </button>
-                <button
-                  type="button"
-                  className={`btn btn-sm join-item ${accidentalDisplay === "flat" ? "btn-primary" : ""}`}
-                  onClick={() => setAccidentalDisplay("flat")}
-                  aria-label="フラット表記"
-                >
-                  ♭
-                </button>
+                <div className="join join-vertical">
+                  <button
+                    type="button"
+                    className={`btn btn-sm join-item ${accidentalDisplay === "sharp" ? "btn-primary" : ""}`}
+                    onClick={() => setAccidentalDisplay("sharp")}
+                    aria-label="シャープ表記"
+                  >
+                    ♯
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn btn-sm join-item ${accidentalDisplay === "flat" ? "btn-primary" : ""}`}
+                    onClick={() => setAccidentalDisplay("flat")}
+                    aria-label="フラット表記"
+                  >
+                    ♭
+                  </button>
+                </div>
               </div>
             </div>
             <div className="flex flex-row place-items-center gap-2">
               <span className="text-sm opacity-70">移調</span>
-              <div className="flex flex-col gap-1">
+              <div className="join join-vertical">
                 <button
                   type="button"
-                  className="btn btn-sm"
+                  className="btn btn-sm join-item"
                   onClick={() => handleTranspose(1)}
                   aria-label="半音上げる"
                   title="半音上げる"
@@ -413,7 +510,7 @@ function ChordShareInner() {
                 </button>
                 <button
                   type="button"
-                  className="btn btn-sm"
+                  className="btn btn-sm join-item"
                   onClick={() => handleTranspose(-1)}
                   aria-label="半音下げる"
                   title="半音下げる"
@@ -454,12 +551,28 @@ function ChordShareInner() {
 
         <button
           type="button"
+          className="btn btn-circle btn-error btn-soft shadow-lg absolute right-4 bottom-44 z-20"
+          onClick={removeLastChord}
+          disabled={chords.length === 0}
+          aria-label="末尾のコードを削除"
+          title="末尾のコードを削除"
+        >
+          <span className="inline-flex items-center -space-x-1">
+            <Icon icon="lucide:chevron-right" className="size-5" />
+            <Icon icon="lucide:circle-dashed" className="size-4" />
+          </span>
+        </button>
+        <button
+          type="button"
           className="btn btn-circle btn-primary btn-soft shadow-lg absolute right-4 bottom-32 z-20"
           onClick={addChord}
-          aria-label="コードを追加"
-          title="コードを追加"
+          aria-label="末尾にコードを追加"
+          title="末尾にコードを追加"
         >
-          <Icon icon="mdi:plus" className="size-6" />
+          <span className="inline-flex items-center -space-x-1">
+            <Icon icon="lucide:chevron-right" className="size-5" />
+            <Icon icon="lucide:plus" className="size-4" />
+          </span>
         </button>
 
         <PlaybackBar

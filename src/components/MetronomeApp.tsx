@@ -53,7 +53,7 @@ export default function MetronomeApp() {
 
       const key = event.key.toLowerCase();
 
-      if (key === "r") {
+      if (key === "s") {
         event.preventDefault();
         actions.stop();
         return;
