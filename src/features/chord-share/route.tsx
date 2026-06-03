@@ -161,6 +161,11 @@ function ChordShareInner() {
     setChordIds((prev) => [...prev, makeChordId()]);
   }, []);
 
+  const removeLastChord = useCallback(() => {
+    setChords((prev) => (prev.length > 0 ? prev.slice(0, -1) : prev));
+    setChordIds((prev) => (prev.length > 0 ? prev.slice(0, -1) : prev));
+  }, []);
+
   const handleApplyChordsText = useCallback((text: string) => {
     const parsed = text
       .split(/[,→→>|\s]+/)
@@ -357,6 +362,11 @@ function ChordShareInner() {
         } else {
           metronomeActions.setVolume(lastNonZeroVolumeRef.current);
         }
+      } else if (e.code === "Enter") {
+        if (inDialog) return;
+        if (activeChordIndex < 0) return;
+        e.preventDefault();
+        setEditingIndex(activeChordIndex);
       } else if (e.code === "ArrowUp") {
         if (editingIndex !== null) return;
         e.preventDefault();
@@ -456,40 +466,42 @@ function ChordShareInner() {
           </div>
           <div className="flex flex-row flex-wrap place-content-center place-items-center gap-3 w-full">
             <div className="flex flex-row place-items-center gap-2">
-              <span className="text-sm opacity-70">表記</span>
-              <div className="join join-vertical">
+              <span className="text-sm opacity-70">臨時記号</span>
+              <div className="join">
                 <button
                   type="button"
-                  className={`btn btn-sm join-item ${accidentalDisplay === "sharp" ? "btn-primary" : ""}`}
-                  onClick={() => setAccidentalDisplay("sharp")}
-                  aria-label="シャープ表記"
-                >
-                  ♯
-                </button>
-                <button
-                  type="button"
-                  className={`btn btn-sm join-item ${accidentalDisplay === "auto" ? "btn-primary" : ""}`}
+                  className={`btn join-item h-auto ${accidentalDisplay === "auto" ? "btn-primary" : ""}`}
                   onClick={() => setAccidentalDisplay("auto")}
                   aria-label="自動表記（入力のまま）"
                 >
                   自動
                 </button>
-                <button
-                  type="button"
-                  className={`btn btn-sm join-item ${accidentalDisplay === "flat" ? "btn-primary" : ""}`}
-                  onClick={() => setAccidentalDisplay("flat")}
-                  aria-label="フラット表記"
-                >
-                  ♭
-                </button>
+                <div className="join join-vertical">
+                  <button
+                    type="button"
+                    className={`btn btn-sm join-item ${accidentalDisplay === "sharp" ? "btn-primary" : ""}`}
+                    onClick={() => setAccidentalDisplay("sharp")}
+                    aria-label="シャープ表記"
+                  >
+                    ♯
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn btn-sm join-item ${accidentalDisplay === "flat" ? "btn-primary" : ""}`}
+                    onClick={() => setAccidentalDisplay("flat")}
+                    aria-label="フラット表記"
+                  >
+                    ♭
+                  </button>
+                </div>
               </div>
             </div>
             <div className="flex flex-row place-items-center gap-2">
               <span className="text-sm opacity-70">移調</span>
-              <div className="flex flex-col gap-1">
+              <div className="join join-vertical">
                 <button
                   type="button"
-                  className="btn btn-sm"
+                  className="btn btn-sm join-item"
                   onClick={() => handleTranspose(1)}
                   aria-label="半音上げる"
                   title="半音上げる"
@@ -498,7 +510,7 @@ function ChordShareInner() {
                 </button>
                 <button
                   type="button"
-                  className="btn btn-sm"
+                  className="btn btn-sm join-item"
                   onClick={() => handleTranspose(-1)}
                   aria-label="半音下げる"
                   title="半音下げる"
@@ -539,12 +551,28 @@ function ChordShareInner() {
 
         <button
           type="button"
+          className="btn btn-circle btn-error btn-soft shadow-lg absolute right-4 bottom-44 z-20"
+          onClick={removeLastChord}
+          disabled={chords.length === 0}
+          aria-label="末尾のコードを削除"
+          title="末尾のコードを削除"
+        >
+          <span className="inline-flex items-center -space-x-1">
+            <Icon icon="lucide:chevron-right" className="size-5" />
+            <Icon icon="lucide:circle-dashed" className="size-4" />
+          </span>
+        </button>
+        <button
+          type="button"
           className="btn btn-circle btn-primary btn-soft shadow-lg absolute right-4 bottom-32 z-20"
           onClick={addChord}
-          aria-label="コードを追加"
-          title="コードを追加"
+          aria-label="末尾にコードを追加"
+          title="末尾にコードを追加"
         >
-          <Icon icon="mdi:plus" className="size-6" />
+          <span className="inline-flex items-center -space-x-1">
+            <Icon icon="lucide:chevron-right" className="size-5" />
+            <Icon icon="lucide:plus" className="size-4" />
+          </span>
         </button>
 
         <PlaybackBar

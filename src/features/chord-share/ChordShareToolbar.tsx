@@ -284,7 +284,6 @@ export default function ChordShareToolbar({
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
-    showToast("ブックマークをエクスポートしました", "mdi:download");
   };
 
   const handleImportClick = () => {
@@ -536,6 +535,12 @@ export default function ChordShareToolbar({
                       <kbd className="kbd">←</kbd> / <kbd className="kbd">→</kbd>
                     </td>
                     <td>再生位置を前 / 次のコードへ移動</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <kbd className="kbd">Enter</kbd>
+                    </td>
+                    <td>選択中のコードを編集</td>
                   </tr>
                 </tbody>
               </table>
