@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { useMetronome } from "@/contexts/MetronomeContext";
-import { useSampler } from "./useSampler";
+import { useSampler, type InstrumentType } from "./useSampler";
 import type { AccidentalDisplay, VoicingType } from "./constants";
 
 type Sampler = ReturnType<typeof useSampler>;
@@ -23,12 +23,15 @@ type ChordShareContextValue = {
   setAccidentalDisplay: (v: AccidentalDisplay) => void;
   voicingType: VoicingType;
   setVoicingType: (v: VoicingType) => void;
+  instrument: InstrumentType;
+  setInstrument: (v: InstrumentType) => void;
 };
 
 const ChordShareContext = createContext<ChordShareContextValue | null>(null);
 
 const ACCIDENTAL_STORAGE_KEY = "chord-share:accidentalDisplay";
 const VOICING_TYPE_STORAGE_KEY = "chord-share:voicingType";
+const INSTRUMENT_STORAGE_KEY = "chord-share:instrument";
 
 function loadAccidentalDisplay(): AccidentalDisplay {
   if (typeof window === "undefined") return "sharp";
@@ -50,14 +53,33 @@ function loadVoicingType(): VoicingType {
   }
 }
 
+function loadInstrument(): InstrumentType {
+  if (typeof window === "undefined") return "piano";
+  try {
+    const raw = window.localStorage.getItem(INSTRUMENT_STORAGE_KEY);
+    return raw === "guitar" || raw === "synth" ? raw : "piano";
+  } catch {
+    return "piano";
+  }
+}
+
 export function ChordShareProvider({ children }: { children: ReactNode }) {
   const { state } = useMetronome();
-  const sampler = useSampler(state.volume);
+  const [instrument, setInstrumentState] = useState<InstrumentType>(loadInstrument);
+  const sampler = useSampler(state.volume, instrument);
   const [isPlaying, setIsPlaying] = useState(false);
   const [activeChordIndex, setActiveChordIndex] = useState(-1);
   const [accidentalDisplay, setAccidentalDisplayState] =
     useState<AccidentalDisplay>(loadAccidentalDisplay);
   const [voicingType, setVoicingTypeState] = useState<VoicingType>(loadVoicingType);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(INSTRUMENT_STORAGE_KEY, instrument);
+    } catch {
+      // ignore
+    }
+  }, [instrument]);
 
   useEffect(() => {
     try {
@@ -83,6 +105,10 @@ export function ChordShareProvider({ children }: { children: ReactNode }) {
     setVoicingTypeState(v);
   }, []);
 
+  const setInstrument = useCallback((v: InstrumentType) => {
+    setInstrumentState(v);
+  }, []);
+
   const value = useMemo(
     () => ({
       sampler,
@@ -94,6 +120,8 @@ export function ChordShareProvider({ children }: { children: ReactNode }) {
       setAccidentalDisplay,
       voicingType,
       setVoicingType,
+      instrument,
+      setInstrument,
     }),
     [
       sampler,
@@ -103,6 +131,8 @@ export function ChordShareProvider({ children }: { children: ReactNode }) {
       setAccidentalDisplay,
       voicingType,
       setVoicingType,
+      instrument,
+      setInstrument,
     ],
   );
 

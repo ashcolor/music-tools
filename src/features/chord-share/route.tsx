@@ -17,7 +17,6 @@ import {
   sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
 import PlaybackBar from "../../components/PlaybackBar";
-import VolumeControl from "../../components/VolumeControl";
 import { useMetronome } from "../../contexts/MetronomeContext";
 import { useWakeLock } from "../../hooks/useWakeLock";
 import { ChordSelectModal } from "./ChordSelectModal";
@@ -30,6 +29,7 @@ import {
 import { PianoRoll } from "./PianoRoll";
 import { SheetMusic } from "./SheetMusic";
 import { ChordShareProvider, useChordShare } from "./ChordShareContext";
+import SoundSettings from "./SoundSettings";
 import ChordShareToolbar from "./ChordShareToolbar";
 import {
   INITIAL_CHORDS,
@@ -254,7 +254,10 @@ function ChordShareInner() {
           if (noteStart >= horizon) break;
 
           // オーディオクロックに対する正確な発音時刻（when は currentTime からの相対秒）
-          const when = Math.max(0, playStartAudioRef.current + noteStart - sampler.getCurrentTime());
+          const when = Math.max(
+            0,
+            playStartAudioRef.current + noteStart - sampler.getCurrentTime(),
+          );
 
           // 小節（コード）の頭でハイライトを更新（視覚は setTimeout で近似）
           if (r === 0) {
@@ -643,7 +646,7 @@ function ChordShareInner() {
           onStop={handleStop}
           leftSlot={
             <div className="flex items-center gap-1">
-              <VolumeControl showSoundType={false} />
+              <SoundSettings />
             </div>
           }
           rightSlot={
