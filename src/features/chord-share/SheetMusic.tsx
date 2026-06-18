@@ -90,7 +90,7 @@ export function SheetMusic({ notes, accidentalDisplay = "auto" }: Props) {
       }
     });
 
-    const voice = new Voice({ num_beats: 4, beat_value: 4 });
+    const voice = new Voice({ numBeats: 4, beatValue: 4 });
     voice.setStrict(false);
     voice.addTickables([staveNote]);
 
