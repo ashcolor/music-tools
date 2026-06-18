@@ -42,6 +42,12 @@ import {
   type VoicingType,
 } from "./constants";
 
+// Web Audio look-ahead スケジューラの定数
+// SCHEDULE_AHEAD_SEC: 現在時刻からこの秒数先までのノートを先回りでスケジュールする
+// SCHEDULER_LOOKAHEAD_MS: スケジューラ tick を回す間隔（ミリ秒）
+const SCHEDULE_AHEAD_SEC = 0.1;
+const SCHEDULER_LOOKAHEAD_MS = 25;
+
 function makeChordId(): string {
   return `chord-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -106,11 +112,16 @@ function ChordShareInner() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const timeoutsRef = useRef<number[]>([]);
+  const schedulerIdRef = useRef<number | null>(null);
   const chordNotesRef = useRef<string[][]>([]);
   const beatSecRef = useRef(60 / 120);
   const measureSecRef = useRef(4 * (60 / 120));
   const pausedElapsedRef = useRef(0);
-  const playStartWallRef = useRef(0);
+  // オーディオクロック基準の再生開始基点（経過秒 elapsed = sampler.getCurrentTime() - playStartAudioRef）
+  const playStartAudioRef = useRef(0);
+  // 次にスケジュールすべきノートのグローバル連番
+  const nextNoteIdxRef = useRef(0);
+  const endHandledRef = useRef(false);
   const lastNonZeroVolumeRef = useRef(metronomeState.volume > 0 ? metronomeState.volume : 0.3);
 
   useEffect(() => {
@@ -176,69 +187,118 @@ function ChordShareInner() {
     setChordIds(parsed.map(() => makeChordId()));
   }, []);
 
+  const stopScheduler = useCallback(() => {
+    if (schedulerIdRef.current !== null) {
+      window.clearInterval(schedulerIdRef.current);
+      schedulerIdRef.current = null;
+    }
+  }, []);
+
   const clearTimers = useCallback(() => {
+    stopScheduler();
     timeoutsRef.current.forEach((id) => window.clearTimeout(id));
     timeoutsRef.current = [];
-  }, []);
+  }, [stopScheduler]);
 
   const scheduleFrom = useCallback(
     (fromElapsed: number) => {
       const noteSec = beatSecRef.current;
       const measureSec = measureSecRef.current;
       const repeatCount = Math.max(1, Math.round(measureSec / noteSec));
-      const notesList = chordNotesRef.current;
+      // ノート数・全体長は再生開始時点で固定（中身は発音時に chordNotesRef を読み直して移調反映）
+      const chordCount = chordNotesRef.current.length;
+      const totalNotes = chordCount * repeatCount;
+      const totalSec = chordCount * measureSec;
 
-      notesList.forEach((_, index) => {
-        const groupStart = index * measureSec;
-        const groupEnd = groupStart + measureSec;
-        if (groupEnd <= fromElapsed) return;
+      // コードが無い場合は何も鳴らさず終了（ループ時の scheduleFrom(0) 無限再帰を防ぐ）
+      if (totalNotes === 0) {
+        stopScheduler();
+        setActiveChordIndex(-1);
+        setIsPlaying(false);
+        setIsPaused(false);
+        pausedElapsedRef.current = 0;
+        return;
+      }
 
-        const groupOffset = Math.max(0, groupStart - fromElapsed);
-        timeoutsRef.current.push(
-          window.setTimeout(() => {
-            setActiveChordIndex(index);
-          }, groupOffset * 1000),
-        );
+      // 経過秒をオーディオクロックに揃える（elapsed = sampler.getCurrentTime() - playStartAudioRef）
+      playStartAudioRef.current = sampler.getCurrentTime() - fromElapsed;
+      endHandledRef.current = false;
 
-        for (let r = 0; r < repeatCount; r++) {
-          const noteStart = groupStart + r * noteSec;
-          const noteEnd = noteStart + noteSec;
-          if (noteEnd <= fromElapsed) continue;
-
-          const startOffset = Math.max(0, noteStart - fromElapsed);
-          // 発音タイミングで chordNotesRef を読むことで、再生中の移調を反映
-          timeoutsRef.current.push(
-            window.setTimeout(() => {
-              const liveNotes = chordNotesRef.current[index] ?? [];
-              liveNotes.forEach((note) => {
-                sampler.triggerAttackRelease(note, noteSec, 0);
-              });
-            }, startOffset * 1000),
-          );
+      // fromElapsed 以降にまだ鳴り終わっていない最初のノートを探す
+      let startIdx = totalNotes;
+      for (let g = 0; g < totalNotes; g++) {
+        const groupIndex = Math.floor(g / repeatCount);
+        const r = g % repeatCount;
+        const noteEnd = groupIndex * measureSec + r * noteSec + noteSec;
+        if (noteEnd > fromElapsed) {
+          startIdx = g;
+          break;
         }
-      });
+      }
+      nextNoteIdxRef.current = startIdx;
 
-      const totalSec = notesList.length * measureSec;
-      const remainingMs = Math.max(0, (totalSec - fromElapsed) * 1000);
-      timeoutsRef.current.push(
-        window.setTimeout(() => {
-          if (isLoopRef.current) {
-            sampler.stopAll();
-            void sampler.resume();
-            pausedElapsedRef.current = 0;
-            playStartWallRef.current = performance.now();
-            setActiveChordIndex(-1);
-            scheduleFrom(0);
-          } else {
-            setActiveChordIndex(-1);
-            setIsPlaying(false);
-            setIsPaused(false);
-            pausedElapsedRef.current = 0;
+      // 途中シーク時は現在のコードを即ハイライト
+      if (startIdx < totalNotes) {
+        setActiveChordIndex(Math.floor(startIdx / repeatCount));
+      }
+
+      const tick = () => {
+        const now = sampler.getCurrentTime();
+        const horizon = now - playStartAudioRef.current + SCHEDULE_AHEAD_SEC;
+
+        while (nextNoteIdxRef.current < totalNotes) {
+          const g = nextNoteIdxRef.current;
+          const groupIndex = Math.floor(g / repeatCount);
+          const r = g % repeatCount;
+          const noteStart = groupIndex * measureSec + r * noteSec;
+          if (noteStart >= horizon) break;
+
+          // オーディオクロックに対する正確な発音時刻（when は currentTime からの相対秒）
+          const when = Math.max(0, playStartAudioRef.current + noteStart - sampler.getCurrentTime());
+
+          // 小節（コード）の頭でハイライトを更新（視覚は setTimeout で近似）
+          if (r === 0) {
+            timeoutsRef.current.push(
+              window.setTimeout(() => setActiveChordIndex(groupIndex), when * 1000),
+            );
           }
-        }, remainingMs),
-      );
+
+          // 発音タイミングで chordNotesRef を読むことで、再生中の移調を反映
+          const liveNotes = chordNotesRef.current[groupIndex] ?? [];
+          liveNotes.forEach((note) => {
+            sampler.triggerAttackRelease(note, noteSec, when);
+          });
+          nextNoteIdxRef.current++;
+        }
+
+        if (nextNoteIdxRef.current >= totalNotes && !endHandledRef.current) {
+          const elapsed = sampler.getCurrentTime() - playStartAudioRef.current;
+          if (elapsed >= totalSec) {
+            endHandledRef.current = true;
+            stopScheduler();
+            if (isLoopRef.current) {
+              sampler.stopAll();
+              void sampler.resume();
+              pausedElapsedRef.current = 0;
+              setActiveChordIndex(-1);
+              scheduleFrom(0);
+            } else {
+              setActiveChordIndex(-1);
+              setIsPlaying(false);
+              setIsPaused(false);
+              pausedElapsedRef.current = 0;
+            }
+          }
+        }
+      };
+
+      // interval を先に登録してから初回 tick を回す。
+      // tick が完了分岐で stopScheduler() を呼んでも、登録済みの ID を確実にクリアでき orphan 化しない。
+      stopScheduler();
+      schedulerIdRef.current = window.setInterval(tick, SCHEDULER_LOOKAHEAD_MS);
+      tick(); // 最初のウィンドウを即スケジュール
     },
-    [sampler, setActiveChordIndex, isLoopRef],
+    [sampler, setActiveChordIndex, isLoopRef, stopScheduler],
   );
 
   const handleStop = useCallback(() => {
@@ -294,7 +354,6 @@ function ChordShareInner() {
       const mSec = measureSecRef.current;
       const nextBoundary = Math.ceil(pausedElapsedRef.current / mSec - 1e-6) * mSec;
       pausedElapsedRef.current = nextBoundary;
-      playStartWallRef.current = performance.now();
       setIsPaused(false);
       setIsPlaying(true);
       scheduleFrom(nextBoundary);
@@ -306,7 +365,6 @@ function ChordShareInner() {
     beatSecRef.current = noteValue * (60 / metronomeState.bpm);
     measureSecRef.current = metronomeState.beatsPerMeasure * (60 / metronomeState.bpm);
     pausedElapsedRef.current = 0;
-    playStartWallRef.current = performance.now();
     setIsPlaying(true);
     setIsPaused(false);
     scheduleFrom(0);
@@ -314,8 +372,8 @@ function ChordShareInner() {
 
   const handlePause = useCallback(async () => {
     const totalSec = chordNotesRef.current.length * measureSecRef.current;
-    const segment = (performance.now() - playStartWallRef.current) / 1000;
-    pausedElapsedRef.current = Math.min(totalSec, pausedElapsedRef.current + segment);
+    const elapsed = sampler.getCurrentTime() - playStartAudioRef.current;
+    pausedElapsedRef.current = Math.min(totalSec, Math.max(0, elapsed));
     clearTimers();
     sampler.stopAll();
     await sampler.suspend();
@@ -328,6 +386,9 @@ function ChordShareInner() {
 
   useEffect(() => {
     return () => {
+      if (schedulerIdRef.current !== null) {
+        window.clearInterval(schedulerIdRef.current);
+      }
       timeoutsRef.current.forEach((id) => window.clearTimeout(id));
     };
   }, []);
@@ -389,7 +450,6 @@ function ChordShareInner() {
           void sampler.resume();
           const newElapsed = nextIdx * measureSecRef.current;
           pausedElapsedRef.current = newElapsed;
-          playStartWallRef.current = performance.now();
           setActiveChordIndex(nextIdx);
           scheduleFrom(newElapsed);
         } else {
