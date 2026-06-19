@@ -160,7 +160,7 @@ function ChordShareInner() {
 
   // 鍵盤表示用にベース音（オクターブ2の先頭音）とコード音を分離する。
   const [activeBassNote, ...activeChordTones] = activeNotes;
-  const bassRange = noteRange(activeBassNote ? [activeBassNote] : []);
+  const bassRange = noteRange([activeBassNote ?? "C2"]);
   const chordRange = noteRange(activeChordTones, 2);
   // 各鍵盤の幅をオクターブ数に比例させると鍵の幅が揃い、結果として高さも一致する。
   const octavesOf = (r: { startNote: string; endNote: string }) =>
@@ -539,10 +539,7 @@ function ChordShareInner() {
                 aria-label="ヘ音記号"
               />
               <div className="min-w-0" style={{ flexGrow: octavesOf(bassRange), flexBasis: 0 }}>
-                <PianoRoll
-                  {...bassRange}
-                  activeNotes={activeBassNote ? [activeBassNote] : []}
-                />
+                <PianoRoll {...bassRange} activeNotes={activeBassNote ? [activeBassNote] : []} />
               </div>
               <Icon
                 icon="mdi:music-clef-treble"
