@@ -1,40 +1,7 @@
 import { memo } from "react";
 import { Icon } from "@iconify/react";
-
-const BEATS_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
-
-export type Sound =
-  | "electronicLow"
-  | "electronicMid"
-  | "electronicHigh"
-  | "bassDrum"
-  | "snare"
-  | "hiHat";
-
-export const SOUNDS: Sound[] = [
-  "electronicLow",
-  "electronicMid",
-  "electronicHigh",
-  "bassDrum",
-  "snare",
-  "hiHat",
-];
-
-const SOUND_OPTIONS: { value: Sound; label: string }[] = [
-  { value: "electronicLow", label: "電子音低" },
-  { value: "electronicMid", label: "電子音中" },
-  { value: "electronicHigh", label: "電子音高" },
-  { value: "bassDrum", label: "バスドラム" },
-  { value: "snare", label: "スネア" },
-  { value: "hiHat", label: "ハイハット" },
-];
-
-export type RhythmSettings = {
-  sound: Sound;
-  beats: number;
-  volume: number;
-  pan: number;
-};
+import type { RhythmSettings, Sound } from "../types";
+import { BEATS_OPTIONS, SOUND_OPTIONS } from "../utils/constants";
 
 type Props = {
   index: number;

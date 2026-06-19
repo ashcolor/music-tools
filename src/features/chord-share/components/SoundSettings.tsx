@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
 import { useMetronome } from "@/contexts/MetronomeContext";
-import { useChordShare } from "./ChordShareContext";
-import { INSTRUMENT_OPTIONS } from "./useSampler";
+import { useChordShare } from "../hooks/ChordShareContext";
+import { INSTRUMENT_OPTIONS } from "../hooks/useSampler";
 
 // chord-share 専用の音設定ポップアップ。再生バー左下のサウンドアイコンから
 // 楽器と音量をまとめて設定する。共有の VolumeControl とは独立した実装。

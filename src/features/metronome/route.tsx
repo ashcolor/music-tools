@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
 import { useMetronome } from "@/contexts/MetronomeContext";
-import BeatsInput from "./BeatsInput";
-import BeatsDots from "./BeatsDots";
-import BpmDisplay from "./BpmDisplay";
-import MetronomeVisualizer from "./MetronomeVisualizer";
-import PlaybackBar from "./PlaybackBar";
-import TempoEditor from "./TempoEditor";
-import VolumeControl from "./VolumeControl";
-import Pendulum from "./Pendulum";
+import BeatsInput from "@/components/BeatsInput";
+import BpmDisplay from "@/components/BpmDisplay";
+import PlaybackBar from "@/components/PlaybackBar";
+import VolumeControl from "@/components/VolumeControl";
+import BeatsDots from "./components/BeatsDots";
+import MetronomeVisualizer from "./components/MetronomeVisualizer";
+import TempoEditor from "./components/TempoEditor";
+import Pendulum from "./components/Pendulum";
 
 function isEditableTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
@@ -16,7 +16,7 @@ function isEditableTarget(target: EventTarget | null): boolean {
   return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable;
 }
 
-export default function MetronomeApp() {
+export function Metronome() {
   const { state, actions, getMeasurePhase } = useMetronome();
   const settingsModalRef = useRef<HTMLDialogElement>(null);
   const lastNonZeroVolumeRef = useRef(state.volume > 0 ? state.volume : 0.3);

@@ -1,5 +1,5 @@
-import { getDerivedNotes, NATURAL_NOTES } from "./constants";
-import { useChordShare } from "./ChordShareContext";
+import { getDerivedNotes, NATURAL_NOTES } from "../utils/constants";
+import { useChordShare } from "../hooks/ChordShareContext";
 
 type Props = {
   value: string;

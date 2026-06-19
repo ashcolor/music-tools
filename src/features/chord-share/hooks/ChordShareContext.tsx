@@ -9,7 +9,7 @@ import {
 } from "react";
 import { useMetronome } from "@/contexts/MetronomeContext";
 import { useSampler, type InstrumentType } from "./useSampler";
-import type { AccidentalDisplay, VoicingType } from "./constants";
+import type { AccidentalDisplay, VoicingType } from "../utils/constants";
 
 type Sampler = ReturnType<typeof useSampler>;
 

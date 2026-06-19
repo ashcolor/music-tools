@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { Note } from "tonal";
-import { useChordShare } from "./ChordShareContext";
+import { useChordShare } from "../hooks/ChordShareContext";
 
 type Props = {
   startNote?: string;

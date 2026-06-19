@@ -19,18 +19,18 @@ import {
 import PlaybackBar from "../../components/PlaybackBar";
 import { useMetronome } from "../../contexts/MetronomeContext";
 import { useWakeLock } from "../../hooks/useWakeLock";
-import { ChordSelectModal } from "./ChordSelectModal";
-import { SortableChord } from "./SortableChord";
+import { ChordSelectModal } from "./components/ChordSelectModal";
+import { SortableChord } from "./components/SortableChord";
 import {
   MetronomeSettingsModal,
   NOTE_VALUE_OPTIONS,
   type NoteValue,
-} from "./MetronomeSettingsModal";
-import { PianoRoll } from "./PianoRoll";
-import { SheetMusic } from "./SheetMusic";
-import { ChordShareProvider, useChordShare } from "./ChordShareContext";
-import SoundSettings from "./SoundSettings";
-import ChordShareToolbar from "./ChordShareToolbar";
+} from "./components/MetronomeSettingsModal";
+import { PianoRoll } from "./components/PianoRoll";
+import { SheetMusic } from "./components/SheetMusic";
+import { ChordShareProvider, useChordShare } from "./hooks/ChordShareContext";
+import SoundSettings from "./components/SoundSettings";
+import ChordShareToolbar from "./components/ChordShareToolbar";
 import {
   INITIAL_CHORDS,
   buildChordVoicing,
@@ -40,7 +40,7 @@ import {
   parseChord,
   transposeChord,
   type VoicingType,
-} from "./constants";
+} from "./utils/constants";
 
 // Web Audio look-ahead スケジューラの定数
 // SCHEDULE_AHEAD_SEC: 現在時刻からこの秒数先までのノートを先回りでスケジュールする

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useSearchParams } from "react-router";
-import { SOUNDS, type RhythmSettings, type Sound } from "./RhythmSettings";
+import type { RhythmSettings, Sound } from "../types";
+import { SOUNDS } from "../utils/constants";
 
 const LEGACY_PITCH_MAP: Record<string, Sound> = {
   low: "electronicLow",

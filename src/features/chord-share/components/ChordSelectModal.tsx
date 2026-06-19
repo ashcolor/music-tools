@@ -5,7 +5,7 @@ import { NoteSelect } from "./NoteSelect";
 import { ChordPlayer } from "./ChordPlayer";
 import { PianoRoll } from "./PianoRoll";
 import { SheetMusic } from "./SheetMusic";
-import { useChordShare } from "./ChordShareContext";
+import { useChordShare } from "../hooks/ChordShareContext";
 import {
   MAIN_TYPES,
   NATURAL_NOTES,
@@ -16,7 +16,7 @@ import {
   isValidTension,
   parseChord,
   serializeChord,
-} from "./constants";
+} from "../utils/constants";
 
 function WarningIcon() {
   return (

@@ -1,5 +1,5 @@
 import { Icon } from "@iconify/react";
-import { isValidChordNotes, isValidNote, parseChord } from "./constants";
+import { isValidChordNotes, isValidNote, parseChord } from "../utils/constants";
 
 type Props = {
   value: string;
