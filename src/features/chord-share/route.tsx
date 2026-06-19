@@ -37,6 +37,7 @@ import {
   convertChordToAccidental,
   isValidChordNotes,
   isValidNote,
+  noteRange,
   parseChord,
   transposeChord,
   type VoicingType,
@@ -156,6 +157,14 @@ function ChordShareInner() {
     chordNotesRef.current = chordNotes;
   }, [chordNotes]);
   const activeNotes = activeChordIndex >= 0 ? (chordNotes[activeChordIndex] ?? []) : [];
+
+  // 鍵盤表示用にベース音（オクターブ2の先頭音）とコード音を分離する。
+  const [activeBassNote, ...activeChordTones] = activeNotes;
+  const bassRange = noteRange(activeBassNote ? [activeBassNote] : []);
+  const chordRange = noteRange(activeChordTones, 2);
+  // 各鍵盤の幅をオクターブ数に比例させると鍵の幅が揃い、結果として高さも一致する。
+  const octavesOf = (r: { startNote: string; endNote: string }) =>
+    Number(r.endNote.slice(1)) - Number(r.startNote.slice(1));
 
   const updateChord = useCallback((index: number, next: string) => {
     setChords((prev) => prev.map((c, i) => (i === index ? next : c)));
@@ -496,94 +505,56 @@ function ChordShareInner() {
         chords={chords}
         onApplyChords={handleApplyChordsText}
       />
-      <div className="px-4 pb-2 text-center">
-        <button
-          type="button"
-          className="inline-flex max-w-full items-center justify-center text-sm opacity-70 transition-opacity hover:opacity-100"
-          onClick={() => setMetronomeModalOpen(true)}
-          aria-label="テンポ・拍子・音符・ループ設定"
-          title="テンポ・拍子・音符・ループ設定"
-        >
-          <span className="inline-flex max-w-full items-center gap-4 truncate">
-            <span>{metronomeState.bpm} BPM</span>
-            <span>{metronomeState.beatsPerMeasure}拍子</span>
-            <span className="inline-flex items-center gap-1">
-              {noteValueOption ? <Icon icon={noteValueOption.icon} className="size-4" /> : null}
-              <span>{noteValueLabel}</span>
-            </span>
-            {isLoop ? (
-              <Icon icon="mdi:repeat" className="size-4" aria-label="ループ再生オン" />
-            ) : null}
-          </span>
-        </button>
-      </div>
       <div className="flex-1 min-h-0 flex flex-col w-full max-w-xl mx-auto relative">
-        <div className="flex-1 min-h-0 flex flex-col items-center gap-6 overflow-y-auto p-4">
+        <div className="flex-1 min-h-0 flex flex-col items-center gap-4 overflow-y-auto p-4">
+          <div className="w-full text-center">
+            <button
+              type="button"
+              className="inline-flex max-w-full items-center justify-center text-sm opacity-70 transition-opacity hover:opacity-100"
+              onClick={() => setMetronomeModalOpen(true)}
+              aria-label="テンポ・拍子・音符・ループ設定"
+              title="テンポ・拍子・音符・ループ設定"
+            >
+              <span className="inline-flex max-w-full items-center gap-4 truncate">
+                <span>{metronomeState.bpm} BPM</span>
+                <span>{metronomeState.beatsPerMeasure}拍子</span>
+                <span className="inline-flex items-center gap-1">
+                  {noteValueOption ? <Icon icon={noteValueOption.icon} className="size-4" /> : null}
+                  <span>{noteValueLabel}</span>
+                </span>
+                {isLoop ? (
+                  <Icon icon="mdi:repeat" className="size-4" aria-label="ループ再生オン" />
+                ) : null}
+              </span>
+            </button>
+          </div>
           <div className="rounded-xl p-3 w-full flex flex-col items-center gap-3 border border-base-300">
             <div className="w-40">
               <SheetMusic notes={activeNotes} accidentalDisplay={accidentalDisplay} />
             </div>
-            <div className="w-full pb-8">
-              <PianoRoll startNote="C2" endNote="C6" activeNotes={activeNotes} />
-            </div>
-          </div>
-          <div className="flex flex-row flex-wrap place-content-center place-items-center gap-3 w-full">
-            <div className="flex flex-row place-items-center gap-2">
-              <span className="text-sm opacity-70">臨時記号</span>
-              <div className="join">
-                <button
-                  type="button"
-                  className={`btn join-item h-auto ${accidentalDisplay === "auto" ? "btn-primary" : ""}`}
-                  onClick={() => setAccidentalDisplay("auto")}
-                  aria-label="自動表記（入力のまま）"
-                >
-                  自動
-                </button>
-                <div className="join join-vertical">
-                  <button
-                    type="button"
-                    className={`btn btn-sm join-item ${accidentalDisplay === "sharp" ? "btn-primary" : ""}`}
-                    onClick={() => setAccidentalDisplay("sharp")}
-                    aria-label="シャープ表記"
-                  >
-                    ♯
-                  </button>
-                  <button
-                    type="button"
-                    className={`btn btn-sm join-item ${accidentalDisplay === "flat" ? "btn-primary" : ""}`}
-                    onClick={() => setAccidentalDisplay("flat")}
-                    aria-label="フラット表記"
-                  >
-                    ♭
-                  </button>
-                </div>
+            <div className="w-full pb-8 flex flex-row items-center gap-1">
+              <Icon
+                icon="mdi:music-clef-bass"
+                className="size-8 shrink-0 opacity-70"
+                aria-label="ヘ音記号"
+              />
+              <div className="min-w-0" style={{ flexGrow: octavesOf(bassRange), flexBasis: 0 }}>
+                <PianoRoll
+                  {...bassRange}
+                  activeNotes={activeBassNote ? [activeBassNote] : []}
+                />
               </div>
-            </div>
-            <div className="flex flex-row place-items-center gap-2">
-              <span className="text-sm opacity-70">移調</span>
-              <div className="join join-vertical">
-                <button
-                  type="button"
-                  className="btn btn-sm join-item"
-                  onClick={() => handleTranspose(1)}
-                  aria-label="半音上げる"
-                  title="半音上げる"
-                >
-                  <Icon icon="mdi:plus" className="size-4" />1
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-sm join-item"
-                  onClick={() => handleTranspose(-1)}
-                  aria-label="半音下げる"
-                  title="半音下げる"
-                >
-                  <Icon icon="mdi:minus" className="size-4" />1
-                </button>
+              <Icon
+                icon="mdi:music-clef-treble"
+                className="size-8 shrink-0 opacity-70"
+                aria-label="ト音記号"
+              />
+              <div className="min-w-0" style={{ flexGrow: octavesOf(chordRange), flexBasis: 0 }}>
+                <PianoRoll {...chordRange} activeNotes={activeChordTones} />
               </div>
             </div>
           </div>
-          <div className="flex-1 flex flex-row flex-wrap content-center justify-center items-center gap-2 w-full">
+          <div className="flex-1 min-h-0 overflow-y-auto flex flex-row flex-wrap content-center justify-center items-center gap-2 w-full">
             <DndContext
               sensors={chordSensors}
               collisionDetection={closestCenter}
@@ -610,33 +581,89 @@ function ChordShareInner() {
               </SortableContext>
             </DndContext>
           </div>
-        </div>
 
-        <button
-          type="button"
-          className="btn btn-circle btn-error btn-soft shadow-lg absolute right-4 bottom-44 z-20"
-          onClick={removeLastChord}
-          disabled={chords.length === 0}
-          aria-label="末尾のコードを削除"
-          title="末尾のコードを削除"
-        >
-          <span className="inline-flex items-center -space-x-1">
-            <Icon icon="lucide:chevron-right" className="size-5" />
-            <Icon icon="lucide:circle-dashed" className="size-4" />
-          </span>
-        </button>
-        <button
-          type="button"
-          className="btn btn-circle btn-primary btn-soft shadow-lg absolute right-4 bottom-32 z-20"
-          onClick={addChord}
-          aria-label="末尾にコードを追加"
-          title="末尾にコードを追加"
-        >
-          <span className="inline-flex items-center -space-x-1">
-            <Icon icon="lucide:chevron-right" className="size-5" />
-            <Icon icon="lucide:plus" className="size-4" />
-          </span>
-        </button>
+          <div className="flex flex-row flex-wrap place-content-center place-items-center gap-3 w-full">
+            <div className="flex flex-row place-items-center gap-2">
+              <span className="text-sm opacity-70">臨時記号</span>
+              <div className="join">
+                <button
+                  type="button"
+                  className={`btn btn-sm join-item ${accidentalDisplay === "auto" ? "btn-primary" : ""}`}
+                  onClick={() => setAccidentalDisplay("auto")}
+                  aria-label="自動表記（入力のまま）"
+                >
+                  自動
+                </button>
+                <button
+                  type="button"
+                  className={`btn btn-sm join-item ${accidentalDisplay === "sharp" ? "btn-primary" : ""}`}
+                  onClick={() => setAccidentalDisplay("sharp")}
+                  aria-label="シャープ表記"
+                >
+                  ♯
+                </button>
+                <button
+                  type="button"
+                  className={`btn btn-sm join-item ${accidentalDisplay === "flat" ? "btn-primary" : ""}`}
+                  onClick={() => setAccidentalDisplay("flat")}
+                  aria-label="フラット表記"
+                >
+                  ♭
+                </button>
+              </div>
+            </div>
+            <div className="flex flex-row place-items-center gap-2">
+              <span className="text-sm opacity-70">移調</span>
+              <div className="join">
+                <button
+                  type="button"
+                  className="btn btn-sm join-item"
+                  onClick={() => handleTranspose(1)}
+                  aria-label="半音上げる"
+                  title="半音上げる"
+                >
+                  <Icon icon="mdi:plus" className="size-4" />1
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm join-item"
+                  onClick={() => handleTranspose(-1)}
+                  aria-label="半音下げる"
+                  title="半音下げる"
+                >
+                  <Icon icon="mdi:minus" className="size-4" />1
+                </button>
+              </div>
+            </div>
+            <div className="flex flex-row place-items-center gap-2">
+              <button
+                type="button"
+                className="btn btn-sm btn-primary btn-soft"
+                onClick={addChord}
+                aria-label="末尾にコードを追加"
+                title="末尾にコードを追加"
+              >
+                <span className="inline-flex items-center -space-x-1">
+                  <Icon icon="lucide:chevron-right" className="size-4" />
+                  <Icon icon="lucide:plus" className="size-3" />
+                </span>
+              </button>
+              <button
+                type="button"
+                className="btn btn-sm btn-error btn-soft"
+                onClick={removeLastChord}
+                disabled={chords.length === 0}
+                aria-label="末尾のコードを削除"
+                title="末尾のコードを削除"
+              >
+                <span className="inline-flex items-center -space-x-1">
+                  <Icon icon="lucide:chevron-right" className="size-4" />
+                  <Icon icon="lucide:circle-dashed" className="size-3" />
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
 
         <PlaybackBar
           isPlaying={isPlaying}

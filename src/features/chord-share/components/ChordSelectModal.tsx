@@ -14,6 +14,7 @@ import {
   isValidMainType,
   isValidNote,
   isValidTension,
+  noteRange,
   parseChord,
   serializeChord,
 } from "../utils/constants";
@@ -190,7 +191,7 @@ export function ChordSelectModal({
           <div className="w-40">
             <SheetMusic notes={voicingNotes} accidentalDisplay={accidentalDisplay} />
           </div>
-          <PianoRoll startNote={isOnChord ? "C2" : "C4"} endNote="C6" activeNotes={voicingNotes} />
+          <PianoRoll {...noteRange(voicingNotes.slice(1), 2)} activeNotes={voicingNotes.slice(1)} />
         </div>
 
         <div className="flex w-full flex-col gap-4 md:hidden">
