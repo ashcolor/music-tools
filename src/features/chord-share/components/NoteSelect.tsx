@@ -24,7 +24,7 @@ export function NoteSelect({ value, onChange }: Props) {
               {sharp?.value && (
                 <button
                   type="button"
-                  className={`${noteBtnClass(sharp.value === value)} absolute bottom-full right-0 z-20 mb-px translate-x-1/2`}
+                  className={`${noteBtnClass(sharp.value === value)} absolute bottom-full left-1/2 z-20 mb-px`}
                   onClick={() => onChange(sharp.value as string)}
                 >
                   {sharp.label}
