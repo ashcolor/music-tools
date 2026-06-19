@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { Icon } from "@iconify/react";
 import { ChordTypeSelect } from "./ChordTypeSelect";
 import { NoteSelect } from "./NoteSelect";
+import { renderWithAccidentals } from "./ChordDisplay";
 import { ChordPlayer } from "./ChordPlayer";
 import { PianoRoll } from "./PianoRoll";
 import { SheetMusic } from "./SheetMusic";
@@ -125,12 +126,12 @@ export function ChordSelectModal({
 
   const renderChordLabel = (c: { root: string; type: string; bass: string }) => (
     <>
-      <span>{c.root}</span>
-      <span>{c.type}</span>
+      <span>{renderWithAccidentals(c.root)}</span>
+      <span>{renderWithAccidentals(c.type)}</span>
       {c.root !== c.bass && (
         <>
           <span>&nbsp;/&nbsp;</span>
-          <span>{c.bass}</span>
+          <span>{renderWithAccidentals(c.bass)}</span>
         </>
       )}
     </>

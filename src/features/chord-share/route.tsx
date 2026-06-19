@@ -584,7 +584,7 @@ function ChordShareInner() {
 
           <div className="flex flex-row flex-wrap place-content-center place-items-center gap-3 w-full">
             <div className="flex flex-row place-items-center gap-2">
-              <span className="text-sm opacity-70">臨時記号</span>
+              <span className="text-sm opacity-70">表記</span>
               <div className="join">
                 <button
                   type="button"

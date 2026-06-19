@@ -7,6 +7,23 @@ type Props = {
   isActive?: boolean;
 };
 
+// 表示用に b/# を ♭/♯ へ変換し、臨時記号は音名より一回り小さく描画する
+export const renderWithAccidentals = (text: string) =>
+  text
+    .replace(/#/g, "♯")
+    .replace(/b/g, "♭")
+    .split("")
+    .map((char, index) =>
+      char === "♯" || char === "♭" ? (
+        // biome-ignore lint/suspicious/noArrayIndexKey: 表示専用の静的な文字列分割のため
+        <span key={index}>
+          {char}
+        </span>
+      ) : (
+        char
+      ),
+    );
+
 export function ChordDisplay({ value, onClick, isActive }: Props) {
   const { root, type, bass } = parseChord(value);
   const isInvalid = !isValidNote(root) || !isValidNote(bass) || !isValidChordNotes(root, type);
@@ -17,12 +34,18 @@ export function ChordDisplay({ value, onClick, isActive }: Props) {
       }`}
       onClick={onClick}
     >
-      <span className="text-2xl sm:text-3xl md:text-4xl font-bold leading-none">{root}</span>
-      <span className="text-lg sm:text-xl md:text-2xl leading-none">{type}</span>
+      <span className="text-2xl sm:text-3xl md:text-4xl font-bold leading-none">
+        {renderWithAccidentals(root)}
+      </span>
+      <span className="text-lg sm:text-xl md:text-2xl leading-none">
+        {renderWithAccidentals(type)}
+      </span>
       {root !== bass && (
         <>
           <span className="text-lg sm:text-xl md:text-2xl leading-none">/</span>
-          <span className="text-2xl sm:text-3xl md:text-4xl font-bold leading-none">{bass}</span>
+          <span className="text-2xl sm:text-3xl md:text-4xl font-bold leading-none">
+            {renderWithAccidentals(bass)}
+          </span>
         </>
       )}
       {isInvalid && (
