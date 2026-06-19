@@ -138,168 +138,176 @@ export function ChordSelectModal({
   );
 
   return (
-    <dialog ref={dialogRef} className="modal" onClose={onClose}>
-      <div className="modal-box relative flex max-w-2xl flex-col place-content-center place-items-center gap-8">
+    <dialog ref={dialogRef} className="modal" style={{ overflow: "auto" }} onClose={onClose}>
+      <div
+        className="modal-box relative flex max-w-2xl flex-col p-0"
+        style={{ maxHeight: "calc(100svh - 2rem)" }}
+      >
         <button
           type="button"
-          className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+          className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2 z-10"
           onClick={onClose}
           aria-label="閉じる"
         >
           ✕
         </button>
-        <div className="flex w-full flex-row items-center gap-2">
-          {prev ? (
-            <>
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm flex-1 justify-end opacity-50"
-                onClick={() => onChangeIndex(editingIndex - 1)}
-              >
-                <span className="text-base">{renderChordLabel(prev)}</span>
-              </button>
-              <Icon
-                icon="material-symbols:chevron-right-rounded"
-                className="size-5 shrink-0 opacity-50"
-                aria-hidden
-              />
-            </>
-          ) : (
-            <div className="flex-1" />
-          )}
-          <h3 className="text-2xl font-bold px-2 text-center">{renderChordLabel(current)}</h3>
-          {next ? (
-            <>
-              <Icon
-                icon="material-symbols:chevron-right-rounded"
-                className="size-5 shrink-0 opacity-50"
-                aria-hidden
-              />
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm flex-1 justify-start opacity-50"
-                onClick={() => onChangeIndex(editingIndex + 1)}
-              >
-                <span className="text-base">{renderChordLabel(next)}</span>
-              </button>
-            </>
-          ) : (
-            <div className="flex-1" />
-          )}
-        </div>
-
-        <div className="flex w-full flex-col items-center gap-4">
-          <div className="w-40">
-            <SheetMusic notes={voicingNotes} accidentalDisplay={accidentalDisplay} />
+        <div className="flex flex-col items-center gap-4 overflow-y-auto p-6">
+          <div className="flex w-full flex-row items-center gap-2">
+            {prev ? (
+              <>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm flex-1 justify-end opacity-50"
+                  onClick={() => onChangeIndex(editingIndex - 1)}
+                >
+                  <span className="text-base">{renderChordLabel(prev)}</span>
+                </button>
+                <Icon
+                  icon="material-symbols:chevron-right-rounded"
+                  className="size-5 shrink-0 opacity-50"
+                  aria-hidden
+                />
+              </>
+            ) : (
+              <div className="flex-1" />
+            )}
+            <h3 className="text-2xl font-bold px-2 text-center">{renderChordLabel(current)}</h3>
+            {next ? (
+              <>
+                <Icon
+                  icon="material-symbols:chevron-right-rounded"
+                  className="size-5 shrink-0 opacity-50"
+                  aria-hidden
+                />
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm flex-1 justify-start opacity-50"
+                  onClick={() => onChangeIndex(editingIndex + 1)}
+                >
+                  <span className="text-base">{renderChordLabel(next)}</span>
+                </button>
+              </>
+            ) : (
+              <div className="flex-1" />
+            )}
           </div>
-          <PianoRoll {...noteRange(voicingNotes.slice(1), 2)} activeNotes={voicingNotes.slice(1)} />
-        </div>
 
-        <div className="flex w-full flex-col gap-4 md:hidden">
-          <span className="flex items-center gap-2 text-base">
-            ルート
-            {!isValidNote(root) && <WarningIcon />}
-          </span>
-          <NoteSelect value={root} onChange={onRootChange} />
-          <div className="flex items-start gap-2">
-            <label className="flex min-w-0 flex-1 flex-col gap-1">
-              <span className="flex items-center gap-1 text-sm">
-                タイプ
-                {!isValidMainType(mainType) && <WarningIcon />}
-              </span>
-              <select
-                className="select select-bordered w-full"
-                value={mainType}
-                onChange={(e) => handleMainChange(e.target.value)}
-              >
-                {!isValidMainType(mainType) && (
-                  <option value={mainType}>{mainType || "(無効)"}</option>
-                )}
-                {MAIN_TYPES.map((main) => (
-                  <option key={main.value} value={main.value}>
-                    {main.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex min-w-0 flex-1 flex-col gap-1">
-              <span className="flex items-center gap-1 text-sm">
-                テンション
-                {!isValidTension(mainType, type) && <WarningIcon />}
-              </span>
-              <select
-                className="select select-bordered w-full"
-                value={type}
-                onChange={(e) => onTypeChange(e.target.value)}
-                disabled={availableTensions.length <= 1}
-              >
-                {!isValidTension(mainType, type) && (
-                  <option value={type}>{type || "(無効)"}</option>
-                )}
-                {availableTensions.map((tension) => (
-                  <option key={tension.type} value={tension.type}>
-                    {tension.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+          <div className="flex w-full flex-col items-center gap-4">
+            <div className="w-40">
+              <SheetMusic notes={voicingNotes} accidentalDisplay={accidentalDisplay} />
+            </div>
+            <PianoRoll
+              {...noteRange(voicingNotes.slice(1), 2)}
+              activeNotes={voicingNotes.slice(1)}
+            />
           </div>
-          <label className="flex items-center gap-3">
-            <span className="text-base">オンコード</span>
-            <input
-              type="checkbox"
-              className="toggle toggle-primary"
-              checked={isOnChord}
-              onChange={(e) => handleOnChordToggle(e.target.checked)}
-            />
-          </label>
-          {isOnChord && (
-            <>
-              <NoteSelect value={bass} onChange={onBassChange} />
-              {!isValidNote(bass) && <WarningIcon />}
-            </>
-          )}
-        </div>
 
-        <div className="hidden w-full flex-col gap-4 md:flex">
-          <span className="flex items-center gap-2 text-base sm:text-lg">
-            ルート
-            {!isValidNote(root) && <WarningIcon />}
-          </span>
-          <NoteSelect value={root} onChange={onRootChange} />
-          <ChordTypeSelect
-            value={type}
-            onChange={onTypeChange}
-            mainTypeInvalid={!isValidMainType(mainType)}
-            tensionInvalid={!isValidTension(mainType, type)}
-          />
-          <label className="flex items-center gap-3">
-            <span className="text-base sm:text-lg">オンコード</span>
-            <input
-              type="checkbox"
-              className="toggle toggle-primary"
-              checked={isOnChord}
-              onChange={(e) => handleOnChordToggle(e.target.checked)}
-            />
-          </label>
-          {isOnChord && (
-            <>
-              <NoteSelect value={bass} onChange={onBassChange} />
-              {!isValidNote(bass) && <WarningIcon />}
-            </>
-          )}
-        </div>
+          <div className="flex w-full flex-col gap-4 md:hidden">
+            <span className="flex items-center gap-2 text-base">
+              ルート
+              {!isValidNote(root) && <WarningIcon />}
+            </span>
+            <NoteSelect value={root} onChange={onRootChange} />
+            <div className="flex items-start gap-2">
+              <label className="flex min-w-0 flex-1 flex-col gap-1">
+                <span className="flex items-center gap-1 text-sm">
+                  タイプ
+                  {!isValidMainType(mainType) && <WarningIcon />}
+                </span>
+                <select
+                  className="select select-bordered w-full"
+                  value={mainType}
+                  onChange={(e) => handleMainChange(e.target.value)}
+                >
+                  {!isValidMainType(mainType) && (
+                    <option value={mainType}>{mainType || "(無効)"}</option>
+                  )}
+                  {MAIN_TYPES.map((main) => (
+                    <option key={main.value} value={main.value}>
+                      {main.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex min-w-0 flex-1 flex-col gap-1">
+                <span className="flex items-center gap-1 text-sm">
+                  テンション
+                  {!isValidTension(mainType, type) && <WarningIcon />}
+                </span>
+                <select
+                  className="select select-bordered w-full"
+                  value={type}
+                  onChange={(e) => onTypeChange(e.target.value)}
+                  disabled={availableTensions.length <= 1}
+                >
+                  {!isValidTension(mainType, type) && (
+                    <option value={type}>{type || "(無効)"}</option>
+                  )}
+                  {availableTensions.map((tension) => (
+                    <option key={tension.type} value={tension.type}>
+                      {tension.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <label className="flex items-center gap-3">
+              <span className="text-base">オンコード</span>
+              <input
+                type="checkbox"
+                className="toggle toggle-primary"
+                checked={isOnChord}
+                onChange={(e) => handleOnChordToggle(e.target.checked)}
+              />
+            </label>
+            {isOnChord && (
+              <>
+                <NoteSelect value={bass} onChange={onBassChange} />
+                {!isValidNote(bass) && <WarningIcon />}
+              </>
+            )}
+          </div>
 
-        <div className="modal-action relative w-full justify-center">
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm text-error absolute left-0"
-            onClick={() => onDelete(editingIndex)}
-            aria-label="削除"
-          >
-            <Icon icon="material-symbols:delete-outline-rounded" className="size-5" />
-          </button>
-          <ChordPlayer chord={`${root}${type}`} />
+          <div className="hidden w-full flex-col gap-4 md:flex">
+            <span className="flex items-center gap-2 text-base sm:text-lg">
+              ルート
+              {!isValidNote(root) && <WarningIcon />}
+            </span>
+            <NoteSelect value={root} onChange={onRootChange} />
+            <ChordTypeSelect
+              value={type}
+              onChange={onTypeChange}
+              mainTypeInvalid={!isValidMainType(mainType)}
+              tensionInvalid={!isValidTension(mainType, type)}
+            />
+            <label className="flex items-center gap-3">
+              <span className="text-base sm:text-lg">オンコード</span>
+              <input
+                type="checkbox"
+                className="toggle toggle-primary"
+                checked={isOnChord}
+                onChange={(e) => handleOnChordToggle(e.target.checked)}
+              />
+            </label>
+            {isOnChord && (
+              <>
+                <NoteSelect value={bass} onChange={onBassChange} />
+                {!isValidNote(bass) && <WarningIcon />}
+              </>
+            )}
+          </div>
+
+          <div className="modal-action relative w-full justify-center">
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm text-error absolute left-0"
+              onClick={() => onDelete(editingIndex)}
+              aria-label="削除"
+            >
+              <Icon icon="material-symbols:delete-outline-rounded" className="size-5" />
+            </button>
+            <ChordPlayer chord={`${root}${type}`} />
+          </div>
         </div>
       </div>
       <form method="dialog" className="modal-backdrop">
