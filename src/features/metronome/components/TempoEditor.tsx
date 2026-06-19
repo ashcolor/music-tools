@@ -2,7 +2,7 @@ import { Icon } from "@iconify/react";
 import { useMetronome, type AccelerationMode } from "@/contexts/MetronomeContext";
 import AccelerationIntervalInput from "./AccelerationIntervalInput";
 import AccelerationStepInput from "./AccelerationStepInput";
-import BpmEditor from "./BpmEditor";
+import BpmEditor from "@/components/BpmEditor";
 
 const MODES: { value: AccelerationMode; label: string; icon: string }[] = [
   { value: "decel", label: "減速", icon: "material-symbols:trending-down-rounded" },

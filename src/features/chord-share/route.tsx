@@ -17,30 +17,37 @@ import {
   sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
 import PlaybackBar from "../../components/PlaybackBar";
-import VolumeControl from "../../components/VolumeControl";
 import { useMetronome } from "../../contexts/MetronomeContext";
 import { useWakeLock } from "../../hooks/useWakeLock";
-import { ChordSelectModal } from "./ChordSelectModal";
-import { SortableChord } from "./SortableChord";
+import { ChordSelectModal } from "./components/ChordSelectModal";
+import { SortableChord } from "./components/SortableChord";
 import {
   MetronomeSettingsModal,
   NOTE_VALUE_OPTIONS,
   type NoteValue,
-} from "./MetronomeSettingsModal";
-import { PianoRoll } from "./PianoRoll";
-import { SheetMusic } from "./SheetMusic";
-import { ChordShareProvider, useChordShare } from "./ChordShareContext";
-import ChordShareToolbar from "./ChordShareToolbar";
+} from "./components/MetronomeSettingsModal";
+import { PianoRoll } from "./components/PianoRoll";
+import { SheetMusic } from "./components/SheetMusic";
+import { ChordShareProvider, useChordShare } from "./hooks/ChordShareContext";
+import SoundSettings from "./components/SoundSettings";
+import ChordShareToolbar from "./components/ChordShareToolbar";
 import {
   INITIAL_CHORDS,
   buildChordVoicing,
   convertChordToAccidental,
   isValidChordNotes,
   isValidNote,
+  noteRange,
   parseChord,
   transposeChord,
   type VoicingType,
-} from "./constants";
+} from "./utils/constants";
+
+// Web Audio look-ahead スケジューラの定数
+// SCHEDULE_AHEAD_SEC: 現在時刻からこの秒数先までのノートを先回りでスケジュールする
+// SCHEDULER_LOOKAHEAD_MS: スケジューラ tick を回す間隔（ミリ秒）
+const SCHEDULE_AHEAD_SEC = 0.1;
+const SCHEDULER_LOOKAHEAD_MS = 25;
 
 function makeChordId(): string {
   return `chord-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -106,11 +113,16 @@ function ChordShareInner() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const timeoutsRef = useRef<number[]>([]);
+  const schedulerIdRef = useRef<number | null>(null);
   const chordNotesRef = useRef<string[][]>([]);
   const beatSecRef = useRef(60 / 120);
   const measureSecRef = useRef(4 * (60 / 120));
   const pausedElapsedRef = useRef(0);
-  const playStartWallRef = useRef(0);
+  // オーディオクロック基準の再生開始基点（経過秒 elapsed = sampler.getCurrentTime() - playStartAudioRef）
+  const playStartAudioRef = useRef(0);
+  // 次にスケジュールすべきノートのグローバル連番
+  const nextNoteIdxRef = useRef(0);
+  const endHandledRef = useRef(false);
   const lastNonZeroVolumeRef = useRef(metronomeState.volume > 0 ? metronomeState.volume : 0.3);
 
   useEffect(() => {
@@ -146,6 +158,14 @@ function ChordShareInner() {
   }, [chordNotes]);
   const activeNotes = activeChordIndex >= 0 ? (chordNotes[activeChordIndex] ?? []) : [];
 
+  // 鍵盤表示用にベース音（オクターブ2の先頭音）とコード音を分離する。
+  const [activeBassNote, ...activeChordTones] = activeNotes;
+  const bassRange = noteRange(activeBassNote ? [activeBassNote] : []);
+  const chordRange = noteRange(activeChordTones, 2);
+  // 各鍵盤の幅をオクターブ数に比例させると鍵の幅が揃い、結果として高さも一致する。
+  const octavesOf = (r: { startNote: string; endNote: string }) =>
+    Number(r.endNote.slice(1)) - Number(r.startNote.slice(1));
+
   const updateChord = useCallback((index: number, next: string) => {
     setChords((prev) => prev.map((c, i) => (i === index ? next : c)));
   }, []);
@@ -176,69 +196,121 @@ function ChordShareInner() {
     setChordIds(parsed.map(() => makeChordId()));
   }, []);
 
+  const stopScheduler = useCallback(() => {
+    if (schedulerIdRef.current !== null) {
+      window.clearInterval(schedulerIdRef.current);
+      schedulerIdRef.current = null;
+    }
+  }, []);
+
   const clearTimers = useCallback(() => {
+    stopScheduler();
     timeoutsRef.current.forEach((id) => window.clearTimeout(id));
     timeoutsRef.current = [];
-  }, []);
+  }, [stopScheduler]);
 
   const scheduleFrom = useCallback(
     (fromElapsed: number) => {
       const noteSec = beatSecRef.current;
       const measureSec = measureSecRef.current;
       const repeatCount = Math.max(1, Math.round(measureSec / noteSec));
-      const notesList = chordNotesRef.current;
+      // ノート数・全体長は再生開始時点で固定（中身は発音時に chordNotesRef を読み直して移調反映）
+      const chordCount = chordNotesRef.current.length;
+      const totalNotes = chordCount * repeatCount;
+      const totalSec = chordCount * measureSec;
 
-      notesList.forEach((_, index) => {
-        const groupStart = index * measureSec;
-        const groupEnd = groupStart + measureSec;
-        if (groupEnd <= fromElapsed) return;
+      // コードが無い場合は何も鳴らさず終了（ループ時の scheduleFrom(0) 無限再帰を防ぐ）
+      if (totalNotes === 0) {
+        stopScheduler();
+        setActiveChordIndex(-1);
+        setIsPlaying(false);
+        setIsPaused(false);
+        pausedElapsedRef.current = 0;
+        return;
+      }
 
-        const groupOffset = Math.max(0, groupStart - fromElapsed);
-        timeoutsRef.current.push(
-          window.setTimeout(() => {
-            setActiveChordIndex(index);
-          }, groupOffset * 1000),
-        );
+      // 経過秒をオーディオクロックに揃える（elapsed = sampler.getCurrentTime() - playStartAudioRef）
+      playStartAudioRef.current = sampler.getCurrentTime() - fromElapsed;
+      endHandledRef.current = false;
 
-        for (let r = 0; r < repeatCount; r++) {
-          const noteStart = groupStart + r * noteSec;
-          const noteEnd = noteStart + noteSec;
-          if (noteEnd <= fromElapsed) continue;
-
-          const startOffset = Math.max(0, noteStart - fromElapsed);
-          // 発音タイミングで chordNotesRef を読むことで、再生中の移調を反映
-          timeoutsRef.current.push(
-            window.setTimeout(() => {
-              const liveNotes = chordNotesRef.current[index] ?? [];
-              liveNotes.forEach((note) => {
-                sampler.triggerAttackRelease(note, noteSec, 0);
-              });
-            }, startOffset * 1000),
-          );
+      // fromElapsed 以降にまだ鳴り終わっていない最初のノートを探す
+      let startIdx = totalNotes;
+      for (let g = 0; g < totalNotes; g++) {
+        const groupIndex = Math.floor(g / repeatCount);
+        const r = g % repeatCount;
+        const noteEnd = groupIndex * measureSec + r * noteSec + noteSec;
+        if (noteEnd > fromElapsed) {
+          startIdx = g;
+          break;
         }
-      });
+      }
+      nextNoteIdxRef.current = startIdx;
 
-      const totalSec = notesList.length * measureSec;
-      const remainingMs = Math.max(0, (totalSec - fromElapsed) * 1000);
-      timeoutsRef.current.push(
-        window.setTimeout(() => {
-          if (isLoopRef.current) {
-            sampler.stopAll();
-            void sampler.resume();
-            pausedElapsedRef.current = 0;
-            playStartWallRef.current = performance.now();
-            setActiveChordIndex(-1);
-            scheduleFrom(0);
-          } else {
-            setActiveChordIndex(-1);
-            setIsPlaying(false);
-            setIsPaused(false);
-            pausedElapsedRef.current = 0;
+      // 途中シーク時は現在のコードを即ハイライト
+      if (startIdx < totalNotes) {
+        setActiveChordIndex(Math.floor(startIdx / repeatCount));
+      }
+
+      const tick = () => {
+        const now = sampler.getCurrentTime();
+        const horizon = now - playStartAudioRef.current + SCHEDULE_AHEAD_SEC;
+
+        while (nextNoteIdxRef.current < totalNotes) {
+          const g = nextNoteIdxRef.current;
+          const groupIndex = Math.floor(g / repeatCount);
+          const r = g % repeatCount;
+          const noteStart = groupIndex * measureSec + r * noteSec;
+          if (noteStart >= horizon) break;
+
+          // オーディオクロックに対する正確な発音時刻（when は currentTime からの相対秒）
+          const when = Math.max(
+            0,
+            playStartAudioRef.current + noteStart - sampler.getCurrentTime(),
+          );
+
+          // 小節（コード）の頭でハイライトを更新（視覚は setTimeout で近似）
+          if (r === 0) {
+            timeoutsRef.current.push(
+              window.setTimeout(() => setActiveChordIndex(groupIndex), when * 1000),
+            );
           }
-        }, remainingMs),
-      );
+
+          // 発音タイミングで chordNotesRef を読むことで、再生中の移調を反映
+          const liveNotes = chordNotesRef.current[groupIndex] ?? [];
+          liveNotes.forEach((note) => {
+            sampler.triggerAttackRelease(note, noteSec, when);
+          });
+          nextNoteIdxRef.current++;
+        }
+
+        if (nextNoteIdxRef.current >= totalNotes && !endHandledRef.current) {
+          const elapsed = sampler.getCurrentTime() - playStartAudioRef.current;
+          if (elapsed >= totalSec) {
+            endHandledRef.current = true;
+            stopScheduler();
+            if (isLoopRef.current) {
+              sampler.stopAll();
+              void sampler.resume();
+              pausedElapsedRef.current = 0;
+              setActiveChordIndex(-1);
+              scheduleFrom(0);
+            } else {
+              setActiveChordIndex(-1);
+              setIsPlaying(false);
+              setIsPaused(false);
+              pausedElapsedRef.current = 0;
+            }
+          }
+        }
+      };
+
+      // interval を先に登録してから初回 tick を回す。
+      // tick が完了分岐で stopScheduler() を呼んでも、登録済みの ID を確実にクリアでき orphan 化しない。
+      stopScheduler();
+      schedulerIdRef.current = window.setInterval(tick, SCHEDULER_LOOKAHEAD_MS);
+      tick(); // 最初のウィンドウを即スケジュール
     },
-    [sampler, setActiveChordIndex, isLoopRef],
+    [sampler, setActiveChordIndex, isLoopRef, stopScheduler],
   );
 
   const handleStop = useCallback(() => {
@@ -294,7 +366,6 @@ function ChordShareInner() {
       const mSec = measureSecRef.current;
       const nextBoundary = Math.ceil(pausedElapsedRef.current / mSec - 1e-6) * mSec;
       pausedElapsedRef.current = nextBoundary;
-      playStartWallRef.current = performance.now();
       setIsPaused(false);
       setIsPlaying(true);
       scheduleFrom(nextBoundary);
@@ -306,7 +377,6 @@ function ChordShareInner() {
     beatSecRef.current = noteValue * (60 / metronomeState.bpm);
     measureSecRef.current = metronomeState.beatsPerMeasure * (60 / metronomeState.bpm);
     pausedElapsedRef.current = 0;
-    playStartWallRef.current = performance.now();
     setIsPlaying(true);
     setIsPaused(false);
     scheduleFrom(0);
@@ -314,8 +384,8 @@ function ChordShareInner() {
 
   const handlePause = useCallback(async () => {
     const totalSec = chordNotesRef.current.length * measureSecRef.current;
-    const segment = (performance.now() - playStartWallRef.current) / 1000;
-    pausedElapsedRef.current = Math.min(totalSec, pausedElapsedRef.current + segment);
+    const elapsed = sampler.getCurrentTime() - playStartAudioRef.current;
+    pausedElapsedRef.current = Math.min(totalSec, Math.max(0, elapsed));
     clearTimers();
     sampler.stopAll();
     await sampler.suspend();
@@ -328,6 +398,9 @@ function ChordShareInner() {
 
   useEffect(() => {
     return () => {
+      if (schedulerIdRef.current !== null) {
+        window.clearInterval(schedulerIdRef.current);
+      }
       timeoutsRef.current.forEach((id) => window.clearTimeout(id));
     };
   }, []);
@@ -389,7 +462,6 @@ function ChordShareInner() {
           void sampler.resume();
           const newElapsed = nextIdx * measureSecRef.current;
           pausedElapsedRef.current = newElapsed;
-          playStartWallRef.current = performance.now();
           setActiveChordIndex(nextIdx);
           scheduleFrom(newElapsed);
         } else {
@@ -433,94 +505,56 @@ function ChordShareInner() {
         chords={chords}
         onApplyChords={handleApplyChordsText}
       />
-      <div className="px-4 pb-2 text-center">
-        <button
-          type="button"
-          className="inline-flex max-w-full items-center justify-center text-sm opacity-70 transition-opacity hover:opacity-100"
-          onClick={() => setMetronomeModalOpen(true)}
-          aria-label="テンポ・拍子・音符・ループ設定"
-          title="テンポ・拍子・音符・ループ設定"
-        >
-          <span className="inline-flex max-w-full items-center gap-4 truncate">
-            <span>{metronomeState.bpm} BPM</span>
-            <span>{metronomeState.beatsPerMeasure}拍子</span>
-            <span className="inline-flex items-center gap-1">
-              {noteValueOption ? <Icon icon={noteValueOption.icon} className="size-4" /> : null}
-              <span>{noteValueLabel}</span>
-            </span>
-            {isLoop ? (
-              <Icon icon="mdi:repeat" className="size-4" aria-label="ループ再生オン" />
-            ) : null}
-          </span>
-        </button>
-      </div>
       <div className="flex-1 min-h-0 flex flex-col w-full max-w-xl mx-auto relative">
-        <div className="flex-1 min-h-0 flex flex-col items-center gap-6 overflow-y-auto p-4">
+        <div className="flex-1 min-h-0 flex flex-col items-center gap-4 overflow-y-auto p-4">
+          <div className="w-full text-center">
+            <button
+              type="button"
+              className="inline-flex max-w-full items-center justify-center text-sm opacity-70 transition-opacity hover:opacity-100"
+              onClick={() => setMetronomeModalOpen(true)}
+              aria-label="テンポ・拍子・音符・ループ設定"
+              title="テンポ・拍子・音符・ループ設定"
+            >
+              <span className="inline-flex max-w-full items-center gap-4 truncate">
+                <span>{metronomeState.bpm} BPM</span>
+                <span>{metronomeState.beatsPerMeasure}拍子</span>
+                <span className="inline-flex items-center gap-1">
+                  {noteValueOption ? <Icon icon={noteValueOption.icon} className="size-4" /> : null}
+                  <span>{noteValueLabel}</span>
+                </span>
+                {isLoop ? (
+                  <Icon icon="mdi:repeat" className="size-4" aria-label="ループ再生オン" />
+                ) : null}
+              </span>
+            </button>
+          </div>
           <div className="rounded-xl p-3 w-full flex flex-col items-center gap-3 border border-base-300">
             <div className="w-40">
               <SheetMusic notes={activeNotes} accidentalDisplay={accidentalDisplay} />
             </div>
-            <div className="w-full pb-8">
-              <PianoRoll startNote="C2" endNote="C6" activeNotes={activeNotes} />
-            </div>
-          </div>
-          <div className="flex flex-row flex-wrap place-content-center place-items-center gap-3 w-full">
-            <div className="flex flex-row place-items-center gap-2">
-              <span className="text-sm opacity-70">臨時記号</span>
-              <div className="join">
-                <button
-                  type="button"
-                  className={`btn join-item h-auto ${accidentalDisplay === "auto" ? "btn-primary" : ""}`}
-                  onClick={() => setAccidentalDisplay("auto")}
-                  aria-label="自動表記（入力のまま）"
-                >
-                  自動
-                </button>
-                <div className="join join-vertical">
-                  <button
-                    type="button"
-                    className={`btn btn-sm join-item ${accidentalDisplay === "sharp" ? "btn-primary" : ""}`}
-                    onClick={() => setAccidentalDisplay("sharp")}
-                    aria-label="シャープ表記"
-                  >
-                    ♯
-                  </button>
-                  <button
-                    type="button"
-                    className={`btn btn-sm join-item ${accidentalDisplay === "flat" ? "btn-primary" : ""}`}
-                    onClick={() => setAccidentalDisplay("flat")}
-                    aria-label="フラット表記"
-                  >
-                    ♭
-                  </button>
-                </div>
+            <div className="w-full pb-8 flex flex-row items-center gap-1">
+              <Icon
+                icon="mdi:music-clef-bass"
+                className="size-8 shrink-0 opacity-70"
+                aria-label="ヘ音記号"
+              />
+              <div className="min-w-0" style={{ flexGrow: octavesOf(bassRange), flexBasis: 0 }}>
+                <PianoRoll
+                  {...bassRange}
+                  activeNotes={activeBassNote ? [activeBassNote] : []}
+                />
               </div>
-            </div>
-            <div className="flex flex-row place-items-center gap-2">
-              <span className="text-sm opacity-70">移調</span>
-              <div className="join join-vertical">
-                <button
-                  type="button"
-                  className="btn btn-sm join-item"
-                  onClick={() => handleTranspose(1)}
-                  aria-label="半音上げる"
-                  title="半音上げる"
-                >
-                  <Icon icon="mdi:plus" className="size-4" />1
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-sm join-item"
-                  onClick={() => handleTranspose(-1)}
-                  aria-label="半音下げる"
-                  title="半音下げる"
-                >
-                  <Icon icon="mdi:minus" className="size-4" />1
-                </button>
+              <Icon
+                icon="mdi:music-clef-treble"
+                className="size-8 shrink-0 opacity-70"
+                aria-label="ト音記号"
+              />
+              <div className="min-w-0" style={{ flexGrow: octavesOf(chordRange), flexBasis: 0 }}>
+                <PianoRoll {...chordRange} activeNotes={activeChordTones} />
               </div>
             </div>
           </div>
-          <div className="flex-1 flex flex-row flex-wrap content-center justify-center items-center gap-2 w-full">
+          <div className="flex-1 min-h-0 overflow-y-auto flex flex-row flex-wrap content-center justify-center items-center gap-2 w-full">
             <DndContext
               sensors={chordSensors}
               collisionDetection={closestCenter}
@@ -547,33 +581,89 @@ function ChordShareInner() {
               </SortableContext>
             </DndContext>
           </div>
-        </div>
 
-        <button
-          type="button"
-          className="btn btn-circle btn-error btn-soft shadow-lg absolute right-4 bottom-44 z-20"
-          onClick={removeLastChord}
-          disabled={chords.length === 0}
-          aria-label="末尾のコードを削除"
-          title="末尾のコードを削除"
-        >
-          <span className="inline-flex items-center -space-x-1">
-            <Icon icon="lucide:chevron-right" className="size-5" />
-            <Icon icon="lucide:circle-dashed" className="size-4" />
-          </span>
-        </button>
-        <button
-          type="button"
-          className="btn btn-circle btn-primary btn-soft shadow-lg absolute right-4 bottom-32 z-20"
-          onClick={addChord}
-          aria-label="末尾にコードを追加"
-          title="末尾にコードを追加"
-        >
-          <span className="inline-flex items-center -space-x-1">
-            <Icon icon="lucide:chevron-right" className="size-5" />
-            <Icon icon="lucide:plus" className="size-4" />
-          </span>
-        </button>
+          <div className="flex flex-row flex-wrap place-content-center place-items-center gap-3 w-full">
+            <div className="flex flex-row place-items-center gap-2">
+              <span className="text-sm opacity-70">表記</span>
+              <div className="join">
+                <button
+                  type="button"
+                  className={`btn btn-sm join-item ${accidentalDisplay === "auto" ? "btn-primary" : ""}`}
+                  onClick={() => setAccidentalDisplay("auto")}
+                  aria-label="自動表記（入力のまま）"
+                >
+                  自動
+                </button>
+                <button
+                  type="button"
+                  className={`btn btn-sm join-item ${accidentalDisplay === "sharp" ? "btn-primary" : ""}`}
+                  onClick={() => setAccidentalDisplay("sharp")}
+                  aria-label="シャープ表記"
+                >
+                  ♯
+                </button>
+                <button
+                  type="button"
+                  className={`btn btn-sm join-item ${accidentalDisplay === "flat" ? "btn-primary" : ""}`}
+                  onClick={() => setAccidentalDisplay("flat")}
+                  aria-label="フラット表記"
+                >
+                  ♭
+                </button>
+              </div>
+            </div>
+            <div className="flex flex-row place-items-center gap-2">
+              <span className="text-sm opacity-70">移調</span>
+              <div className="join">
+                <button
+                  type="button"
+                  className="btn btn-sm join-item"
+                  onClick={() => handleTranspose(1)}
+                  aria-label="半音上げる"
+                  title="半音上げる"
+                >
+                  <Icon icon="mdi:plus" className="size-4" />1
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm join-item"
+                  onClick={() => handleTranspose(-1)}
+                  aria-label="半音下げる"
+                  title="半音下げる"
+                >
+                  <Icon icon="mdi:minus" className="size-4" />1
+                </button>
+              </div>
+            </div>
+            <div className="flex flex-row place-items-center gap-2">
+              <button
+                type="button"
+                className="btn btn-sm btn-primary btn-soft"
+                onClick={addChord}
+                aria-label="末尾にコードを追加"
+                title="末尾にコードを追加"
+              >
+                <span className="inline-flex items-center -space-x-1">
+                  <Icon icon="lucide:chevron-right" className="size-4" />
+                  <Icon icon="lucide:plus" className="size-3" />
+                </span>
+              </button>
+              <button
+                type="button"
+                className="btn btn-sm btn-error btn-soft"
+                onClick={removeLastChord}
+                disabled={chords.length === 0}
+                aria-label="末尾のコードを削除"
+                title="末尾のコードを削除"
+              >
+                <span className="inline-flex items-center -space-x-1">
+                  <Icon icon="lucide:chevron-right" className="size-4" />
+                  <Icon icon="lucide:circle-dashed" className="size-3" />
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
 
         <PlaybackBar
           isPlaying={isPlaying}
@@ -583,7 +673,7 @@ function ChordShareInner() {
           onStop={handleStop}
           leftSlot={
             <div className="flex items-center gap-1">
-              <VolumeControl showSoundType={false} />
+              <SoundSettings />
             </div>
           }
           rightSlot={

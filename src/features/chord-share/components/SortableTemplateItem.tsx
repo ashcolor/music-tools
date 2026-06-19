@@ -1,7 +1,7 @@
 import { Icon } from "@iconify/react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import type { ChordTemplate } from "./chordTemplates";
+import type { ChordTemplate } from "../utils/chordTemplates";
 
 type Props = {
   template: ChordTemplate;

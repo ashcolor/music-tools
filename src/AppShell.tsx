@@ -1,18 +1,17 @@
 import { useEffect } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router";
 import Header from "./components/Header";
-import MetronomeApp from "./components/MetronomeApp";
 import Toolbar from "./components/Toolbar";
 import { PAGE_META, SITE_NAME } from "./constants";
 import { MetronomeProvider, useMetronome } from "./contexts/MetronomeContext";
-import { useMetronomeUrlSync } from "./hooks/useMetronomeUrlSync";
 import { useWakeLock } from "./hooks/useWakeLock";
 import { Contact } from "./features/contact/route";
 import { Home } from "./features/home/route";
+import { Metronome, useMetronomeUrlSync } from "./features/metronome";
 import { OperatorInfo } from "./features/operator-info/route";
-import { Polyrhythm } from "./features/polyrhythm/route";
+import { Polyrhythm } from "./features/polyrhythm";
 import { PrivacyPolicy } from "./features/privacy-policy/route";
-import { ChordShare } from "./features/chord-share/route";
+import { ChordShare } from "./features/chord-share";
 
 const CANONICAL_ORIGIN = "https://music-tools.ashcolor.jp";
 
@@ -105,7 +104,7 @@ function MetronomeRoute() {
   return (
     <div className="flex flex-1 flex-col">
       <Toolbar />
-      <MetronomeApp />
+      <Metronome />
     </div>
   );
 }

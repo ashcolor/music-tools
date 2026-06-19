@@ -6,11 +6,13 @@ import PlaybackBar from "../../components/PlaybackBar";
 import VolumeControl from "../../components/VolumeControl";
 import { useMetronome } from "../../contexts/MetronomeContext";
 import { useWakeLock } from "../../hooks/useWakeLock";
-import RhythmSettingsCard, { SOUNDS, type RhythmSettings, type Sound } from "./RhythmSettings";
-import PolyrhythmToolbar from "./PolyrhythmToolbar";
-import PolyrhythmVisualizer from "./PolyrhythmVisualizer";
-import { usePolyrhythmAudio } from "./usePolyrhythmAudio";
-import { usePolyrhythmUrlSync } from "./usePolyrhythmUrlSync";
+import RhythmSettingsCard from "./components/RhythmSettings";
+import PolyrhythmToolbar from "./components/PolyrhythmToolbar";
+import PolyrhythmVisualizer from "./components/PolyrhythmVisualizer";
+import { usePolyrhythmAudio } from "./hooks/usePolyrhythmAudio";
+import { usePolyrhythmUrlSync } from "./hooks/usePolyrhythmUrlSync";
+import type { RhythmSettings, Sound } from "./types";
+import { SOUNDS } from "./utils/constants";
 
 const STORAGE_KEY = "music-tools:polyrhythm-settings";
 const DEFAULT_BPM = 60;

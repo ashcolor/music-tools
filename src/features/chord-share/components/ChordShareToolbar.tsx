@@ -15,8 +15,8 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { VOICING_TYPE_OPTIONS } from "./constants";
-import { useChordShare } from "./ChordShareContext";
+import { VOICING_TYPE_OPTIONS } from "../utils/constants";
+import { useChordShare } from "../hooks/ChordShareContext";
 import {
   applyTemplateOrder,
   createUserTemplate,
@@ -27,10 +27,10 @@ import {
   saveTemplateOrder,
   saveUserTemplates,
   type ChordTemplate,
-} from "./chordTemplates";
-import { BUILTIN_TEMPLATES } from "./builtinTemplates";
+} from "../utils/chordTemplates";
+import { BUILTIN_TEMPLATES } from "../utils/builtinTemplates";
 import { SortableTemplateItem } from "./SortableTemplateItem";
-import { useToast } from "../../hooks/useToast";
+import { useToast } from "../../../hooks/useToast";
 
 type SnsShare = {
   label: string;

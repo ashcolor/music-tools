@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Note } from "tonal";
 import { Accidental, Formatter, Renderer, Stave, StaveNote, Voice } from "vexflow";
-import { type AccidentalDisplay, toAccidental } from "./constants";
+import { type AccidentalDisplay, toAccidental } from "../utils/constants";
 
 type Props = {
   notes: string[];

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
-import type { RhythmSettings, Sound } from "./RhythmSettings";
+import type { RhythmSettings, Sound } from "../types";
 
 const SCHEDULER_INTERVAL_MS = 25;
 const SCHEDULE_AHEAD_TIME = 0.1;

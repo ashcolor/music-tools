@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Icon } from "@iconify/react";
-import { MAIN_TYPES, findMainTypeByType } from "./constants";
+import { MAIN_TYPES, findMainTypeByType } from "../utils/constants";
 
 type Props = {
   value: string;

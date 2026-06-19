@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import type { RhythmSettings, Sound } from "./RhythmSettings";
+import type { RhythmSettings, Sound } from "../types";
 
 const SOUND_COLOR: Record<Sound, string> = {
   electronicLow: "oklch(0.72 0.15 240)",

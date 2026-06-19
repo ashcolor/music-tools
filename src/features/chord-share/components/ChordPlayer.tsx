@@ -1,6 +1,6 @@
 import { Icon } from "@iconify/react";
-import { buildChordVoicing, parseChord } from "./constants";
-import { useChordShare } from "./ChordShareContext";
+import { buildChordVoicing, parseChord } from "../utils/constants";
+import { useChordShare } from "../hooks/ChordShareContext";
 
 type Props = {
   chord: string;

@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
 import { Icon } from "@iconify/react";
-import { useMetronome } from "../../contexts/MetronomeContext";
-import BeatsInput from "../../components/BeatsInput";
-import BpmEditor from "../../components/BpmEditor";
+import { useMetronome } from "../../../contexts/MetronomeContext";
+import BeatsInput from "../../../components/BeatsInput";
+import BpmEditor from "../../../components/BpmEditor";
 
 export type NoteValue = 4 | 2 | 1 | 0.5;
 
