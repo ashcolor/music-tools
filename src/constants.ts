@@ -38,9 +38,6 @@ export const tools: Tool[] = [
     description: "複数のリズムを同時に鳴らしてポリリズムを練習できるツール",
     sidebarIcon: "lucide:pentagon",
   },
-];
-
-export const experimentalTools: Tool[] = [
   {
     path: "/chord-share",
     title: "コードシェア",
@@ -48,6 +45,8 @@ export const experimentalTools: Tool[] = [
     sidebarIcon: "material-symbols:library-music-outline-rounded",
   },
 ];
+
+export const experimentalTools: Tool[] = [];
 
 export const allTools: Tool[] = [...tools, ...experimentalTools];
 

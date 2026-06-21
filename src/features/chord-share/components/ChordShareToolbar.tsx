@@ -78,7 +78,6 @@ const SNS_SHARES: SnsShare[] = [
 type Props = {
   wakeLock: boolean;
   onWakeLockChange: (v: boolean) => void;
-  onReset: () => void;
   chords: string[];
   onApplyChords: (text: string) => void;
 };
@@ -86,14 +85,13 @@ type Props = {
 export default function ChordShareToolbar({
   wakeLock,
   onWakeLockChange,
-  onReset,
   chords,
   onApplyChords,
 }: Props) {
   const { voicingType, setVoicingType } = useChordShare();
   const helpRef = useRef<HTMLDialogElement>(null);
   const shortcutsRef = useRef<HTMLDialogElement>(null);
-  const resetRef = useRef<HTMLDialogElement>(null);
+  const settingsResetRef = useRef<HTMLDialogElement>(null);
   const shareRef = useRef<HTMLDialogElement>(null);
   const settingsRef = useRef<HTMLDialogElement>(null);
   const chordInputRef = useRef<HTMLDialogElement>(null);
@@ -207,9 +205,10 @@ export default function ChordShareToolbar({
     }
   };
 
-  const handleReset = () => {
-    onReset();
-    resetRef.current?.close();
+  const handleResetSettings = () => {
+    onWakeLockChange(false);
+    setVoicingType("stackFromRoot");
+    settingsResetRef.current?.close();
   };
 
   const openChordInput = () => {
@@ -389,15 +388,6 @@ export default function ChordShareToolbar({
       <button
         type="button"
         className="btn btn-ghost btn-sm btn-square"
-        aria-label="初期化"
-        title="初期化"
-        onClick={() => resetRef.current?.showModal()}
-      >
-        <Icon icon="mdi:restore" className="size-5" />
-      </button>
-      <button
-        type="button"
-        className="btn btn-ghost btn-sm btn-square"
         aria-label="URL共有"
         title="URL共有"
         onClick={openShare}
@@ -466,10 +456,6 @@ export default function ChordShareToolbar({
                 <p className="flex items-center gap-2">
                   <Icon icon="mdi:keyboard-outline" className="size-4 shrink-0" />
                   <span>ショートカット一覧</span>
-                </p>
-                <p className="flex items-center gap-2">
-                  <Icon icon="mdi:restore" className="size-4 shrink-0" />
-                  <span>コードをリセット</span>
                 </p>
                 <p className="flex items-center gap-2">
                   <Icon icon="lucide:share-2" className="size-4 shrink-0" />
@@ -619,7 +605,18 @@ export default function ChordShareToolbar({
 
       <dialog ref={settingsRef} className="modal">
         <div className="modal-box">
-          <h3 className="font-bold text-lg mb-4">設定</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-bold text-lg">設定</h3>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm btn-square"
+              aria-label="設定を初期化"
+              title="設定を初期化"
+              onClick={() => settingsResetRef.current?.showModal()}
+            >
+              <Icon icon="mdi:restore" className="size-5" />
+            </button>
+          </div>
           <div className="flex flex-col gap-4 text-sm">
             <label className="label cursor-pointer justify-start gap-3">
               <input
@@ -861,14 +858,14 @@ export default function ChordShareToolbar({
         </form>
       </dialog>
 
-      <dialog ref={resetRef} className="modal">
+      <dialog ref={settingsResetRef} className="modal">
         <div className="modal-box">
-          <h3 className="font-bold text-lg mb-4">初期化</h3>
-          <p className="text-sm">コード進行を初期状態に戻します。よろしいですか？</p>
+          <h3 className="font-bold text-lg mb-4">設定の初期化</h3>
+          <p className="text-sm">設定を初期状態に戻します。よろしいですか？</p>
           <div className="modal-action">
             <form method="dialog" className="flex gap-2">
               <button className="btn">キャンセル</button>
-              <button type="button" className="btn btn-error" onClick={handleReset}>
+              <button type="button" className="btn btn-error" onClick={handleResetSettings}>
                 初期化する
               </button>
             </form>

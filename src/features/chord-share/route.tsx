@@ -96,14 +96,6 @@ function ChordShareInner() {
   const noteValueOption = NOTE_VALUE_OPTIONS.find((option) => option.value === noteValue);
   const noteValueLabel = noteValueOption?.label ?? `${noteValue}分音符`;
 
-  // URL ?accidental= があれば初回マウント時にローカル設定へ反映
-  useEffect(() => {
-    const param = searchParams.get("accidental");
-    if (param === "sharp" || param === "flat" || param === "auto") {
-      setAccidentalDisplay(param);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // 表示設定変化に合わせて既存コード列も異名変換
   useEffect(() => {
@@ -137,12 +129,12 @@ function ChordShareInner() {
         const next = new URLSearchParams(prev);
         next.set("text", chords.join(","));
         next.delete("chord");
-        next.set("accidental", accidentalDisplay);
+        next.delete("accidental");
         return next;
       },
       { replace: true },
     );
-  }, [chords, accidentalDisplay, setSearchParams]);
+  }, [chords, setSearchParams]);
 
   const chordNotes = useMemo(() => computeChordNotes(chords, voicingType), [chords, voicingType]);
   const hasInvalidChord = useMemo(
@@ -323,12 +315,6 @@ function ChordShareInner() {
     pausedElapsedRef.current = 0;
   }, [clearTimers, sampler, setActiveChordIndex]);
 
-  const handleReset = useCallback(() => {
-    handleStop();
-    setChords(INITIAL_CHORDS);
-    setChordIds(INITIAL_CHORDS.map(() => makeChordId()));
-  }, [handleStop]);
-
   const handleTranspose = useCallback(
     (semitones: number) => {
       setChords((prev) => {
@@ -501,7 +487,6 @@ function ChordShareInner() {
       <ChordShareToolbar
         wakeLock={wakeLock}
         onWakeLockChange={setWakeLock}
-        onReset={handleReset}
         chords={chords}
         onApplyChords={handleApplyChordsText}
       />
