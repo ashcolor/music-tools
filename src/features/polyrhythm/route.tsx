@@ -240,6 +240,9 @@ export function Polyrhythm() {
     handleStop();
     setBpm(DEFAULT_BPM);
     setRhythms(DEFAULT_RHYTHMS);
+  };
+
+  const handleResetSettings = () => {
     setWakeLock(DEFAULT_WAKE_LOCK);
     setShowVisualizer(DEFAULT_SHOW_VISUALIZER);
   };
@@ -253,6 +256,7 @@ export function Polyrhythm() {
         showVisualizer={showVisualizer}
         onShowVisualizerChange={setShowVisualizer}
         onReset={handleReset}
+        onResetSettings={handleResetSettings}
       />
       <div className="flex-1 min-h-0 flex flex-col w-full max-w-xl mx-auto">
         <div className="flex-1 min-h-0 flex flex-col items-center gap-8 p-4 md:p-8">

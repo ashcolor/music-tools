@@ -121,7 +121,8 @@ type Action =
   | { type: "PAUSE" }
   | { type: "STOP" }
   | { type: "STOP_ACCELERATION" }
-  | { type: "RESET" };
+  | { type: "RESET" }
+  | { type: "RESET_SETTINGS" };
 
 function accelerationBoundBpm(mode: AccelerationMode): number {
   return mode === "decel" ? MIN_BPM : MAX_BPM;
@@ -331,6 +332,13 @@ function reducer(state: State, action: Action): State {
         showPendulum: state.showPendulum,
         showVisualizer: state.showVisualizer,
       };
+    case "RESET_SETTINGS":
+      return {
+        ...state,
+        wakeLock: initialState.wakeLock,
+        showPendulum: initialState.showPendulum,
+        showVisualizer: initialState.showVisualizer,
+      };
   }
 }
 
@@ -354,6 +362,7 @@ type Actions = {
   setShowPendulum: (v: boolean) => void;
   setShowVisualizer: (v: boolean) => void;
   reset: () => void;
+  resetSettings: () => void;
 };
 
 type ContextValue = {
@@ -665,6 +674,10 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
     syncDispatch({ type: "RESET" });
   }, [syncDispatch, stopAudioClock]);
 
+  const resetSettings = useCallback(() => {
+    syncDispatch({ type: "RESET_SETTINGS" });
+  }, [syncDispatch]);
+
   const getMeasurePhase = useCallback(() => {
     const ctx = audioContextRef.current;
     if (!ctx) return 0;
@@ -743,6 +756,7 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
         setShowPendulum,
         setShowVisualizer,
         reset,
+        resetSettings,
       },
     }),
     [
@@ -766,6 +780,7 @@ export function MetronomeProvider({ children }: { children: ReactNode }) {
       setShowPendulum,
       setShowVisualizer,
       reset,
+      resetSettings,
       getMeasurePhase,
     ],
   );

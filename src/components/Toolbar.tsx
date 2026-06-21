@@ -52,6 +52,7 @@ export default function Toolbar() {
   const resetRef = useRef<HTMLDialogElement>(null);
   const shareRef = useRef<HTMLDialogElement>(null);
   const settingsRef = useRef<HTMLDialogElement>(null);
+  const settingsResetRef = useRef<HTMLDialogElement>(null);
   const isWakeLockSupported = typeof navigator !== "undefined" && "wakeLock" in navigator;
   const [shareBaseUrl, setShareBaseUrl] = useState("");
   const [shareSearch, setShareSearch] = useState("");
@@ -91,6 +92,11 @@ export default function Toolbar() {
   const handleReset = () => {
     actions.reset();
     resetRef.current?.close();
+  };
+
+  const handleResetSettings = () => {
+    actions.resetSettings();
+    settingsResetRef.current?.close();
   };
 
   return (
@@ -360,7 +366,18 @@ export default function Toolbar() {
 
       <dialog ref={settingsRef} className="modal">
         <div className="modal-box">
-          <h3 className="font-bold text-lg mb-4">設定</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-bold text-lg">設定</h3>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm btn-square"
+              aria-label="設定を初期化"
+              title="設定を初期化"
+              onClick={() => settingsResetRef.current?.showModal()}
+            >
+              <Icon icon="mdi:restore" className="size-5" />
+            </button>
+          </div>
           <div className="flex flex-col gap-3 text-sm">
             <label className="label cursor-pointer justify-start gap-3">
               <input
@@ -414,11 +431,29 @@ export default function Toolbar() {
       <dialog ref={resetRef} className="modal">
         <div className="modal-box">
           <h3 className="font-bold text-lg mb-4">初期化</h3>
-          <p className="text-sm">設定を初期状態に戻します。よろしいですか？</p>
+          <p className="text-sm">テンポや拍子などの設定を初期状態に戻します。よろしいですか？</p>
           <div className="modal-action">
             <form method="dialog" className="flex gap-2">
               <button className="btn">キャンセル</button>
               <button type="button" className="btn btn-error" onClick={handleReset}>
+                初期化する
+              </button>
+            </form>
+          </div>
+        </div>
+        <form method="dialog" className="modal-backdrop">
+          <button>close</button>
+        </form>
+      </dialog>
+
+      <dialog ref={settingsResetRef} className="modal">
+        <div className="modal-box">
+          <h3 className="font-bold text-lg mb-4">設定の初期化</h3>
+          <p className="text-sm">設定を初期状態に戻します。よろしいですか？</p>
+          <div className="modal-action">
+            <form method="dialog" className="flex gap-2">
+              <button className="btn">キャンセル</button>
+              <button type="button" className="btn btn-error" onClick={handleResetSettings}>
                 初期化する
               </button>
             </form>
