@@ -491,7 +491,7 @@ function ChordShareInner() {
         onApplyChords={handleApplyChordsText}
       />
       <div className="flex-1 min-h-0 flex flex-col w-full max-w-xl mx-auto relative">
-        <div className="flex-1 min-h-0 flex flex-col items-center gap-4 overflow-y-auto p-4">
+        <div className="flex-1 min-h-0 flex flex-col items-center gap-2 overflow-y-auto p-2">
           <div className="w-full text-center">
             <button
               type="button"
@@ -513,11 +513,11 @@ function ChordShareInner() {
               </span>
             </button>
           </div>
-          <div className="rounded-xl p-3 w-full flex flex-col items-center gap-3 border border-base-300">
-            <div className="w-40">
+          <div className="rounded-xl p-2 w-full flex flex-col items-center gap-1 border border-base-300">
+            <div className="w-32">
               <SheetMusic notes={activeNotes} accidentalDisplay={accidentalDisplay} />
             </div>
-            <div className="w-full pb-8 flex flex-row items-center gap-1">
+            <div className="w-full pb-4 flex flex-row items-center gap-1">
               <Icon
                 icon="mdi:music-clef-bass"
                 className="size-8 shrink-0 opacity-70"
@@ -536,7 +536,7 @@ function ChordShareInner() {
               </div>
             </div>
           </div>
-          <div className="flex-1 min-h-0 overflow-y-auto flex flex-row flex-wrap content-center justify-center items-center gap-2 w-full">
+          <div className="flex-1 min-h-0 overflow-y-auto flex flex-row flex-wrap content-center justify-center items-center gap-0.5 w-full">
             <DndContext
               sensors={chordSensors}
               collisionDetection={closestCenter}
@@ -548,7 +548,7 @@ function ChordShareInner() {
                     {index > 0 && (
                       <Icon
                         icon="material-symbols:chevron-right-rounded"
-                        className="size-5 sm:size-6 md:size-8 opacity-50"
+                        className="size-4 sm:size-5 md:size-6 opacity-50 shrink-0"
                         aria-hidden
                       />
                     )}
@@ -670,6 +670,7 @@ function ChordShareInner() {
             </button>
           }
           disabled={hasInvalidChord}
+          compact
         />
       </div>
 
