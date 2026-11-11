@@ -27,21 +27,21 @@ export function ChordDisplay({ value, onClick, isActive }: Props) {
   const isInvalid = !isValidNote(root) || !isValidNote(bass) || !isValidChordNotes(root, type);
   return (
     <div
-      className={`flex flex-row items-end leading-none cursor-pointer rounded px-2 py-1 transition-colors gap-0.5 ${
+      className={`flex flex-row items-end leading-none cursor-pointer rounded px-1 py-1 transition-colors gap-0.5 ${
         isActive ? "bg-primary/20" : ""
       }`}
       onClick={onClick}
     >
-      <span className="text-2xl sm:text-3xl md:text-4xl font-bold leading-none">
+      <span className="text-xl sm:text-2xl md:text-3xl font-bold leading-none">
         {renderWithAccidentals(root)}
       </span>
-      <span className="text-lg sm:text-xl md:text-2xl leading-none">
+      <span className="text-base sm:text-lg md:text-xl leading-none">
         {renderWithAccidentals(type)}
       </span>
       {root !== bass && (
         <>
-          <span className="text-lg sm:text-xl md:text-2xl leading-none">/</span>
-          <span className="text-2xl sm:text-3xl md:text-4xl font-bold leading-none">
+          <span className="text-base sm:text-lg md:text-xl leading-none">/</span>
+          <span className="text-xl sm:text-2xl md:text-3xl font-bold leading-none">
             {renderWithAccidentals(bass)}
           </span>
         </>

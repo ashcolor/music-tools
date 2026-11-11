@@ -10,6 +10,7 @@ type PlaybackBarProps = {
   leftSlot?: ReactNode;
   rightSlot?: ReactNode;
   disabled?: boolean;
+  compact?: boolean;
 };
 
 export default function PlaybackBar({
@@ -21,22 +22,29 @@ export default function PlaybackBar({
   leftSlot,
   rightSlot,
   disabled = false,
+  compact = false,
 }: PlaybackBarProps) {
   const isIdle = !isPlaying && !isPaused;
+  const buttonSize = compact ? "size-12" : "size-20";
+  const iconSize = compact ? "28" : "48";
   const playPauseButton =
     isPlaying && !isPaused ? (
-      <button className="btn btn-circle btn-secondary size-20" onClick={onPause}>
-        <Icon icon="material-symbols:pause-rounded" width="48" height="48" />
+      <button className={`btn btn-circle btn-secondary ${buttonSize}`} onClick={onPause}>
+        <Icon icon="material-symbols:pause-rounded" width={iconSize} height={iconSize} />
       </button>
     ) : (
-      <button className="btn btn-circle btn-primary size-20" onClick={onPlay} disabled={disabled}>
-        <Icon icon="material-symbols:play-arrow-rounded" width="48" height="48" />
+      <button
+        className={`btn btn-circle btn-primary ${buttonSize}`}
+        onClick={onPlay}
+        disabled={disabled}
+      >
+        <Icon icon="material-symbols:play-arrow-rounded" width={iconSize} height={iconSize} />
       </button>
     );
 
   return (
     <div className="sticky bottom-0 z-10 border-t border-base-300 bg-base-100 flex justify-center">
-      <div className="grid grid-cols-3 items-center w-full max-w-xl px-4 py-2">
+      <div className={`grid grid-cols-3 items-center w-full max-w-xl px-4 ${compact ? "py-1" : "py-2"}`}>
         <div className="flex justify-start">{leftSlot}</div>
         <div className="flex justify-center">
           <div className="relative">
